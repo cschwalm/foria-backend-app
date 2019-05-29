@@ -4,15 +4,15 @@ import java.io.Serializable;
 
 public class BaseApiModel implements Serializable {
 
-    private String errorCode = "0";
+    private String statusCode = "0";
     private String message = "OK";
 
-    public String getErrorCode() {
-        return errorCode;
+    public String getStatusCode() {
+        return statusCode;
     }
 
-    public BaseApiModel setErrorCode(String errorCode) {
-        this.errorCode = errorCode;
+    public BaseApiModel setStatusCode(String statusCode) {
+        this.statusCode = statusCode;
         return this;
     }
 
@@ -28,7 +28,7 @@ public class BaseApiModel implements Serializable {
     @Override
     public String toString() {
         return "BaseApiModel{" +
-                "errorCode='" + errorCode + '\'' +
+                "statusCode='" + statusCode + '\'' +
                 ", message='" + message + '\'' +
                 '}';
     }
