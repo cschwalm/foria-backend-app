@@ -1,6 +1,6 @@
 package com.foriatickets.foriabackend.controllers;
 
-import com.foriatickets.foriabackend.api_models.BaseApiModel;
+import io.swagger.model.BaseApiModel;
 import org.junit.Assert;
 import org.junit.Test;
 import org.springframework.boot.test.context.SpringBootTest;
