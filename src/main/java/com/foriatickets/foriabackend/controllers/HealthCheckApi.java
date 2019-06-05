@@ -12,10 +12,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 @RequestMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
 public class HealthCheckApi implements io.swagger.api.HealthCheckApi {
 
-    /**
-     * Simple health check that does nothing more but ensure the system is receiving API requests.
-     * @return Base model.
-     */
+    @Override
     @RequestMapping(path = "/health-check", method = RequestMethod.GET)
     public ResponseEntity<BaseApiModel> healthCheck() {
 
