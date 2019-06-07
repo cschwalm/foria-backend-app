@@ -33,9 +33,10 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .configure(http)
                 .authorizeRequests()
                     .antMatchers(HttpMethod.GET, "/health-check").permitAll()
-                    .anyRequest().fullyAuthenticated()
-                .and()
+                    .antMatchers( "/console/**").permitAll()
+                    .anyRequest().fullyAuthenticated().and()
                 .csrf().disable()
+                .headers().frameOptions().disable().and()
                 .httpBasic().disable()
                 .sessionManagement()
                     .sessionCreationPolicy(SessionCreationPolicy.STATELESS);

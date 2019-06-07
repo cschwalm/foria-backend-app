@@ -21,7 +21,7 @@ spring:
     profiles: local
 
 spring.h2.console.enabled: true
-spring.h2.console.path: /h2-console
+spring.h2.console.path: /console
 spring.jpa.hibernate.ddl-auto: create
 
 logging.config: classpath:log4j2-local.xml

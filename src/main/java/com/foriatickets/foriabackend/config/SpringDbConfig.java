@@ -14,7 +14,6 @@ import javax.sql.DataSource;
 
 @Configuration
 @EnableJpaRepositories(basePackages = "com.foriatickets.foriabackend.repositories")
-@EntityScan(basePackages = "com.cryptoarbitragetraders.cryptos.entities")
 @EnableTransactionManagement
 public class SpringDbConfig {
 
