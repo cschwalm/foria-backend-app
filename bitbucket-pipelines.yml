@@ -17,7 +17,7 @@ pipelines:
           script:
             - mvn -B clean install
           artifacts:
-            - foria-api-server.jar
+            - target/foria-api-server.jar
       - step:
           name: "Deploy to AWS Elastic Beanstalk"
           deployment: staging
