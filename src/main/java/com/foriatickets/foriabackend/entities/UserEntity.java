@@ -4,11 +4,14 @@ import org.hibernate.annotations.Type;
 
 import javax.persistence.*;
 import java.io.Serializable;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 
 @Entity
 @Table(name = "user")
+@SuppressWarnings("unused")
 public class UserEntity implements Serializable {
 
     private UUID id;
@@ -16,11 +19,12 @@ public class UserEntity implements Serializable {
     private String firstName;
     private String lastName;
     private String email;
+    private Set<TicketEntity> tickets = new HashSet<>();
 
     @Id
     @GeneratedValue
     @Type(type = "uuid-char")
-    @Column(name = "id", columnDefinition = "uuid", updatable = false)
+    @Column(name = "id", updatable = false)
     public UUID getId() {
         return id;
     }
@@ -30,7 +34,7 @@ public class UserEntity implements Serializable {
         return this;
     }
 
-    @Column(name = "auth0_id", unique = true)
+    @Column(name = "auth0_id", unique = true, nullable = false)
     public String getAuth0Id() {
         return auth0Id;
     }
@@ -40,7 +44,7 @@ public class UserEntity implements Serializable {
         return this;
     }
 
-    @Column(name = "first_name")
+    @Column(name = "first_name", nullable = false)
     public String getFirstName() {
         return firstName;
     }
@@ -50,7 +54,7 @@ public class UserEntity implements Serializable {
         return this;
     }
 
-    @Column(name = "last_name")
+    @Column(name = "last_name", nullable = false)
     public String getLastName() {
         return lastName;
     }
@@ -60,13 +64,23 @@ public class UserEntity implements Serializable {
         return this;
     }
 
-    @Column(name = "email")
+    @Column(name = "email", nullable = false)
     public String getEmail() {
         return email;
     }
 
     public UserEntity setEmail(String email) {
         this.email = email;
+        return this;
+    }
+
+    @OneToMany(mappedBy = "ownerEntity", fetch = FetchType.LAZY)
+    public Set<TicketEntity> getTickets() {
+        return tickets;
+    }
+
+    public UserEntity setTickets(Set<TicketEntity> tickets) {
+        this.tickets = tickets;
         return this;
     }
 

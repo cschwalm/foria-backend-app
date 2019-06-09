@@ -46,7 +46,7 @@ public interface AWSSecretsManagerGateway {
         }
 
         public String getJDBCUrl(String dbName) {
-            return "jdbc:" + engine + "://" + host + ":" + port + "/" + dbName;
+            return "jdbc:" + engine + "://" + host + ":" + port + "/" + dbName + "?requireSSL=true";
         }
     }
 

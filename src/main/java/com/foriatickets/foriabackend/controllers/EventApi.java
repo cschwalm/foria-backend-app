@@ -14,7 +14,7 @@ import javax.validation.Valid;
 import javax.validation.constraints.Size;
 
 @Controller
-@RequestMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+@RequestMapping(path = "/v1/", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
 public class EventApi implements io.swagger.api.EventApi {
 
     @RequestMapping(value = "/event", method = RequestMethod.POST)

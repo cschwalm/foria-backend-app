@@ -8,8 +8,12 @@ spring:
         logging.config: classpath:log4j2.xml
         serialization.write_dates_as_timestamps: false
     jpa:
-        hibernate.naming.physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
         open-in-view: false
+        properties:
+            hibernate:
+                dialect: org.hibernate.dialect.MySQL55Dialect
+    mustache:
+        check-template-location: false
     profiles.active: local
 
 server:
@@ -22,7 +26,7 @@ spring:
 
 spring.h2.console.enabled: true
 spring.h2.console.path: /console
-spring.jpa.hibernate.ddl-auto: create
+spring.jpa.hibernate.ddl-auto: update
 
 logging.config: classpath:log4j2-local.xml
 

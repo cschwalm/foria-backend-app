@@ -1,7 +1,9 @@
 package com.foriatickets.foriabackend.controllers;
 
+import com.foriatickets.foriabackend.service.UserCreationService;
 import io.swagger.model.Ticket;
 import io.swagger.model.User;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -16,13 +18,23 @@ import javax.validation.constraints.Size;
 import java.util.List;
 
 @Controller
-@RequestMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+@RequestMapping(path = "/v1/", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
 public class UserApi implements io.swagger.api.UserApi {
+
+    private UserCreationService userCreationService;
+
+    public UserApi(@Autowired UserCreationService userCreationService) {
+
+        assert userCreationService != null;
+        this.userCreationService = userCreationService;
+    }
 
     @Override
     @RequestMapping(value = "/user", method = RequestMethod.POST)
     public ResponseEntity<User> createUser(@Valid @RequestBody User body) {
-        return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
+
+        User newUser = userCreationService.createUser(body);
+        return new ResponseEntity<>(newUser, HttpStatus.OK);
     }
 
     @Override

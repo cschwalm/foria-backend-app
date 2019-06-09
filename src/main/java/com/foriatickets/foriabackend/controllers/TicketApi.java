@@ -16,7 +16,7 @@ import javax.validation.Valid;
 import javax.validation.constraints.Size;
 
 @Controller
-@RequestMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+@RequestMapping(path = "/v1/", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
 public class TicketApi implements io.swagger.api.TicketApi {
 
     @Override

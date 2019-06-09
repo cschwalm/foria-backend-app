@@ -402,6 +402,11 @@ definitions:
         format: uuid
         maxLength: 36
         readOnly: true
+      venue_id:
+        type: "string"
+        format: uuid
+        maxLength: 36
+        readOnly: true
       name:
         type: "string"
       time:
@@ -425,11 +430,11 @@ definitions:
         format: uuid
         maxLength: 36
         readOnly: true
-      event-id:
+      event_id:
         type: string
         format: uuid
         maxLength: 36
-      owner-id:
+      owner_id:
         type: string
         format: uuid
         maxLength: 36
@@ -441,7 +446,7 @@ definitions:
         type: string
       issued-date:
         type: string
-        format: date-time
+        format: date_time
   TransferRequest:
     type: "object"
     readOnly: true
@@ -489,6 +494,8 @@ definitions:
       contact_name:
         type: "string"
       contact_email:
+        type: "string"
+      contact_phone_country:
         type: "string"
       contact_phone:
         type: "string"
