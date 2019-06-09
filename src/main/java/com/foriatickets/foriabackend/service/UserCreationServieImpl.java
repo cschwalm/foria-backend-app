@@ -12,13 +12,13 @@ import javax.transaction.Transactional;
 
 @Service
 @Transactional
-public class UserServiceImpl implements UserCreationService {
+public class UserCreationServieImpl implements UserCreationService {
 
     private static final Logger LOG = LogManager.getLogger();
 
     private UserRepository userRepository;
 
-    public UserServiceImpl(@Autowired UserRepository userRepository) {
+    public UserCreationServieImpl(@Autowired UserRepository userRepository) {
 
         assert userRepository != null;
         this.userRepository = userRepository;
