@@ -29,6 +29,6 @@ pipelines:
                 AWS_DEFAULT_REGION: "us-east-1"
                 APPLICATION_NAME: "foria-api-server"
                 ENVIRONMENT_NAME: "foria-api-staging"
-                ZIP_FILE: "foria-api-server.jar"
+                ZIP_FILE: "target/foria-api-server.jar"
                 S3_BUCKET: "elasticbeanstalk-us-east-1-907328165182"
                 VERSION_LABEL: "foria-api-server-$BITBUCKET_BUILD_NUMBER"
