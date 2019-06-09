@@ -8,7 +8,7 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.foriatickets</groupId>
-    <artifactId>foria-backend</artifactId>
+    <artifactId>foria-api-server</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>foria-backend</name>
     <description>Backend API service for the Foria ticketing app.</description>
@@ -130,6 +130,7 @@
     </dependencies>
 
     <build>
+        <finalName>${project.artifactId}</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
