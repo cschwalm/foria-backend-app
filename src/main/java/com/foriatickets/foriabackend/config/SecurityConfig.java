@@ -32,7 +32,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .forRS256(apiAudience, issuer)
                 .configure(http)
                 .authorizeRequests()
-                    .antMatchers(HttpMethod.GET, "/health-check").permitAll()
+                    .antMatchers(HttpMethod.GET, "/v1/health-check").permitAll()
                     .antMatchers( "/console/**").permitAll()
                     .anyRequest().fullyAuthenticated().and()
                 .csrf().disable()
