@@ -7,8 +7,11 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.UUID;
@@ -26,7 +29,7 @@ public class UserCreationServiceImplTest {
 
     @Before
     public void setUp() {
-        userCreationService = new UserCreationServieImpl(userRepository);
+        userCreationService = new UserCreationServiceImpl(userRepository);
     }
 
     @Test
@@ -44,6 +47,13 @@ public class UserCreationServiceImplTest {
         userMock.setFirstName("Test");
         userMock.setLastName("Test");
         userMock.setAuth0Id("auth0|test");
+
+        Authentication authentication = Mockito.mock(Authentication.class);
+        SecurityContext securityContext = Mockito.mock(SecurityContext.class);
+        Mockito.when(securityContext.getAuthentication()).thenReturn(authentication);
+        Mockito.when(authentication.isAuthenticated()).thenReturn(true);
+        Mockito.when(authentication.getName()).thenReturn(userMock.getAuth0Id());
+        SecurityContextHolder.setContext(securityContext);
 
         when(userRepository.save(any(UserEntity.class))).thenReturn(userEntityMock);
 

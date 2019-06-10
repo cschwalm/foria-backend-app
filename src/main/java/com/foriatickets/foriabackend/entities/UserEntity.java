@@ -64,7 +64,7 @@ public class UserEntity implements Serializable {
         return this;
     }
 
-    @Column(name = "email", nullable = false)
+    @Column(name = "email", unique = true, nullable = false)
     public String getEmail() {
         return email;
     }
