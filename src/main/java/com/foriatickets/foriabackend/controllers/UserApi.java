@@ -30,7 +30,7 @@ public class UserApi implements io.swagger.api.UserApi {
     }
 
     @Override
-    @RequestMapping(value = "/user", method = RequestMethod.POST)
+    @RequestMapping(value = "/register", method = RequestMethod.POST)
     public ResponseEntity<User> createUser(@Valid @RequestBody User body) {
 
         User newUser = userCreationService.createUser(body);

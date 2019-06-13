@@ -1,5 +1,7 @@
 package com.foriatickets.foriabackend.gateway;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import org.apache.logging.log4j.LogManager;
@@ -10,7 +12,8 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
 import software.amazon.awssdk.services.secretsmanager.model.*;
 
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class AWSSecretsManagerGatewayImpl implements AWSSecretsManagerGateway {
@@ -18,11 +21,51 @@ public class AWSSecretsManagerGatewayImpl implements AWSSecretsManagerGateway {
     private static final Logger LOG = LogManager.getLogger();
     private SecretsManagerClient secretsManagerClient;
 
+    private Map<String, GetSecretValueResponse> keyCache = new HashMap<>();
+
     public AWSSecretsManagerGatewayImpl() {
 
         secretsManagerClient = SecretsManagerClient.builder()
                 .region(Region.US_EAST_1)
                 .build();
+    }
+
+    @Override
+    public Optional<ApiKey> getApiKey(String keyName) {
+
+        GetSecretValueResponse payload;
+        if (keyCache.containsKey(keyName)) {
+            payload = keyCache.get(keyName);
+        } else {
+            payload = getSecretPayload(keyName);
+
+            if (payload == null) {
+                return Optional.empty();
+            }
+
+            LOG.debug("{} payload stored in cache.", keyName);
+            keyCache.put(keyName, payload);
+        }
+
+        List<JsonElement> scopeList = new ArrayList<>();
+        ApiKey apiKey = new ApiKey();
+        JsonObject root;
+        try {
+            root = new JsonParser().parse(payload.secretString()).getAsJsonObject();
+        } catch (RuntimeException ex) {
+            LOG.error("Malformed JSON from Secrets manager for keyName: {}!", keyName);
+            return Optional.empty();
+        }
+
+        root.get("scopes").getAsJsonArray().iterator().forEachRemaining(scopeList::add);
+        List<String> scopes = scopeList.stream().map(JsonElement::getAsString).collect(Collectors.toList());
+
+        apiKey.key = root.get("key").getAsString();
+        apiKey.secret = root.get("secret").getAsString();
+        apiKey.scopes = scopes;
+
+        LOG.trace("Successfully loaded API key: {}", keyName);
+        return Optional.of(apiKey);
     }
 
     @Override
@@ -47,8 +90,6 @@ public class AWSSecretsManagerGatewayImpl implements AWSSecretsManagerGateway {
             return Optional.empty();
         }
 
-        DBInfo info;
-
         JsonObject root = new JsonParser().parse(payload.secretString()).getAsJsonObject();
 
         String username = root.get("username").getAsString();
@@ -62,13 +103,12 @@ public class AWSSecretsManagerGatewayImpl implements AWSSecretsManagerGateway {
             return Optional.empty();
         }
 
-        info = new DBInfo()
+        DBInfo info = new DBInfo()
                 .setUsername(username)
                 .setPassword(password)
                 .setEngine(engine)
                 .setHost(host)
                 .setPort(port);
-
 
         LOG.info("Successfully loaded database connection info from AWS Secrets Manager.");
         return Optional.of(info);

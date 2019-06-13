@@ -246,7 +246,7 @@ paths:
           description: "Ticket not found by ID."
           schema:
             $ref: '#/definitions/BaseApiModel'
-  /user:
+  /register:
     post:
       operationId: createUser
       tags:

@@ -111,7 +111,7 @@ public class TicketEntity implements Serializable {
     @Override
     public String toString() {
         return "TicketEntity{" +
-                "id=" + id +
+                "key=" + id +
                 ", eventEntityId=" + eventEntity.getId() +
                 ", ownerEntityId=" + ownerEntity.getId() +
                 ", status=" + status +

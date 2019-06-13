@@ -1,5 +1,6 @@
 package com.foriatickets.foriabackend.gateway;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -9,6 +10,12 @@ import java.util.Optional;
  * @author Corbin Schwalm
  */
 public interface AWSSecretsManagerGateway {
+
+    class ApiKey {
+        public String key;
+        public String secret;
+        public List<String> scopes;
+    }
 
     /**
      * Basic structure that provides connection information for the loaded database.
@@ -49,6 +56,14 @@ public interface AWSSecretsManagerGateway {
             return "jdbc:" + engine + "://" + host + ":" + port + "/" + dbName + "?requireSSL=true";
         }
     }
+
+    /**
+     * Returns a list of API keys that have permission to bypass JWT authentication.
+     *
+     * @param keyName ID of provider using key.
+     * @return Info including secret and scopes.
+     */
+    Optional<ApiKey> getApiKey(String keyName);
 
     /**
      * Returns a simple string of the stored secret.

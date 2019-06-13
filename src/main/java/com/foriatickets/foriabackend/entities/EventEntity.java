@@ -157,7 +157,7 @@ public class EventEntity implements Serializable {
     @Override
     public String toString() {
         return "EventEntity{" +
-                "id=" + id +
+                "key=" + id +
                 ", name='" + name + '\'' +
                 ", eventTime=" + eventTime +
                 ", eventStreetAddress='" + eventStreetAddress + '\'' +

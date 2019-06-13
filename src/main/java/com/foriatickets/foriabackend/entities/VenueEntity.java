@@ -164,7 +164,7 @@ public class VenueEntity implements Serializable {
     @Override
     public String toString() {
         return "VenueEntity{" +
-                "id=" + id +
+                "key=" + id +
                 ", name='" + name + '\'' +
                 ", description='" + description + '\'' +
                 ", contactName='" + contactName + '\'' +
