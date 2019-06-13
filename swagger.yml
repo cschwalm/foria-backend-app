@@ -248,7 +248,7 @@ paths:
             $ref: '#/definitions/BaseApiModel'
   /register:
     post:
-      operationId: createUser
+      operationId: registerUser
       tags:
         - "user"
       summary: "Create user in application database."
