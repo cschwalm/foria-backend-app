@@ -42,5 +42,4 @@ spring:
 # Corp Database Connection Info
 db.name: foria
 db.secret: corp-db-foria-user-pass
-logging.config: classpath:log4j2-local.xml #TODO: REMOVE ME BEFORE PROD
 apiKeyList: corp_foria_auth0_api_key
