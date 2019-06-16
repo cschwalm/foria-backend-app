@@ -35,7 +35,6 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .configure(http)
                 .addFilterBefore(new ApiKeyFilter(), HeaderWriterFilter.class)
                 .authorizeRequests()
-                    .antMatchers("/v1/user/**").hasAuthority("write:user")
                     .antMatchers(HttpMethod.POST, "/v1/register").hasAuthority("write:register")
                     .antMatchers(HttpMethod.GET, "/v1/health-check").permitAll()
                     .antMatchers( "/console/**").permitAll()
