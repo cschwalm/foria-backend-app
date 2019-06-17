@@ -37,9 +37,9 @@ public class EventApi implements io.swagger.api.EventApi {
 
     @RequestMapping(value = "/event/{event_id}", method = RequestMethod.GET)
     @Override
-    public ResponseEntity<Event> getEvent(@Size(max = 36) @PathVariable("event_id") String eventId) {
+    public ResponseEntity<Event> getEvent(@Size(max = 36) @PathVariable("event_id") UUID eventId) {
 
-        EventService eventService = beanFactory.getBean(EventService.class, UUID.fromString(eventId));
+        EventService eventService = beanFactory.getBean(EventService.class, eventId);
         return ResponseEntity.of(eventService.getEvent());
     }
 }

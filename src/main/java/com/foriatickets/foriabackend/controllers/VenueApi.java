@@ -37,9 +37,9 @@ public class VenueApi implements io.swagger.api.VenueApi {
 
     @Override
     @RequestMapping(value = "/venue/{venue_id}", method = RequestMethod.GET)
-    public ResponseEntity<Venue> getVenue(@Size(max = 36) @PathVariable("venue_id") String venueId) {
+    public ResponseEntity<Venue> getVenue(@Size(max = 36) @PathVariable("venue_id") UUID venueId) {
 
-        VenueService venueService = beanFactory.getBean(VenueService.class, UUID.fromString(venueId));
+        VenueService venueService = beanFactory.getBean(VenueService.class, venueId);
         return ResponseEntity.of(venueService.getVenue());
     }
 }
