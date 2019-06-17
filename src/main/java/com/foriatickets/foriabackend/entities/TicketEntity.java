@@ -1,11 +1,11 @@
 package com.foriatickets.foriabackend.entities;
 
 import org.hibernate.annotations.Type;
-import org.joda.time.DateTime;
 
 import javax.persistence.*;
 import java.io.Serializable;
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -28,7 +28,7 @@ public class TicketEntity implements Serializable {
     private String secret;
     private Status status;
     private BigDecimal price;
-    private DateTime issuedDate;
+    private OffsetDateTime issuedDate;
 
     @Id
     @GeneratedValue
@@ -98,12 +98,11 @@ public class TicketEntity implements Serializable {
 
 
     @Column(name = "issued_date", nullable = false)
-    @Type(type = "org.jadira.usertype.dateandtime.joda.PersistentDateTime")
-    public DateTime getIssuedDate() {
+    public OffsetDateTime getIssuedDate() {
         return issuedDate;
     }
 
-    public TicketEntity setIssuedDate(DateTime issuedDate) {
+    public TicketEntity setIssuedDate(OffsetDateTime issuedDate) {
         this.issuedDate = issuedDate;
         return this;
     }

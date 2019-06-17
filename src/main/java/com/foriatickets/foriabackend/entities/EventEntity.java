@@ -1,11 +1,11 @@
 package com.foriatickets.foriabackend.entities;
 
 import org.hibernate.annotations.Type;
-import org.joda.time.DateTime;
 
 import javax.persistence.*;
 import java.io.Serializable;
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -13,13 +13,13 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "event")
-@SuppressWarnings("unused")
+@SuppressWarnings({"unused", "UnusedReturnValue"})
 public class EventEntity implements Serializable {
 
     private UUID id;
     private VenueEntity venueEntity;
     private String name;
-    private DateTime eventTime;
+    private OffsetDateTime eventTime;
     private String eventStreetAddress;
     private String eventCity;
     private String eventState;
@@ -64,12 +64,11 @@ public class EventEntity implements Serializable {
     }
 
     @Column(name = "event_time", nullable = false)
-    @Type(type = "org.jadira.usertype.dateandtime.joda.PersistentDateTime")
-    public DateTime getEventTime() {
+    public OffsetDateTime getEventTime() {
         return eventTime;
     }
 
-    public EventEntity setEventTime(DateTime eventTime) {
+    public EventEntity setEventTime(OffsetDateTime eventTime) {
         this.eventTime = eventTime;
         return this;
     }
