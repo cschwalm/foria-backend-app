@@ -31,12 +31,9 @@ spring.jpa.hibernate.ddl-auto: update
 logging.config: classpath:log4j2-local.xml
 
 # Database Connection Info
-# db.jdbc: jdbc:h2:mem:foria;DB_CLOSE_ON_EXIT=FALSE
-# db.username: sa
-# db.password: sa
-db.name: foria
-db.secret: corp-db-foria-user-pass
-apiKeyList: corp_foria_auth0_api_key
+db.jdbc: jdbc:h2:mem:foria;DB_CLOSE_ON_EXIT=FALSE
+db.username: sa
+db.password: sa
 
 ---
 spring:
