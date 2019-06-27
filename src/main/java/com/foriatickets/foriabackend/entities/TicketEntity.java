@@ -4,7 +4,6 @@ import org.hibernate.annotations.Type;
 
 import javax.persistence.*;
 import java.io.Serializable;
-import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.Objects;
 import java.util.UUID;
@@ -25,9 +24,10 @@ public class TicketEntity implements Serializable {
     private UUID id;
     private EventEntity eventEntity;
     private UserEntity ownerEntity;
+    private UserEntity purchaserEntity;
+    private TicketTypeConfigEntity ticketTypeConfigEntity;
     private String secret;
     private Status status;
-    private BigDecimal price;
     private OffsetDateTime issuedDate;
 
     @Id
@@ -65,6 +65,17 @@ public class TicketEntity implements Serializable {
         return this;
     }
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "purchaser_id", nullable = false)
+    public UserEntity getPurchaserEntity() {
+        return purchaserEntity;
+    }
+
+    public TicketEntity setPurchaserEntity(UserEntity purchaserEntity) {
+        this.purchaserEntity = purchaserEntity;
+        return this;
+    }
+
     @Column(name = "secret", nullable = false)
     public String getSecret() {
         return secret;
@@ -86,16 +97,16 @@ public class TicketEntity implements Serializable {
         return this;
     }
 
-    @Column(name = "price", nullable = false, length = 6, precision = 2)
-    public BigDecimal getPrice() {
-        return price;
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "ticket_type_config_id", nullable = false)
+    public TicketTypeConfigEntity getTicketTypeConfigEntity() {
+        return ticketTypeConfigEntity;
     }
 
-    public TicketEntity setPrice(BigDecimal price) {
-        this.price = price;
+    public TicketEntity setTicketTypeConfigEntity(TicketTypeConfigEntity ticketTypeConfigEntity) {
+        this.ticketTypeConfigEntity = ticketTypeConfigEntity;
         return this;
     }
-
 
     @Column(name = "issued_date", nullable = false)
     public OffsetDateTime getIssuedDate() {
@@ -114,7 +125,7 @@ public class TicketEntity implements Serializable {
                 ", eventEntityId=" + eventEntity.getId() +
                 ", ownerEntityId=" + ownerEntity.getId() +
                 ", status=" + status +
-                ", price=" + price +
+                ", ticketTypeConfigEntity=" + ticketTypeConfigEntity +
                 ", issuedDate=" + issuedDate +
                 '}';
     }
@@ -127,12 +138,11 @@ public class TicketEntity implements Serializable {
         return Objects.equals(id, that.id) &&
                 Objects.equals(secret, that.secret) &&
                 status == that.status &&
-                Objects.equals(price, that.price) &&
                 Objects.equals(issuedDate, that.issuedDate);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, secret, status, price, issuedDate);
+        return Objects.hash(id, secret, status, issuedDate);
     }
 }

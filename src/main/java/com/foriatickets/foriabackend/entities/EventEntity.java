@@ -4,7 +4,6 @@ import org.hibernate.annotations.Type;
 
 import javax.persistence.*;
 import java.io.Serializable;
-import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.HashSet;
 import java.util.Objects;
@@ -26,7 +25,6 @@ public class EventEntity implements Serializable {
     private String eventPostal;
     private String eventCountry;
     private int authorizedTickets;
-    private BigDecimal ticketPrice;
     private Set<TicketEntity> tickets = new HashSet<>();
 
     @Id
@@ -133,16 +131,6 @@ public class EventEntity implements Serializable {
         return this;
     }
 
-    @Column(name = "ticket_price", nullable = false, length = 6, precision = 2)
-    public BigDecimal getTicketPrice() {
-        return ticketPrice;
-    }
-
-    public EventEntity setTicketPrice(BigDecimal ticketPrice) {
-        this.ticketPrice = ticketPrice;
-        return this;
-    }
-
     @OneToMany(mappedBy = "eventEntity", fetch = FetchType.LAZY)
     public Set<TicketEntity> getTickets() {
         return tickets;
@@ -165,7 +153,6 @@ public class EventEntity implements Serializable {
                 ", eventPostal='" + eventPostal + '\'' +
                 ", eventCountry='" + eventCountry + '\'' +
                 ", authorizedTickets=" + authorizedTickets +
-                ", ticketPrice=" + ticketPrice +
                 '}';
     }
 
@@ -182,12 +169,11 @@ public class EventEntity implements Serializable {
                 Objects.equals(eventCity, that.eventCity) &&
                 Objects.equals(eventState, that.eventState) &&
                 Objects.equals(eventPostal, that.eventPostal) &&
-                Objects.equals(eventCountry, that.eventCountry) &&
-                Objects.equals(ticketPrice, that.ticketPrice);
+                Objects.equals(eventCountry, that.eventCountry);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, name, eventTime, eventStreetAddress, eventCity, eventState, eventPostal, eventCountry, authorizedTickets, ticketPrice);
+        return Objects.hash(id, name, eventTime, eventStreetAddress, eventCity, eventState, eventPostal, eventCountry, authorizedTickets);
     }
 }

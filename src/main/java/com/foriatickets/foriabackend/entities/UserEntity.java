@@ -20,6 +20,7 @@ public class UserEntity implements Serializable {
     private String lastName;
     private String email;
     private Set<TicketEntity> tickets = new HashSet<>();
+    private Set<TicketEntity> purchasedTickets = new HashSet<>();
 
     @Id
     @GeneratedValue
@@ -81,6 +82,16 @@ public class UserEntity implements Serializable {
 
     public UserEntity setTickets(Set<TicketEntity> tickets) {
         this.tickets = tickets;
+        return this;
+    }
+
+    @OneToMany(mappedBy = "purchaserEntity", fetch = FetchType.LAZY)
+    public Set<TicketEntity> getPurchasedTickets() {
+        return purchasedTickets;
+    }
+
+    public UserEntity setPurchasedTickets(Set<TicketEntity> purchasedTickets) {
+        this.purchasedTickets = purchasedTickets;
         return this;
     }
 

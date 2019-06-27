@@ -387,24 +387,30 @@ definitions:
     properties:
       street_address:
         type: "string"
+        example: "12345 Fake Ln"
       city:
         type: "string"
+        example: "Fake City"
       state:
         type: "string"
+        example: "MO"
       zip:
         type: "string"
         maxLength: 5
         minLength: 5
+        example: "55555"
       country:
         type: "string"
         maxLength: 3
         minLength: 3
+        example: "USA"
   BaseApiModel:
     type: "object"
     properties:
       status_code:
         type: "integer"
         format: "int32"
+        default: 0
       message:
         type: "string"
         default: "OK"
@@ -423,18 +429,26 @@ definitions:
         readOnly: true
       name:
         type: "string"
+        example: "Test Event"
+      description:
+        type: "string"
+        example: "Test Event"
+      image_url:
+        type: "string"
+        example: "https://foriatickets.com/favicon.ico"
       time:
         type: string
         format: date-time
       address:
         $ref: '#/definitions/Address'
-      authorized_tickets:
-        type: integer
-        minimum: 1
-        maximum: 100000
-        default: 500
-      ticket_price:
-        type: string
+      ticket_fee_config:
+        type: array
+        items:
+          $ref: '#/definitions/TicketFeeConfig'
+      ticket_type_config:
+        type: array
+        items:
+          $ref: '#/definitions/TicketTypeConfig'
   Ticket:
     type: "object"
     readOnly: true
@@ -452,15 +466,74 @@ definitions:
         type: string
         format: uuid
         maxLength: 36
+      purchaser_id:
+        type: string
+        format: uuid
+        maxLength: 36
       secret:
         type: "string"
+        example: "TEST_SECRET"
       status:
         enum: [ISSUED, TRANSFER_PENDING, REDEEMED, CANCELED, CANCELED_FRAUD]
-      price:
-        type: string
+      ticket_type_config:
+        $ref: '#/definitions/TicketTypeConfig'
       issued-date:
         type: string
         format: date_time
+  TicketFeeConfig:
+    type: "object"
+    properties:
+      id:
+        type: "string"
+        format: uuid
+        maxLength: 36
+        readOnly: true
+      name:
+        type: "string"
+        example: "Standard Foria Test Fee"
+      description:
+        type: "string"
+        example: "Example Fee"
+      method:
+        enum: [FLAT, PERCENT]
+        example: FLAT
+      type:
+        enum: [ISSUER, TAX, VENUE]
+        example: ISSUER
+      amount:
+        type: string
+        example: "1.00"
+      currency:
+        type: "string"
+        maxLength: 3
+        minLength: 3
+        default: "USD"
+        example: "USD"
+  TicketTypeConfig:
+    type: "object"
+    properties:
+      id:
+        type: "string"
+        format: uuid
+        maxLength: 36
+        readOnly: true
+      name:
+        type: "string"
+        example: "General Admission"
+      description:
+        type: "string"
+        example: "General Admission for the Plebs"
+      authorized_amount:
+        type: integer
+      price:
+        type: string
+        example: "1.00"
+      currency:
+        type: "string"
+        maxLength: 3
+        minLength: 3
+        default: "USD"
+        example: "USD"
   TransferRequest:
     type: "object"
     readOnly: true
@@ -489,10 +562,13 @@ definitions:
         type: "string"
       first_name:
         type: "string"
+        example: "John"
       last_name:
         type: "string"
+        example: "Doe"
       email:
         type: "string"
+        example: "john.doe@test.com"
   Venue:
     type: "object"
     properties:
@@ -503,16 +579,22 @@ definitions:
         readOnly: true
       name:
         type: "string"
+        example: "Test Venue"
       description:
         type: "string"
+        example: "Test Venue"
       contact_name:
         type: "string"
+        example: "Johny Tester"
       contact_email:
         type: "string"
+        example: "johny.tester@test.com"
       contact_phone_country:
         type: "string"
+        example: "+1"
       contact_phone:
         type: "string"
+        example: "5555555555"
       address:
         $ref: '#/definitions/Address'
 externalDocs:
