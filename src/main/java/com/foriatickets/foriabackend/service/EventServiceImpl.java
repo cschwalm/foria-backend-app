@@ -3,7 +3,6 @@ package com.foriatickets.foriabackend.service;
 import com.foriatickets.foriabackend.entities.EventEntity;
 import com.foriatickets.foriabackend.entities.TicketFeeConfigEntity;
 import com.foriatickets.foriabackend.entities.TicketTypeConfigEntity;
-import com.foriatickets.foriabackend.entities.VenueEntity;
 import com.foriatickets.foriabackend.repositories.EventRepository;
 import com.foriatickets.foriabackend.repositories.TicketFeeConfigRepository;
 import com.foriatickets.foriabackend.repositories.TicketTypeConfigRepository;
@@ -13,10 +12,7 @@ import io.swagger.model.TicketFeeConfig;
 import io.swagger.model.TicketTypeConfig;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.modelmapper.AbstractConverter;
-import org.modelmapper.Converter;
 import org.modelmapper.ModelMapper;
-import org.modelmapper.PropertyMap;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
@@ -39,57 +35,14 @@ public class EventServiceImpl implements EventService {
     public EventServiceImpl(UUID eventId, EventRepository eventRepository,
                             TicketFeeConfigRepository ticketFeeConfigRepository,
                             TicketTypeConfigRepository ticketTypeConfigRepository,
-                            VenueRepository venueRepository) {
-
-        modelMapper = new ModelMapper();
-
-        Converter<UUID, VenueEntity> entityConverter = new AbstractConverter<UUID, VenueEntity>() {
-
-            protected VenueEntity convert(UUID source) {
-
-                VenueEntity venueEntity = new VenueEntity();
-                return venueEntity.setId(source);
-            }
-        };
-
-        PropertyMap<EventEntity, Event> eventDtoMap = new PropertyMap<EventEntity, Event>() {
-
-            @Override
-            protected void configure() {
-
-                map().getAddress().setStreetAddress(source.getEventStreetAddress());
-                map().getAddress().setCity(source.getEventCity());
-                map().getAddress().setState(source.getEventState());
-                map().getAddress().setZip(source.getEventPostal());
-                map().getAddress().setCountry(source.getEventCountry());
-                map().setTime(source.getEventTime());
-                map().setVenueId(source.getVenueEntity().getId());
-            }
-        };
-
-        PropertyMap<Event, EventEntity> eventEntityMap = new PropertyMap<Event, EventEntity>() {
-
-            @Override
-            protected void configure() {
-
-                map().setEventStreetAddress(source.getAddress().getStreetAddress());
-                map().setEventCity(source.getAddress().getCity());
-                map().setEventState(source.getAddress().getState());
-                map().setEventPostal(source.getAddress().getZip());
-                map().setEventCountry(source.getAddress().getCountry());
-                map().setEventTime(source.getTime());
-                using(entityConverter).map(source.getVenueId()).setVenueEntity(null);
-            }
-        };
-
-        modelMapper.addMappings(eventDtoMap);
-        modelMapper.addMappings(eventEntityMap);
+                            VenueRepository venueRepository, ModelMapper modelMapper) {
 
         this.eventId = eventId;
         this.eventRepository = eventRepository;
         this.ticketFeeConfigRepository = ticketFeeConfigRepository;
         this.ticketTypeConfigRepository = ticketTypeConfigRepository;
         this.venueRepository = venueRepository;
+        this.modelMapper = modelMapper;
 
         if (eventId == null) {
             return;

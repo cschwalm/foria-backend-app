@@ -6,7 +6,6 @@ import io.swagger.model.Venue;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.modelmapper.ModelMapper;
-import org.modelmapper.PropertyMap;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
@@ -23,38 +22,9 @@ public class VenueServiceImpl implements VenueService {
     private UUID venueId;
     private VenueRepository venueRepository;
 
-    public VenueServiceImpl(UUID venueId, VenueRepository venueRepository) {
+    public VenueServiceImpl(UUID venueId, VenueRepository venueRepository, ModelMapper modelMapper) {
 
-        modelMapper = new ModelMapper();
-        PropertyMap<VenueEntity, Venue> venueDtoMap = new PropertyMap<VenueEntity, Venue>() {
-
-            @Override
-            protected void configure() {
-
-                map().getAddress().setStreetAddress(source.getContactStreetAddress());
-                map().getAddress().setCity(source.getContactCity());
-                map().getAddress().setState(source.getContactState());
-                map().getAddress().setZip(source.getContactZip());
-                map().getAddress().setCountry(source.getContactCountry());
-            }
-        };
-
-        PropertyMap<Venue, VenueEntity> venueEntityMap = new PropertyMap<Venue, VenueEntity>() {
-
-            @Override
-            protected void configure() {
-
-                map().setContactStreetAddress(source.getAddress().getStreetAddress());
-                map().setContactCity(source.getAddress().getCity());
-                map().setContactState(source.getAddress().getState());
-                map().setContactZip(source.getAddress().getZip());
-                map().setContactCountry(source.getAddress().getCountry());
-            }
-        };
-
-        modelMapper.addMappings(venueDtoMap);
-        modelMapper.addMappings(venueEntityMap);
-
+        this.modelMapper = modelMapper;
         this.venueId = venueId;
         this.venueRepository = venueRepository;
 
