@@ -1,6 +1,6 @@
 package com.foriatickets.foriabackend.controllers;
 
-import io.swagger.model.BaseApiModel;
+import org.openapitools.model.BaseApiModel;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 
 @Controller
 @RequestMapping(path = "/v1/", consumes = MediaType.ALL_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-public class HealthCheckApi implements io.swagger.api.HealthCheckApi {
+public class HealthCheckApi implements org.openapitools.api.HealthCheckApi {
 
     @Override
     @RequestMapping(path = "/health-check", method = RequestMethod.GET)

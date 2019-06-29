@@ -4,6 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.sun.xml.internal.fastinfoset.util.StringArray;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
@@ -77,8 +78,26 @@ public class AWSSecretsManagerGatewayImpl implements AWSSecretsManagerGateway {
             return Optional.empty();
         }
 
+        JsonObject root = new JsonParser().parse(payload.secretString()).getAsJsonObject();
+        Set<Map.Entry<String, JsonElement>> keys = root.entrySet();
+
+        if (keys.isEmpty()) {
+            LOG.warn("No entries found for keyId: {}", secretFriendlyName);
+            return Optional.empty();
+        }
+
+        if (keys.size() > 1) {
+            LOG.warn("Key set size is greater than 1. Taking first element for keyId: {}", secretFriendlyName);
+        }
+
+        Optional<Map.Entry<String, JsonElement>> keyEntry = keys.stream().findFirst();
+        if (!keyEntry.isPresent()) {
+            LOG.warn("No entries found for keyId: {}", secretFriendlyName);
+            return Optional.empty();
+        }
+
         LOG.info("Successfully loaded secret with key: {}", secretFriendlyName);
-        return Optional.of(payload.secretString());
+        return Optional.of(keyEntry.get().getValue().getAsString());
     }
 
     @Override

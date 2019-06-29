@@ -7,12 +7,12 @@ import com.foriatickets.foriabackend.repositories.EventRepository;
 import com.foriatickets.foriabackend.repositories.TicketFeeConfigRepository;
 import com.foriatickets.foriabackend.repositories.TicketTypeConfigRepository;
 import com.foriatickets.foriabackend.repositories.VenueRepository;
-import io.swagger.model.Event;
-import io.swagger.model.TicketFeeConfig;
-import io.swagger.model.TicketTypeConfig;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.modelmapper.ModelMapper;
+import org.openapitools.model.Event;
+import org.openapitools.model.TicketFeeConfig;
+import org.openapitools.model.TicketTypeConfig;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;

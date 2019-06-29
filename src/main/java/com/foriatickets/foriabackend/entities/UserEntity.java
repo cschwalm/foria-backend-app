@@ -16,6 +16,7 @@ public class UserEntity implements Serializable {
 
     private UUID id;
     private String auth0Id;
+    private String stripeId;
     private String firstName;
     private String lastName;
     private String email;
@@ -42,6 +43,16 @@ public class UserEntity implements Serializable {
 
     public UserEntity setAuth0Id(String auth0Id) {
         this.auth0Id = auth0Id;
+        return this;
+    }
+
+    @Column(name = "stripe_id", unique = true)
+    public String getStripeId() {
+        return stripeId;
+    }
+
+    public UserEntity setStripeId(String stripeId) {
+        this.stripeId = stripeId;
         return this;
     }
 
@@ -100,6 +111,7 @@ public class UserEntity implements Serializable {
         return "UserEntity{" +
                 "key=" + id +
                 ", auth0Id='" + auth0Id + '\'' +
+                ", stripeId='" + auth0Id + '\'' +
                 ", firstName='" + firstName + '\'' +
                 ", lastName='" + lastName + '\'' +
                 ", email='" + email + '\'' +
@@ -113,6 +125,7 @@ public class UserEntity implements Serializable {
         UserEntity that = (UserEntity) o;
         return Objects.equals(id, that.id) &&
                 Objects.equals(auth0Id, that.auth0Id) &&
+                Objects.equals(stripeId, that.stripeId) &&
                 Objects.equals(firstName, that.firstName) &&
                 Objects.equals(lastName, that.lastName) &&
                 Objects.equals(email, that.email);
@@ -120,6 +133,6 @@ public class UserEntity implements Serializable {
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, auth0Id, firstName, lastName, email);
+        return Objects.hash(id, auth0Id, stripeId, firstName, lastName, email);
     }
 }

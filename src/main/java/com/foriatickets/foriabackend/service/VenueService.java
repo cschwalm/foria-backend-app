@@ -1,6 +1,6 @@
 package com.foriatickets.foriabackend.service;
 
-import io.swagger.model.Venue;
+import org.openapitools.model.Venue;
 
 import java.util.Optional;
 

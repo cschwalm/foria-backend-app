@@ -1,7 +1,7 @@
 package com.foriatickets.foriabackend.controllers;
 
 import com.foriatickets.foriabackend.service.VenueService;
-import io.swagger.model.Venue;
+import org.openapitools.model.Venue;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -18,7 +18,7 @@ import java.util.UUID;
 
 @Controller
 @RequestMapping(path = "/v1/", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-public class VenueApi implements io.swagger.api.VenueApi {
+public class VenueApi implements org.openapitools.api.VenueApi {
 
     private final BeanFactory beanFactory;
 

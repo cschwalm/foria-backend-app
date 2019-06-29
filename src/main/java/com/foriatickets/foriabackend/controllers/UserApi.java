@@ -1,7 +1,7 @@
 package com.foriatickets.foriabackend.controllers;
 
-import io.swagger.model.Ticket;
-import io.swagger.model.User;
+import org.openapitools.model.Ticket;
+import org.openapitools.model.User;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -16,7 +16,7 @@ import java.util.UUID;
 
 @Controller
 @RequestMapping(path = "/v1/", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-public class UserApi implements io.swagger.api.UserApi {
+public class UserApi implements org.openapitools.api.UserApi {
 
     @Override
     @RequestMapping(value = "/user/{user_id}/tickets", method = RequestMethod.GET)

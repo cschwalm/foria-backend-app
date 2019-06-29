@@ -1,8 +1,9 @@
 package com.foriatickets.foriabackend.controllers;
 
-import io.swagger.model.BaseApiModel;
-import io.swagger.model.Ticket;
-import io.swagger.model.TransferRequest;
+import org.openapitools.model.BaseApiModel;
+import org.openapitools.model.Order;
+import org.openapitools.model.Ticket;
+import org.openapitools.model.TransferRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -18,7 +19,13 @@ import java.util.UUID;
 
 @Controller
 @RequestMapping(path = "/v1/", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-public class TicketApi implements io.swagger.api.TicketApi {
+public class TicketApi implements org.openapitools.api.TicketApi {
+
+    @Override
+    @RequestMapping(value = "/ticket/checkout", method = RequestMethod.POST)
+    public ResponseEntity<BaseApiModel> checkout(@Valid Order order) {
+        return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
+    }
 
     @Override
     @RequestMapping(value = "/ticket/{ticket_id}/activate", method = RequestMethod.POST)

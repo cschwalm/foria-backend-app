@@ -9,7 +9,6 @@ import com.foriatickets.foriabackend.repositories.EventRepository;
 import com.foriatickets.foriabackend.repositories.TicketRepository;
 import com.foriatickets.foriabackend.repositories.TicketTypeConfigRepository;
 import com.foriatickets.foriabackend.repositories.UserRepository;
-import io.swagger.model.Ticket;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -76,7 +75,7 @@ public class TicketServiceImplTest {
         Mockito.when(ticketTypeConfigRepository.findById(ticketConfigId)).thenReturn(Optional.of(ticketTypeConfigEntity));
         Mockito.when(ticketRepository.save(any())).thenReturn(mock(TicketEntity.class));
 
-        Ticket actual = ticketService.issueTicket(purchaserId, eventId, ticketConfigId);
+        TicketEntity actual = ticketService.issueTicket(purchaserId, eventId, ticketConfigId);
         verify(ticketRepository).save(argumentCaptor.capture());
 
         Assert.notNull(actual);

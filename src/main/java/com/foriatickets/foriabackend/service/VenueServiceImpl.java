@@ -2,10 +2,10 @@ package com.foriatickets.foriabackend.service;
 
 import com.foriatickets.foriabackend.entities.VenueEntity;
 import com.foriatickets.foriabackend.repositories.VenueRepository;
-import io.swagger.model.Venue;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.modelmapper.ModelMapper;
+import org.openapitools.model.Venue;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;

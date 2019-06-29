@@ -1,7 +1,7 @@
 package com.foriatickets.foriabackend.controllers;
 
 import com.foriatickets.foriabackend.service.UserCreationService;
-import io.swagger.model.User;
+import org.openapitools.model.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -15,7 +15,7 @@ import javax.validation.Valid;
 
 @Controller
 @RequestMapping(path = "/v1/", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-public class RegisterApi implements io.swagger.api.RegisterApi {
+public class RegisterApi implements org.openapitools.api.RegisterApi {
 
     private UserCreationService userCreationService;
 

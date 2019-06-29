@@ -2,12 +2,12 @@ package com.foriatickets.foriabackend.service;
 
 import com.foriatickets.foriabackend.entities.UserEntity;
 import com.foriatickets.foriabackend.repositories.UserRepository;
-import io.swagger.model.User;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.openapitools.model.User;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.UUID;

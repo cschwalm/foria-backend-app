@@ -2,9 +2,9 @@ package com.foriatickets.foriabackend.service;
 
 import com.foriatickets.foriabackend.entities.UserEntity;
 import com.foriatickets.foriabackend.repositories.UserRepository;
-import io.swagger.model.User;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.openapitools.model.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

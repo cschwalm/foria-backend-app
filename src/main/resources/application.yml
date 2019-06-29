@@ -11,6 +11,7 @@ spring:
         open-in-view: false
         properties:
             hibernate:
+                globally_quoted_identifiers: true
                 dialect: org.hibernate.dialect.MySQL55Dialect
     mustache:
         check-template-location: false
@@ -30,10 +31,11 @@ spring.jpa.hibernate.ddl-auto: update
 
 logging.config: classpath:log4j2-local.xml
 
-# Database Connection Info
-db.jdbc: jdbc:h2:mem:foria;DB_CLOSE_ON_EXIT=FALSE
-db.username: sa
-db.password: sa
+# Corp Database Connection Info
+db.name: foria
+db.secret: corp-db-foria-user-pass
+apiKeyList: corp_foria_auth0_api_key
+
 
 ---
 spring:
@@ -43,3 +45,6 @@ spring:
 db.name: foria
 db.secret: corp-db-foria-user-pass
 apiKeyList: corp_foria_auth0_api_key
+
+# Stripe
+stripeApiKey: corp_foria_stripe_secret_key

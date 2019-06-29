@@ -1,602 +1,700 @@
-swagger: "2.0"
+openapi: 3.0.1
 info:
-  description: "Backend API service for the Foria ticketing app."
-  version: "1.0.0"
-  title: "Foria API Server"
+  title: Foria API Server
+  description: Backend API service for the Foria ticketing app.
   contact:
-    email: "info@foriatickets.com"
-schemes:
-  - "https"
-host: "api.foriatickets.com"
-basePath: "/v1"
-consumes:
-  - application/json
-produces:
-  - application/json
+    email: info@foriatickets.com
+  version: 1.0.0
+externalDocs:
+  description: JIRA Board
+  url: https://foria.atlassian.net
+servers:
+  - url: https://api.foriatickets.com/v1
 tags:
-  - name: "event"
-    description: "Event operations."
-  - name: "status"
-    description: "Server operations."
-  - name: "ticket"
-    description: "Ticket operations."
-  - name: "user"
-    description: "Operations for the signed in user. May be customer or venue."
-  - name: "venue"
-    description: "Operations to be preformed by a venue with venue scope."
+  - name: event
+    description: Event operations.
+  - name: status
+    description: Server operations.
+  - name: ticket
+    description: Ticket operations.
+  - name: user
+    description: Operations for the signed in user. May be customer or venue.
+  - name: venue
+    description: Operations to be preformed by a venue with venue scope.
 paths:
   /health-check:
     get:
-      operationId: healthCheck
       tags:
-        - "status"
-      summary: "Confirms the server is up and running."
-      produces:
-        - "application/json"
+        - status
+      summary: Confirms the server is up and running.
+      operationId: healthCheck
       responses:
         200:
-          description: "Confirms the server is running."
-          schema:
-            $ref: '#/definitions/BaseApiModel'
+          description: Confirms the server is running.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseApiModel'
   /event:
     post:
-      operationId: createEvent
       tags:
-        - "event"
-      summary: "Create event in application database."
-      produces:
-        - "application/json"
-      parameters:
-        - in: "body"
-          name: "body"
-          description: "Created event object."
-          required: true
-          schema:
-            $ref: "#/definitions/Event"
+        - event
+      summary: Create event in application database.
+      operationId: createEvent
+      requestBody:
+        description: Created event object.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Event'
+        required: true
       responses:
         200:
-          description: "Event created."
-          schema:
-            $ref: "#/definitions/Event"
+          description: Event created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
   /event/{event_id}:
     get:
-      operationId: getEvent
       tags:
-        - "event"
-      summary: "Get event by event_id."
-      description: "Obtains the event by their Foria event_id."
-      produces:
-        - "application/json"
+        - event
+      summary: Get event by event_id.
+      description: Obtains the event by their Foria event_id.
+      operationId: getEvent
       parameters:
-        - name: "event_id"
-          in: "path"
-          description: "The event ID stored in the Foria database."
+        - name: event_id
+          in: path
+          description: The event ID stored in the Foria database.
           required: true
-          type: "string"
-          format: "uuid"
-          maxLength: 36
+          schema:
+            maxLength: 36
+            type: string
+            format: uuid
       responses:
         200:
-          description: "OK"
-          schema:
-            $ref: "#/definitions/Event"
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
         404:
-          description: "Event not found by ID."
+          description: Event not found by ID.
+          content: {}
   /ticket/{ticket_id}:
     get:
-      operationId: getTicket
       tags:
-        - "ticket"
-      summary: "Obtains full ticket information."
-      produces:
-        - "application/json"
+        - ticket
+      summary: Obtains full ticket information.
+      operationId: getTicket
       parameters:
-        - name: "ticket_id"
-          in: "path"
-          description: "The ticket ID stored in the Foria database."
+        - name: ticket_id
+          in: path
+          description: The ticket ID stored in the Foria database.
           required: true
-          type: "string"
-          format: "uuid"
-          maxLength: 36
+          schema:
+            maxLength: 36
+            type: string
+            format: uuid
       responses:
         200:
-          description: "OK"
-          schema:
-            $ref: '#/definitions/Ticket'
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticket'
         404:
-          description: "Ticket not found by ID."
-          schema:
-            $ref: '#/definitions/BaseApiModel'
+          description: Ticket not found by ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseApiModel'
   /ticket/{ticket_id}/activate:
     post:
-      operationId: activateTicket
       tags:
-        - "ticket"
-      summary: "Activates the ticket for the mobile device. May only be called in valid state."
-      produces:
-        - "application/json"
+        - ticket
+      summary: Activates the ticket for the mobile device. May only be called in valid
+        state.
+      operationId: activateTicket
       parameters:
-        - name: "ticket_id"
-          in: "path"
-          description: "The ticket ID stored in the Foria database."
+        - name: ticket_id
+          in: path
+          description: The ticket ID stored in the Foria database.
           required: true
-          type: "string"
-          format: "uuid"
-          maxLength: 36
+          schema:
+            maxLength: 36
+            type: string
+            format: uuid
       responses:
         200:
-          description: "OK"
-          schema:
-            $ref: '#/definitions/BaseApiModel'
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseApiModel'
         400:
-          description: "Not able to activate ticket. Invalid state."
-          schema:
-            $ref: '#/definitions/BaseApiModel'
+          description: Not able to activate ticket. Invalid state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseApiModel'
         404:
-          description: "Ticket not found by ID."
-          schema:
-            $ref: '#/definitions/BaseApiModel'
+          description: Ticket not found by ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseApiModel'
   /ticket/{ticket_id}/cancelTransfer:
     post:
-      operationId: cancelTransfer
       tags:
-        - "ticket"
-      summary: "Cancels the transfer request and allows ticket to be redeemed."
-      produces:
-        - "application/json"
+        - ticket
+      summary: Cancels the transfer request and allows ticket to be redeemed.
+      operationId: cancelTransfer
       parameters:
-        - name: "ticket_id"
-          in: "path"
-          description: "The ticket ID stored in the Foria database."
+        - name: ticket_id
+          in: path
+          description: The ticket ID stored in the Foria database.
           required: true
-          type: "string"
-          format: "uuid"
-          maxLength: 36
+          schema:
+            maxLength: 36
+            type: string
+            format: uuid
       responses:
         200:
-          description: "OK"
-          schema:
-            $ref: '#/definitions/BaseApiModel'
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseApiModel'
         400:
-          description: "Not able to transfer ticket. Invalid status."
-          schema:
-            $ref: '#/definitions/BaseApiModel'
+          description: Not able to transfer ticket. Invalid status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseApiModel'
         404:
-          description: "Ticket not found by ID."
-          schema:
-            $ref: '#/definitions/BaseApiModel'
+          description: Ticket not found by ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseApiModel'
+  /ticket/checkout:
+    post:
+      tags:
+        - ticket
+      summary: Completes a users checkout and issues tickets with their supplied payment token.
+      operationId: checkout
+      requestBody:
+        description: Checkout request object.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Order'
+        required: true
+      responses:
+        200:
+          description: Checkout successful.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseApiModel'
   /ticket/{ticket_id}/reactivate:
     post:
-      operationId: reactivateTicket
       tags:
-        - "ticket"
-      summary: "Activates a ticket on a new device. This should be manually called on device switch."
-      produces:
-        - "application/json"
+        - ticket
+      summary: Activates a ticket on a new device. This should be manually called
+        on device switch.
+      operationId: reactivateTicket
       parameters:
-        - name: "ticket_id"
-          in: "path"
-          description: "The ticket ID stored in the Foria database."
+        - name: ticket_id
+          in: path
+          description: The ticket ID stored in the Foria database.
           required: true
-          type: "string"
-          format: "uuid"
-          maxLength: 36
+          schema:
+            maxLength: 36
+            type: string
+            format: uuid
       responses:
         200:
-          description: "OK"
-          schema:
-            $ref: '#/definitions/BaseApiModel'
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseApiModel'
         400:
-          description: "Not able to reactivate ticket. Invalid status."
-          schema:
-            $ref: '#/definitions/BaseApiModel'
+          description: Not able to reactivate ticket. Invalid status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseApiModel'
         404:
-          description: "Ticket not found by ID."
-          schema:
-            $ref: '#/definitions/BaseApiModel'
+          description: Ticket not found by ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseApiModel'
   /ticket/{ticket_id}/redeem:
     post:
-      operationId: redeemTicket
       tags:
-        - "ticket"
-      summary: "Redeems the ticket if in valid state. This cannot be undone."
-      produces:
-        - "application/json"
+        - ticket
+      summary: Redeems the ticket if in valid state. This cannot be undone.
+      operationId: redeemTicket
       parameters:
-        - name: "ticket_id"
-          in: "path"
-          description: "The ticket ID stored in the Foria database."
+        - name: ticket_id
+          in: path
+          description: The ticket ID stored in the Foria database.
           required: true
-          type: "string"
-          format: "uuid"
-          maxLength: 36
+          schema:
+            maxLength: 36
+            type: string
+            format: uuid
       responses:
         200:
-          description: "OK"
-          schema:
-            $ref: '#/definitions/BaseApiModel'
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseApiModel'
         400:
-          description: "Not able to redeem ticket. Invalid status."
-          schema:
-            $ref: '#/definitions/BaseApiModel'
+          description: Not able to redeem ticket. Invalid status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseApiModel'
         404:
-          description: "Ticket not found by ID."
-          schema:
-            $ref: '#/definitions/BaseApiModel'
+          description: Ticket not found by ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseApiModel'
   /ticket/{ticket_id}/transfer:
     post:
-      operationId: transferTicket
       tags:
-        - "ticket"
-      summary: "Starts transfer process to new user."
-      produces:
-        - "application/json"
+        - ticket
+      summary: Starts transfer process to new user.
+      operationId: transferTicket
       parameters:
-        - name: "ticket_id"
-          in: "path"
-          description: "The ticket ID stored in the Foria database."
+        - name: ticket_id
+          in: path
+          description: The ticket ID stored in the Foria database.
           required: true
-          type: "string"
-          format: "uuid"
-          maxLength: 36
-        - in: body
-          name: TransferRequest
-          description: "Must supply name and email. Mobile number is optional."
           schema:
-            $ref: '#/definitions/TransferRequest'
+            maxLength: 36
+            type: string
+            format: uuid
+      requestBody:
+        description: Must supply name and email. Mobile number is optional.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransferRequest'
+        required: false
       responses:
         200:
-          description: "OK"
-          schema:
-            $ref: '#/definitions/BaseApiModel'
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseApiModel'
         400:
-          description: "Not able to transfer ticket. Invalid status."
-          schema:
-            $ref: '#/definitions/BaseApiModel'
+          description: Not able to transfer ticket. Invalid status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseApiModel'
         404:
-          description: "Ticket not found by ID."
-          schema:
-            $ref: '#/definitions/BaseApiModel'
+          description: Ticket not found by ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseApiModel'
   /register:
     post:
-      operationId: registerUser
       tags:
-        - "user"
-      summary: "Create user in application database."
-      description: "This should only be called from Auth0."
-      produces:
-        - "application/json"
-      parameters:
-        - in: "body"
-          name: "body"
-          description: "Created user object"
-          required: true
-          schema:
-            $ref: "#/definitions/User"
+        - user
+      summary: Create user in application database.
+      description: This should only be called from Auth0.
+      operationId: registerUser
+      requestBody:
+        description: Created user object
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+        required: true
       responses:
         200:
-          description: "User created or has already been created."
-          schema:
-            $ref: "#/definitions/User"
+          description: User created or has already been created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
   /user/{user_id}:
     get:
-      operationId: getUser
       tags:
-        - "user"
-      summary: "Get user by userId."
-      description: "Obtains the user by their Foria userId."
-      produces:
-        - "application/json"
+        - user
+      summary: Get user by userId.
+      description: Obtains the user by their Foria userId.
+      operationId: getUser
       parameters:
-        - name: "user_id"
-          in: "path"
-          description: "The user ID stored in the Foria database."
+        - name: user_id
+          in: path
+          description: The user ID stored in the Foria database.
           required: true
-          type: "string"
-          format: "uuid"
-          maxLength: 36
+          schema:
+            maxLength: 36
+            type: string
+            format: uuid
       responses:
         200:
-          description: "OK"
-          schema:
-            $ref: "#/definitions/User"
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
         404:
-          description: "User not found by ID."
+          description: User not found by ID.
+          content: {}
   /user/{user_id}/tickets:
     get:
-      operationId: getTickets
       tags:
-        - "user"
-      summary: "Gets the list of users owned tickets."
-      produces:
-        - "application/json"
+        - user
+      summary: Gets the list of users owned tickets.
+      operationId: getTickets
       parameters:
-        - name: "user_id"
-          in: "path"
-          description: "The user ID stored in the Foria database."
+        - name: user_id
+          in: path
+          description: The user ID stored in the Foria database.
           required: true
-          type: "string"
-          format: "uuid"
-          maxLength: 36
+          schema:
+            maxLength: 36
+            type: string
+            format: uuid
       responses:
         200:
-          description: "OK"
-          schema:
-            type: array
-            items:
-              $ref: '#/definitions/Ticket'
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Ticket'
         404:
-          description: "User not found by ID."
+          description: User not found by ID.
+          content: {}
   /venue:
     post:
-      operationId: createVenue
       tags:
-        - "venue"
-      summary: "Create venue in application database."
-      produces:
-        - "application/json"
-      parameters:
-        - in: "body"
-          name: "body"
-          description: "Created user object"
-          required: true
-          schema:
-            $ref: "#/definitions/Venue"
+        - venue
+      summary: Create venue in application database.
+      operationId: createVenue
+      requestBody:
+        description: Created user object
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Venue'
+        required: true
       responses:
         200:
-          description: "Venue created."
-          schema:
-            $ref: "#/definitions/Venue"
+          description: Venue created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Venue'
   /venue/{venue_id}:
     get:
-      operationId: getVenue
       tags:
-        - "venue"
-      summary: "Get venue by venue_id."
-      description: "Obtains the user by their Foria venue_id."
-      produces:
-        - "application/json"
+        - venue
+      summary: Get venue by venue_id.
+      description: Obtains the user by their Foria venue_id.
+      operationId: getVenue
       parameters:
-        - name: "venue_id"
-          in: "path"
-          description: "The venue ID stored in the Foria database."
+        - name: venue_id
+          in: path
+          description: The venue ID stored in the Foria database.
           required: true
-          type: "string"
-          format: "uuid"
-          maxLength: 36
+          schema:
+            maxLength: 36
+            type: string
+            format: uuid
       responses:
         200:
-          description: "OK"
-          schema:
-            $ref: "#/definitions/Venue"
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Venue'
         404:
-          description: "Venue not found by ID."
-securityDefinitions:
-  auth:
-    type: "oauth2"
-    description: "Auth0 token authorization server."
-    flow: "accessCode"
-    authorizationUrl: "https://foriatickets.auth0.com/authorize?audience=api.foriatickets.com"
-    tokenUrl: "https://foriatickets.auth0.com/oauth/token"
-    scopes:
-      email: "Obtains e-mail in token."
-      profile: "Obtains full profile."
-definitions:
-  Address:
-    type: "object"
-    properties:
-      street_address:
-        type: "string"
-        example: "12345 Fake Ln"
-      city:
-        type: "string"
-        example: "Fake City"
-      state:
-        type: "string"
-        example: "MO"
-      zip:
-        type: "string"
-        maxLength: 5
-        minLength: 5
-        example: "55555"
-      country:
-        type: "string"
-        maxLength: 3
-        minLength: 3
-        example: "USA"
-  BaseApiModel:
-    type: "object"
-    properties:
-      status_code:
-        type: "integer"
-        format: "int32"
-        default: 0
-      message:
-        type: "string"
-        default: "OK"
-  Event:
-    type: "object"
-    properties:
-      id:
-        type: "string"
-        format: uuid
-        maxLength: 36
-        readOnly: true
-      venue_id:
-        type: "string"
-        format: uuid
-        maxLength: 36
-        readOnly: true
-      name:
-        type: "string"
-        example: "Test Event"
-      description:
-        type: "string"
-        example: "Test Event"
-      image_url:
-        type: "string"
-        example: "https://foriatickets.com/favicon.ico"
-      time:
-        type: string
-        format: date-time
-      address:
-        $ref: '#/definitions/Address'
-      ticket_fee_config:
-        type: array
-        items:
-          $ref: '#/definitions/TicketFeeConfig'
-      ticket_type_config:
-        type: array
-        items:
-          $ref: '#/definitions/TicketTypeConfig'
-  Ticket:
-    type: "object"
-    readOnly: true
-    properties:
-      id:
-        type: "string"
-        format: uuid
-        maxLength: 36
-        readOnly: true
-      event_id:
-        type: string
-        format: uuid
-        maxLength: 36
-      owner_id:
-        type: string
-        format: uuid
-        maxLength: 36
-      purchaser_id:
-        type: string
-        format: uuid
-        maxLength: 36
-      secret:
-        type: "string"
-        example: "TEST_SECRET"
-      status:
-        enum: [ISSUED, TRANSFER_PENDING, REDEEMED, CANCELED, CANCELED_FRAUD]
-      ticket_type_config:
-        $ref: '#/definitions/TicketTypeConfig'
-      issued-date:
-        type: string
-        format: date_time
-  TicketFeeConfig:
-    type: "object"
-    properties:
-      id:
-        type: "string"
-        format: uuid
-        maxLength: 36
-        readOnly: true
-      name:
-        type: "string"
-        example: "Standard Foria Test Fee"
-      description:
-        type: "string"
-        example: "Example Fee"
-      method:
-        enum: [FLAT, PERCENT]
-        example: FLAT
-      type:
-        enum: [ISSUER, TAX, VENUE]
-        example: ISSUER
-      amount:
-        type: string
-        example: "1.00"
-      currency:
-        type: "string"
-        maxLength: 3
-        minLength: 3
-        default: "USD"
-        example: "USD"
-  TicketTypeConfig:
-    type: "object"
-    properties:
-      id:
-        type: "string"
-        format: uuid
-        maxLength: 36
-        readOnly: true
-      name:
-        type: "string"
-        example: "General Admission"
-      description:
-        type: "string"
-        example: "General Admission for the Plebs"
-      authorized_amount:
-        type: integer
-      price:
-        type: string
-        example: "1.00"
-      currency:
-        type: "string"
-        maxLength: 3
-        minLength: 3
-        default: "USD"
-        example: "USD"
-  TransferRequest:
-    type: "object"
-    readOnly: true
-    properties:
-      id:
-        type: "string"
-        format: uuid
-        maxLength: 36
-        readOnly: true
-      receiver_name:
-        type: string
-      receiver_email:
-        type: string
-        format: email
-      receiver_phone:
-        type: string
-  User:
-    type: "object"
-    properties:
-      id:
-        type: "string"
-        format: uuid
-        maxLength: 36
-        readOnly: true
-      auth0_id:
-        type: "string"
-      first_name:
-        type: "string"
-        example: "John"
-      last_name:
-        type: "string"
-        example: "Doe"
-      email:
-        type: "string"
-        example: "john.doe@test.com"
-  Venue:
-    type: "object"
-    properties:
-      id:
-        type: "string"
-        format: uuid
-        maxLength: 36
-        readOnly: true
-      name:
-        type: "string"
-        example: "Test Venue"
-      description:
-        type: "string"
-        example: "Test Venue"
-      contact_name:
-        type: "string"
-        example: "Johny Tester"
-      contact_email:
-        type: "string"
-        example: "johny.tester@test.com"
-      contact_phone_country:
-        type: "string"
-        example: "+1"
-      contact_phone:
-        type: "string"
-        example: "5555555555"
-      address:
-        $ref: '#/definitions/Address'
-externalDocs:
-  description: "JIRA Board"
-  url: "https://foria.atlassian.net"
+          description: Venue not found by ID.
+          content: {}
+components:
+  schemas:
+    Address:
+      type: object
+      properties:
+        street_address:
+          type: string
+          example: 12345 Fake Ln
+        city:
+          type: string
+          example: Fake City
+        state:
+          type: string
+          example: MO
+        zip:
+          maxLength: 5
+          minLength: 5
+          type: string
+          example: "55555"
+        country:
+          maxLength: 3
+          minLength: 3
+          type: string
+          example: USA
+    Order:
+      type: object
+      required:
+        - ticket_amount_map
+        - payment_token
+      properties:
+        id:
+          maxLength: 36
+          type: string
+          format: uuid
+          readOnly: true
+        event_id:
+          maxLength: 36
+          type: string
+          format: uuid
+        ticket_line_item_list:
+          type: array
+          items:
+            $ref: '#/components/schemas/TicketLineItem'
+        payment_token:
+          type: string
+    Ticket:
+      type: object
+      properties:
+        id:
+          maxLength: 36
+          type: string
+          format: uuid
+          readOnly: true
+        event_id:
+          maxLength: 36
+          type: string
+          format: uuid
+        owner_id:
+          maxLength: 36
+          type: string
+          format: uuid
+        purchaser_id:
+          maxLength: 36
+          type: string
+          format: uuid
+        secret:
+          type: string
+          example: TEST_SECRET
+        status:
+          type: string
+          enum:
+            - ISSUED
+            - TRANSFER_PENDING
+            - REDEEMED
+            - CANCELED
+            - CANCELED_FRAUD
+        ticket_type_config:
+          $ref: '#/components/schemas/TicketTypeConfig'
+        issued-date:
+          type: string
+          format: date_time
+    TicketLineItem:
+      type: object
+      properties:
+        ticket_type_id:
+          maxLength: 36
+          type: string
+          format: uuid
+        amount:
+          type: integer
+          minimum: 1
+          maximum: 10
+    TicketTypeConfig:
+      type: object
+      properties:
+        id:
+          maxLength: 36
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          example: General Admission
+        description:
+          type: string
+          example: General Admission for the Plebs
+        authorized_amount:
+          type: integer
+        price:
+          type: string
+          example: "1.00"
+        currency:
+          maxLength: 3
+          minLength: 3
+          type: string
+          example: USD
+          default: USD
+    User:
+      type: object
+      properties:
+        id:
+          maxLength: 36
+          type: string
+          format: uuid
+          readOnly: true
+        auth0_id:
+          type: string
+        first_name:
+          type: string
+          example: John
+        last_name:
+          type: string
+          example: Doe
+        email:
+          type: string
+          example: john.doe@test.com
+    Venue:
+      type: object
+      properties:
+        id:
+          maxLength: 36
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          example: Test Venue
+        description:
+          type: string
+          example: Test Venue
+        contact_name:
+          type: string
+          example: Johny Tester
+        contact_email:
+          type: string
+          example: johny.tester@test.com
+        contact_phone_country:
+          type: string
+          example: +1
+        contact_phone:
+          type: string
+          example: "5555555555"
+        address:
+          $ref: '#/components/schemas/Address'
+    BaseApiModel:
+      type: object
+      properties:
+        status_code:
+          type: integer
+          format: int32
+          default: 0
+        message:
+          type: string
+          default: OK
+    TicketFeeConfig:
+      type: object
+      properties:
+        id:
+          maxLength: 36
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          example: Standard Foria Test Fee
+        description:
+          type: string
+          example: Example Fee
+        method:
+          type: string
+          example: FLAT
+          enum:
+            - FLAT
+            - PERCENT
+        type:
+          type: string
+          example: ISSUER
+          enum:
+            - ISSUER
+            - TAX
+            - VENUE
+        amount:
+          type: string
+          example: "1.00"
+        currency:
+          maxLength: 3
+          minLength: 3
+          type: string
+          example: USD
+          default: USD
+    Event:
+      type: object
+      properties:
+        id:
+          maxLength: 36
+          type: string
+          format: uuid
+          readOnly: true
+        venue_id:
+          maxLength: 36
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          example: Test Event
+        description:
+          type: string
+          example: Test Event
+        image_url:
+          type: string
+          example: https://foriatickets.com/favicon.ico
+        time:
+          type: string
+          format: date-time
+        address:
+          $ref: '#/components/schemas/Address'
+        ticket_fee_config:
+          type: array
+          items:
+            $ref: '#/components/schemas/TicketFeeConfig'
+        ticket_type_config:
+          type: array
+          items:
+            $ref: '#/components/schemas/TicketTypeConfig'
+    TransferRequest:
+      type: object
+      properties:
+        id:
+          maxLength: 36
+          type: string
+          format: uuid
+          readOnly: true
+        receiver_name:
+          type: string
+        receiver_email:
+          type: string
+          format: email
+        receiver_phone:
+          type: string
+  securitySchemes:
+    auth:
+      type: oauth2
+      description: Auth0 token authorization server.
+      flows:
+        authorizationCode:
+          authorizationUrl: https://auth.foriatickets.com/authorize?audience=api.foriatickets.com
+          tokenUrl: https://foriatickets.auth0.com/oauth/token
+          scopes:
+            openid: Obtains e-mail in token.

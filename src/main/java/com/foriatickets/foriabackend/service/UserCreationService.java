@@ -1,6 +1,6 @@
 package com.foriatickets.foriabackend.service;
 
-import io.swagger.model.User;
+import org.openapitools.model.User;
 
 /**
  * Separate service designed to preform actions on users that have not been fully created keeping the main User service
