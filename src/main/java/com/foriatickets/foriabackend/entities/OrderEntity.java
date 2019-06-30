@@ -48,7 +48,7 @@ public class OrderEntity implements Serializable {
         return this;
     }
 
-    @Column(name = "charge_ref_id", nullable = false)
+    @Column(name = "charge_ref_id", unique = true)
     public String getChargeReferenceId() {
         return chargeReferenceId;
     }

@@ -20,6 +20,7 @@ import java.math.RoundingMode;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @Profile("!local")
@@ -84,7 +85,7 @@ public class StripeGatewayImpl implements StripeGateway {
     }
 
     @Override
-    public Charge chargeCustomer(String stripeCustomerId, String paymentToken, BigDecimal amount, String currencyCode) {
+    public Charge chargeCustomer(String stripeCustomerId, String paymentToken, UUID orderId, BigDecimal amount, String currencyCode) {
 
         if (StringUtils.isEmpty(stripeCustomerId) || StringUtils.isEmpty(paymentToken) ||
                 StringUtils.isEmpty(currencyCode) || amount == null) {
@@ -93,10 +94,14 @@ public class StripeGatewayImpl implements StripeGateway {
         }
 
         Map<String, Object> chargeParams = new HashMap<>();
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("order_id", orderId.toString());
+
         chargeParams.put("amount", amount.setScale(2, RoundingMode.FLOOR));
         chargeParams.put("currency", currencyCode);
         chargeParams.put("customer", stripeCustomerId);
         chargeParams.put("source", paymentToken);
+        chargeParams.put("metadata", metadata);
         chargeParams.put("description", DESCRIPTION);
         chargeParams.put("statement_descriptor", DESCRIPTOR);
 

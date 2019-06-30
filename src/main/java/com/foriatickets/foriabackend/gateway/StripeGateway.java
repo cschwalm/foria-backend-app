@@ -5,6 +5,7 @@ import com.stripe.model.Customer;
 import org.openapitools.model.User;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 /**
  * Secure interface to communicate with Stripe. This gateway takes care of loading Stripe secret for the correct
@@ -22,11 +23,12 @@ public interface StripeGateway {
      *
      * @param stripeCustomerId id
      * @param paymentToken token from client
+     * @param orderId Order id.
      * @param amount Rounded to two decimal places and set to floor.
      * @param currencyCode Currency to bill in.
      * @return A successful charge object.
      */
-    Charge chargeCustomer(String stripeCustomerId, String paymentToken, BigDecimal amount, String currencyCode);
+    Charge chargeCustomer(String stripeCustomerId, String paymentToken, UUID orderId, BigDecimal amount, String currencyCode);
 
     /**
      * Attempts to create a customer in Stripe. This should only be called once per system user.
