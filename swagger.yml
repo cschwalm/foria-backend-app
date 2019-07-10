@@ -68,7 +68,6 @@ paths:
           description: The event ID stored in the Foria database.
           required: true
           schema:
-            maxLength: 36
             type: string
             format: uuid
       responses:
@@ -93,7 +92,6 @@ paths:
           description: The ticket ID stored in the Foria database.
           required: true
           schema:
-            maxLength: 36
             type: string
             format: uuid
       responses:
@@ -122,7 +120,6 @@ paths:
           description: The ticket ID stored in the Foria database.
           required: true
           schema:
-            maxLength: 36
             type: string
             format: uuid
       responses:
@@ -156,7 +153,6 @@ paths:
           description: The ticket ID stored in the Foria database.
           required: true
           schema:
-            maxLength: 36
             type: string
             format: uuid
       responses:
@@ -211,7 +207,6 @@ paths:
           description: The ticket ID stored in the Foria database.
           required: true
           schema:
-            maxLength: 36
             type: string
             format: uuid
       responses:
@@ -245,7 +240,6 @@ paths:
           description: The ticket ID stored in the Foria database.
           required: true
           schema:
-            maxLength: 36
             type: string
             format: uuid
       responses:
@@ -279,7 +273,6 @@ paths:
           description: The ticket ID stored in the Foria database.
           required: true
           schema:
-            maxLength: 36
             type: string
             format: uuid
       requestBody:
@@ -342,7 +335,6 @@ paths:
           description: The user ID stored in the Foria database.
           required: true
           schema:
-            maxLength: 36
             type: string
             format: uuid
       responses:
@@ -367,7 +359,6 @@ paths:
           description: The user ID stored in the Foria database.
           required: true
           schema:
-            maxLength: 36
             type: string
             format: uuid
       responses:
@@ -415,7 +406,6 @@ paths:
           description: The venue ID stored in the Foria database.
           required: true
           schema:
-            maxLength: 36
             type: string
             format: uuid
       responses:
@@ -459,12 +449,10 @@ components:
         - payment_token
       properties:
         id:
-          maxLength: 36
           type: string
           format: uuid
           readOnly: true
         event_id:
-          maxLength: 36
           type: string
           format: uuid
         ticket_line_item_list:
@@ -477,20 +465,16 @@ components:
       type: object
       properties:
         id:
-          maxLength: 36
           type: string
           format: uuid
           readOnly: true
         event_id:
-          maxLength: 36
           type: string
           format: uuid
         owner_id:
-          maxLength: 36
           type: string
           format: uuid
         purchaser_id:
-          maxLength: 36
           type: string
           format: uuid
         secret:
@@ -513,7 +497,6 @@ components:
       type: object
       properties:
         ticket_type_id:
-          maxLength: 36
           type: string
           format: uuid
         amount:
@@ -524,7 +507,6 @@ components:
       type: object
       properties:
         id:
-          maxLength: 36
           type: string
           format: uuid
           readOnly: true
@@ -549,7 +531,6 @@ components:
       type: object
       properties:
         id:
-          maxLength: 36
           type: string
           format: uuid
           readOnly: true
@@ -568,7 +549,6 @@ components:
       type: object
       properties:
         id:
-          maxLength: 36
           type: string
           format: uuid
           readOnly: true
@@ -606,7 +586,6 @@ components:
       type: object
       properties:
         id:
-          maxLength: 36
           type: string
           format: uuid
           readOnly: true
@@ -642,12 +621,10 @@ components:
       type: object
       properties:
         id:
-          maxLength: 36
           type: string
           format: uuid
           readOnly: true
         venue_id:
-          maxLength: 36
           type: string
           format: uuid
           readOnly: true
@@ -677,7 +654,6 @@ components:
       type: object
       properties:
         id:
-          maxLength: 36
           type: string
           format: uuid
           readOnly: true

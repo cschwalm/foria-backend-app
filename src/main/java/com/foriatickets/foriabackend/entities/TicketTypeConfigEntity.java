@@ -75,7 +75,7 @@ public class TicketTypeConfigEntity implements Serializable {
         return this;
     }
 
-    @Column(name = "price", nullable = false, length = 8, precision = 2)
+    @Column(name = "price", nullable = false, scale = 2, precision = 8)
     public BigDecimal getPrice() {
         return price;
     }

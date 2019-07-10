@@ -17,6 +17,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.OffsetDateTime;
 import java.util.*;
 
@@ -87,12 +88,6 @@ public class TicketServiceImpl implements TicketService {
         EventEntity eventEntity = eventEntityOptional.get();
         Set<TicketFeeConfigEntity> ticketFeeConfigEntitySet = eventEntity.getTicketFeeConfig();
 
-        //Create easy to access map of ticket config to ticket amounts.
-        HashMap<UUID, Integer> ticketAmounts = new HashMap<>();
-        for (TicketLineItem ticketLineItem : orderConfig) {
-            ticketAmounts.put(ticketLineItem.getTicketTypeId(), ticketLineItem.getAmount());
-        }
-
         //Generate unique order ID.
         final UUID orderId = UUID.randomUUID();
 
@@ -101,7 +96,8 @@ public class TicketServiceImpl implements TicketService {
 
         //Validate ticket config IDs are valid and issue tickets.
         Set<OrderTicketEntryEntity> orderTicketEntryEntities = new HashSet<>();
-        for (UUID ticketTypeConfigId : ticketAmounts.keySet()) {
+        for (TicketLineItem ticketLineItem : orderConfig) {
+            UUID ticketTypeConfigId = ticketLineItem.getTicketTypeId();
             boolean doesExist = ticketTypeConfigRepository.existsById(ticketTypeConfigId);
             if (!doesExist) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ticket type config is invalid.");
@@ -144,6 +140,8 @@ public class TicketServiceImpl implements TicketService {
         }
 
         Charge chargeResult = stripeGateway.chargeCustomer(stripeCustomerId, paymentToken, orderEntity.getId(), priceCalculationInfo.grandTotal, priceCalculationInfo.currencyCode);
+        orderEntity.setChargeReferenceId(chargeResult.getId());
+        orderRepository.save(orderEntity);
         LOG.info("Stripe customer (ID: {}) charged: {}{} with chargeID: {}",
                 stripeCustomerId, priceCalculationInfo.grandTotal, priceCalculationInfo.currencyCode, chargeResult.getId());
     }
@@ -221,22 +219,17 @@ public class TicketServiceImpl implements TicketService {
             }
         });
 
-        //Create easy to access map of ticket config to ticket amounts.
-        HashMap<UUID, Integer> ticketAmounts = new HashMap<>();
-        for (TicketLineItem ticketLineItem : orderConfig) {
-
-            ticketAmounts.put(ticketLineItem.getTicketTypeId(), ticketLineItem.getAmount());
-        }
-
         //Load ticket price configs.
         //Summate over tickets to calculate sub-total.
-        for (UUID ticketTypeConfigId : ticketAmounts.keySet()) {
+        for (TicketLineItem ticketLineItem : orderConfig) {
+            UUID ticketTypeConfigId = ticketLineItem.getTicketTypeId();
+            int orderAmount = ticketLineItem.getAmount();
             Optional<TicketTypeConfigEntity> ticketTypeConfigEntityOptional = ticketTypeConfigRepository.findById(ticketTypeConfigId);
 
             if (ticketTypeConfigEntityOptional.isPresent()) {
                 TicketTypeConfigEntity ticketTypeConfigEntity = ticketTypeConfigEntityOptional.get();
 
-                BigDecimal amountForType = new BigDecimal(ticketAmounts.get(ticketTypeConfigId));
+                BigDecimal amountForType = new BigDecimal(orderAmount);
                 BigDecimal ticketPriceForType = ticketTypeConfigEntity.getPrice().multiply(amountForType);
                 ticketSubtotal = ticketSubtotal.add(ticketPriceForType);
                 currencyCode = ticketTypeConfigEntity.getCurrency();
@@ -283,13 +276,13 @@ public class TicketServiceImpl implements TicketService {
         BigDecimal subtotalWithFees = ticketSubtotal.add(ticketFeeAmount);
         grandTotal = ( subtotalWithFees.add(STRIPE_FLAT_FEE) )
                 .divide(
-                        (BigDecimal.ONE.subtract(STRIPE_PERCENT_FEE) ), BigDecimal.ROUND_FLOOR);
+                        (BigDecimal.ONE.subtract(STRIPE_PERCENT_FEE) ), BigDecimal.ROUND_HALF_UP);
         paymentFeeAmount = grandTotal.subtract(subtotalWithFees);
 
         PriceCalculationInfo result = new PriceCalculationInfo();
         result.ticketSubtotal = ticketSubtotal;
         result.feeSubtotal = ticketFeeAmount;
-        result.grandTotal = grandTotal;
+        result.grandTotal = grandTotal.setScale(2, RoundingMode.FLOOR);
         result.paymentFeeSubtotal = paymentFeeAmount;
         return result;
     }

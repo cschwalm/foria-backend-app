@@ -10,7 +10,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
-import javax.validation.constraints.Size;
 import java.util.List;
 import java.util.UUID;
 
@@ -20,13 +19,13 @@ public class UserApi implements org.openapitools.api.UserApi {
 
     @Override
     @RequestMapping(value = "/user/{user_id}/tickets", method = RequestMethod.GET)
-    public ResponseEntity<List<Ticket>> getTickets(@Size(max = 36) @PathVariable("user_id") UUID userId) {
+    public ResponseEntity<List<Ticket>> getTickets(@PathVariable("user_id") UUID userId) {
         return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
     }
 
     @Override
     @RequestMapping(value = "/user/{user_id}", method = RequestMethod.GET)
-    public ResponseEntity<User> getUser(@Size(max = 36) @PathVariable("user_id") UUID userId) {
+    public ResponseEntity<User> getUser(@PathVariable("user_id") UUID userId) {
         return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
     }
 }

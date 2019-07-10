@@ -27,15 +27,20 @@ spring:
 
 spring.h2.console.enabled: true
 spring.h2.console.path: /console
-spring.jpa.hibernate.ddl-auto: update
+spring.jpa.hibernate.ddl-auto: create-drop
+
+spring.jpa.properties.hibernate.show_sql: false
+spring.jpa.properties.hibernate.format_sql: true
 
 logging.config: classpath:log4j2-local.xml
 
-# Corp Database Connection Info
-db.name: foria
-db.secret: corp-db-foria-user-pass
-apiKeyList: corp_foria_auth0_api_key
+# Database Connection Info
+db.jdbc: jdbc:h2:file:~/.h2/foria;AUTO_SERVER=TRUE
+db.username: sa
+db.password: sa
 
+# Stripe
+stripeApiKey: corp_foria_stripe_secret_key
 
 ---
 spring:

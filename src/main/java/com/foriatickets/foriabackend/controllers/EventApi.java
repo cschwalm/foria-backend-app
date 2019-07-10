@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
 import javax.validation.Valid;
-import javax.validation.constraints.Size;
 import java.util.UUID;
 
 @Controller
@@ -37,7 +36,7 @@ public class EventApi implements org.openapitools.api.EventApi {
 
     @RequestMapping(value = "/event/{event_id}", method = RequestMethod.GET)
     @Override
-    public ResponseEntity<Event> getEvent(@Size(max = 36) @PathVariable("event_id") UUID eventId) {
+    public ResponseEntity<Event> getEvent(@PathVariable("event_id") UUID eventId) {
 
         EventService eventService = beanFactory.getBean(EventService.class, eventId);
         return ResponseEntity.of(eventService.getEvent());

@@ -68,7 +68,7 @@ public class OrderEntity implements Serializable {
         return this;
     }
 
-    @Column(name = "total", nullable = false, length = 8, precision = 2)
+    @Column(name = "total", nullable = false, scale = 2, precision = 8)
     public BigDecimal getTotal() {
         return total;
     }

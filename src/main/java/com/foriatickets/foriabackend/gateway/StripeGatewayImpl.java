@@ -9,7 +9,6 @@ import org.apache.logging.log4j.Logger;
 import org.openapitools.model.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -23,7 +22,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Service
-@Profile("!local")
 public class StripeGatewayImpl implements StripeGateway {
 
     private static final String DESCRIPTION = "Tickets purchased via Foria Technologies, Inc.";
@@ -31,10 +29,7 @@ public class StripeGatewayImpl implements StripeGateway {
 
     private static final Logger LOG = LogManager.getLogger();
 
-    @Value("${stripeApiKey:corp_foria_stripe_secret_key}")
-    private String stripeApiKeyId;
-
-    public StripeGatewayImpl(@Autowired AWSSecretsManagerGateway awsSecretsManagerGateway) {
+    public StripeGatewayImpl(@Value("${stripeApiKey:corp_foria_stripe_secret_key}") String stripeApiKeyId, @Autowired AWSSecretsManagerGateway awsSecretsManagerGateway) {
 
         Optional<String> stripeApiKeyOptional = awsSecretsManagerGateway.getSecretString(stripeApiKeyId);
         if (!stripeApiKeyOptional.isPresent()) {
@@ -93,6 +88,18 @@ public class StripeGatewayImpl implements StripeGateway {
             throw new RuntimeException("Attempted to charge Stripe user with null data!");
         }
 
+        if (amount.compareTo(BigDecimal.ZERO) < 0) {
+            LOG.error("Amount charged must be greater than 0!");
+            throw new RuntimeException("Amount charged must be greater than 0!");
+        }
+
+        //Stripe requires the value to not contain a decimal.
+        if (amount.scale() > 0) {
+            amount = amount.movePointRight(amount.scale());
+        }
+
+        LOG.debug("Stripe amount to charge is: {}{}", amount, currencyCode);
+
         Map<String, Object> chargeParams = new HashMap<>();
         Map<String, Object> metadata = new HashMap<>();
         metadata.put("order_id", orderId.toString());
@@ -113,7 +120,7 @@ public class StripeGatewayImpl implements StripeGateway {
             LOG.info("Failed to charge payment method. Decline Code: {} - Error Message: {}", e.getDeclineCode(), e.getMessage());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
         } catch (Exception e) {
-            LOG.error("ERROR: Creating Stripe customer! Error message: {} | customerID: {}", e.getMessage(), stripeCustomerId);
+            LOG.error("ERROR: Error charging Stripe customer! Error message: {} | customerID: {}", e.getMessage(), stripeCustomerId);
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Failed to charge payment method. Please contact support.");
         }
 

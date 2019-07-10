@@ -13,7 +13,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
 import javax.validation.Valid;
-import javax.validation.constraints.Size;
 import java.util.UUID;
 
 @Controller
@@ -37,7 +36,7 @@ public class VenueApi implements org.openapitools.api.VenueApi {
 
     @Override
     @RequestMapping(value = "/venue/{venue_id}", method = RequestMethod.GET)
-    public ResponseEntity<Venue> getVenue(@Size(max = 36) @PathVariable("venue_id") UUID venueId) {
+    public ResponseEntity<Venue> getVenue(@PathVariable("venue_id") UUID venueId) {
 
         VenueService venueService = beanFactory.getBean(VenueService.class, venueId);
         return ResponseEntity.of(venueService.getVenue());

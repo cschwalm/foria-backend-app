@@ -5,10 +5,8 @@ import com.foriatickets.foriabackend.entities.EventEntity;
 import com.foriatickets.foriabackend.entities.TicketEntity;
 import com.foriatickets.foriabackend.entities.TicketTypeConfigEntity;
 import com.foriatickets.foriabackend.entities.UserEntity;
-import com.foriatickets.foriabackend.repositories.EventRepository;
-import com.foriatickets.foriabackend.repositories.TicketRepository;
-import com.foriatickets.foriabackend.repositories.TicketTypeConfigRepository;
-import com.foriatickets.foriabackend.repositories.UserRepository;
+import com.foriatickets.foriabackend.gateway.StripeGateway;
+import com.foriatickets.foriabackend.repositories.*;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -44,6 +42,12 @@ public class TicketServiceImplTest {
     @Mock
     private TicketRepository ticketRepository;
 
+    @Mock
+    private OrderRepository orderRepository;
+
+    @Mock
+    private StripeGateway stripeGateway;
+
     private TicketServiceImpl ticketService;
 
     @Before
@@ -55,7 +59,7 @@ public class TicketServiceImplTest {
             modelMapper.addMappings(map);
         }
 
-        ticketService = new TicketServiceImpl(eventRepository, userRepository, ticketTypeConfigRepository, ticketRepository, modelMapper);
+        ticketService = new TicketServiceImpl(modelMapper, eventRepository, orderRepository, userRepository, ticketTypeConfigRepository, ticketRepository, stripeGateway);
     }
 
     @Test
