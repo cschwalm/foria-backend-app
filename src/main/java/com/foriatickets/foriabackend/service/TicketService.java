@@ -1,7 +1,6 @@
 package com.foriatickets.foriabackend.service;
 
 import com.foriatickets.foriabackend.entities.TicketEntity;
-import org.openapitools.model.Ticket;
 import org.openapitools.model.TicketLineItem;
 
 import java.util.List;

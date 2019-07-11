@@ -15,7 +15,6 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -80,10 +79,9 @@ public class StripeGatewayImpl implements StripeGateway {
     }
 
     @Override
-    public Charge chargeCustomer(String stripeCustomerId, String paymentToken, UUID orderId, BigDecimal amount, String currencyCode) {
+    public Charge chargeCustomer(String stripeCustomerId, UUID orderId, BigDecimal amount, String currencyCode) {
 
-        if (StringUtils.isEmpty(stripeCustomerId) || StringUtils.isEmpty(paymentToken) ||
-                StringUtils.isEmpty(currencyCode) || amount == null) {
+        if (StringUtils.isEmpty(stripeCustomerId) || StringUtils.isEmpty(currencyCode) || amount == null) {
             LOG.error("Attempted to charge Stripe user with null data!");
             throw new RuntimeException("Attempted to charge Stripe user with null data!");
         }
@@ -95,7 +93,7 @@ public class StripeGatewayImpl implements StripeGateway {
 
         //Stripe requires the value to not contain a decimal.
         if (amount.scale() > 0) {
-            amount = amount.movePointRight(amount.scale());
+            amount = amount.movePointRight(amount.scale()).stripTrailingZeros();
         }
 
         LOG.debug("Stripe amount to charge is: {}{}", amount, currencyCode);
@@ -104,10 +102,9 @@ public class StripeGatewayImpl implements StripeGateway {
         Map<String, Object> metadata = new HashMap<>();
         metadata.put("order_id", orderId.toString());
 
-        chargeParams.put("amount", amount.setScale(2, RoundingMode.FLOOR));
+        chargeParams.put("amount", amount);
         chargeParams.put("currency", currencyCode);
         chargeParams.put("customer", stripeCustomerId);
-        chargeParams.put("source", paymentToken);
         chargeParams.put("metadata", metadata);
         chargeParams.put("description", DESCRIPTION);
         chargeParams.put("statement_descriptor", DESCRIPTOR);

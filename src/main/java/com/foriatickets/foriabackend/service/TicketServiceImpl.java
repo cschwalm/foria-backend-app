@@ -27,10 +27,10 @@ public class TicketServiceImpl implements TicketService {
 
     private static final BigDecimal STRIPE_PERCENT_FEE = BigDecimal.valueOf(0.029);
     private static final BigDecimal STRIPE_FLAT_FEE = BigDecimal.valueOf(0.30);
+    private static final int MAX_TICKETS_PER_ORDER = 10;
 
-    private static class PriceCalculationInfo {
+    static class PriceCalculationInfo {
 
-        Set<TicketFeeConfigEntity> feeConfigEntitySet;
         BigDecimal ticketSubtotal;
         BigDecimal feeSubtotal;
         BigDecimal paymentFeeSubtotal;
@@ -41,6 +41,10 @@ public class TicketServiceImpl implements TicketService {
     private final ModelMapper modelMapper;
 
     private final EventRepository eventRepository;
+
+    private final OrderFeeEntryRepository orderFeeEntryRepository;
+
+    private final OrderTicketEntryRepository orderTicketEntryRepository;
 
     private final OrderRepository orderRepository;
 
@@ -54,7 +58,7 @@ public class TicketServiceImpl implements TicketService {
 
     private final StripeGateway stripeGateway;
 
-    public TicketServiceImpl(ModelMapper modelMapper, EventRepository eventRepository, OrderRepository orderRepository, UserRepository userRepository, TicketTypeConfigRepository ticketTypeConfigRepository, TicketRepository ticketRepository, StripeGateway stripeGateway) {
+    public TicketServiceImpl(ModelMapper modelMapper, EventRepository eventRepository, OrderRepository orderRepository, UserRepository userRepository, TicketTypeConfigRepository ticketTypeConfigRepository, TicketRepository ticketRepository, StripeGateway stripeGateway, OrderFeeEntryRepository orderFeeEntryRepository, OrderTicketEntryRepository orderTicketEntryRepository) {
         this.modelMapper = modelMapper;
         this.eventRepository = eventRepository;
         this.orderRepository = orderRepository;
@@ -62,6 +66,8 @@ public class TicketServiceImpl implements TicketService {
         this.ticketTypeConfigRepository = ticketTypeConfigRepository;
         this.ticketRepository = ticketRepository;
         this.stripeGateway = stripeGateway;
+        this.orderFeeEntryRepository = orderFeeEntryRepository;
+        this.orderTicketEntryRepository = orderTicketEntryRepository;
     }
 
     @Override
@@ -69,6 +75,14 @@ public class TicketServiceImpl implements TicketService {
 
         if (StringUtils.isEmpty(auth0Id) || StringUtils.isEmpty(paymentToken) || orderConfig == null || eventId == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Checkout request is missing required data.");
+        }
+
+        int totalTicketCount = 0;
+        for (TicketLineItem ticketLineItem : orderConfig) {
+            totalTicketCount += ticketLineItem.getAmount();
+        }
+        if (totalTicketCount > MAX_TICKETS_PER_ORDER) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Max of " + MAX_TICKETS_PER_ORDER + " tickets per order allowed.");
         }
 
         //Load user from Auth0 token.
@@ -91,11 +105,19 @@ public class TicketServiceImpl implements TicketService {
         //Generate unique order ID.
         final UUID orderId = UUID.randomUUID();
 
+        //Calculate order total.
+        PriceCalculationInfo priceCalculationInfo = calculateTotalPrice(eventId, orderConfig);
+
         //Create order entry.
         OrderEntity orderEntity = new OrderEntity();
+        orderEntity.setId(orderId);
+        orderEntity.setPurchaser(userEntity);
+        orderEntity.setOrderTimestamp(OffsetDateTime.now());
+        orderEntity.setTotal(priceCalculationInfo.grandTotal);
+        orderEntity.setCurrency(priceCalculationInfo.currencyCode);
+        orderEntity = orderRepository.save(orderEntity);
 
         //Validate ticket config IDs are valid and issue tickets.
-        Set<OrderTicketEntryEntity> orderTicketEntryEntities = new HashSet<>();
         for (TicketLineItem ticketLineItem : orderConfig) {
             UUID ticketTypeConfigId = ticketLineItem.getTicketTypeId();
             boolean doesExist = ticketTypeConfigRepository.existsById(ticketTypeConfigId);
@@ -103,31 +125,24 @@ public class TicketServiceImpl implements TicketService {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ticket type config is invalid.");
             }
 
-            TicketEntity issuedTicket = issueTicket(userEntity.getId(), eventId, ticketTypeConfigId);
-            OrderTicketEntryEntity orderTicketEntryEntity = new OrderTicketEntryEntity();
-            orderTicketEntryEntity.setOrderEntity(orderEntity);
-            orderTicketEntryEntity.setTicketEntity(issuedTicket);
-            orderTicketEntryEntities.add(orderTicketEntryEntity);
+            TicketEntity issuedTicket;
+            for (int i = 0; i < ticketLineItem.getAmount(); i++) {
+
+                issuedTicket = issueTicket(userEntity.getId(), eventId, ticketTypeConfigId);
+
+                OrderTicketEntryEntity orderTicketEntryEntity = new OrderTicketEntryEntity();
+                orderTicketEntryEntity.setOrderEntity(orderEntity);
+                orderTicketEntryEntity.setTicketEntity(issuedTicket);
+                orderTicketEntryRepository.save(orderTicketEntryEntity);
+            }
         }
 
-        Set<OrderFeeEntryEntity> orderFeeEntryEntities = new HashSet<>();
         for (TicketFeeConfigEntity ticketFeeConfigEntity : ticketFeeConfigEntitySet) {
             OrderFeeEntryEntity orderFeeEntryEntity = new OrderFeeEntryEntity();
             orderFeeEntryEntity.setOrderEntity(orderEntity);
             orderFeeEntryEntity.setTicketFeeConfigEntity(ticketFeeConfigEntity);
-            orderFeeEntryEntities.add(orderFeeEntryEntity);
+            orderFeeEntryRepository.save(orderFeeEntryEntity);
         }
-
-        //Calculate order total.
-        PriceCalculationInfo priceCalculationInfo = calculateTotalPrice(eventId, orderConfig);
-        orderEntity.setId(orderId);
-        orderEntity.setPurchaser(userEntity);
-        orderEntity.setOrderTimestamp(OffsetDateTime.now());
-        orderEntity.setTotal(priceCalculationInfo.grandTotal);
-        orderEntity.setCurrency(priceCalculationInfo.currencyCode);
-        orderEntity.setTickets(orderTicketEntryEntities);
-        orderEntity.setFees(orderFeeEntryEntities);
-        orderEntity = orderRepository.save(orderEntity);
 
         //Charge payment method - tickets have been issued. Create Stripe user if it doesn't exist.
         String stripeCustomerId;
@@ -139,7 +154,7 @@ public class TicketServiceImpl implements TicketService {
             stripeCustomerId = userEntity.getStripeId();
         }
 
-        Charge chargeResult = stripeGateway.chargeCustomer(stripeCustomerId, paymentToken, orderEntity.getId(), priceCalculationInfo.grandTotal, priceCalculationInfo.currencyCode);
+        Charge chargeResult = stripeGateway.chargeCustomer(stripeCustomerId, orderEntity.getId(), priceCalculationInfo.grandTotal, priceCalculationInfo.currencyCode);
         orderEntity.setChargeReferenceId(chargeResult.getId());
         orderRepository.save(orderEntity);
         LOG.info("Stripe customer (ID: {}) charged: {}{} with chargeID: {}",
@@ -238,7 +253,6 @@ public class TicketServiceImpl implements TicketService {
 
         PriceCalculationInfo priceCalculationInfo = calculateFees(ticketSubtotal, percentFeeSet, flatFeeSet);
         priceCalculationInfo.currencyCode = currencyCode;
-        priceCalculationInfo.feeConfigEntitySet = eventEntity.getTicketFeeConfig();
         return priceCalculationInfo;
     }
 
@@ -251,14 +265,14 @@ public class TicketServiceImpl implements TicketService {
      * @param flatFeeSet List of flat fees.
      * @return Object containing break down of fees.
      */
-    PriceCalculationInfo calculateFees(BigDecimal ticketSubtotal, Set<TicketFeeConfigEntity> percentFeeSet, Set<TicketFeeConfigEntity> flatFeeSet) {
+    PriceCalculationInfo calculateFees(final BigDecimal ticketSubtotal, Set<TicketFeeConfigEntity> percentFeeSet, Set<TicketFeeConfigEntity> flatFeeSet) {
 
         BigDecimal ticketFeeAmount;
         BigDecimal paymentFeeAmount;
         BigDecimal grandTotal;
 
         //Summate percent fees and apply.
-        BigDecimal feePercentToApply = BigDecimal.ONE;
+        BigDecimal feePercentToApply = BigDecimal.ZERO;
         for (TicketFeeConfigEntity feeConfigEntity : percentFeeSet) {
             feePercentToApply = feePercentToApply.add(feeConfigEntity.getAmount());
         }
@@ -269,7 +283,7 @@ public class TicketServiceImpl implements TicketService {
         for (TicketFeeConfigEntity feeConfigEntity : flatFeeSet) {
             feeFlatToApply = feeFlatToApply.add(feeConfigEntity.getAmount());
         }
-        ticketFeeAmount = ticketFeeAmount.add(feeFlatToApply);
+        ticketFeeAmount = ticketFeeAmount.add(feeFlatToApply).setScale(2, BigDecimal.ROUND_HALF_UP);
 
         //Apply payment vendor fee.
         //charge_amount = (subtotal + 0.30) / (1 - 2.90 / 100)

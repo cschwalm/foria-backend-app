@@ -27,7 +27,7 @@ spring:
 
 spring.h2.console.enabled: true
 spring.h2.console.path: /console
-spring.jpa.hibernate.ddl-auto: create-drop
+spring.jpa.hibernate.ddl-auto: create
 
 spring.jpa.properties.hibernate.show_sql: false
 spring.jpa.properties.hibernate.format_sql: true

@@ -49,4 +49,4 @@ INSERT
                 "ID", "AUTH0_ID", "EMAIL", "FIRST_NAME", "LAST_NAME", "STRIPE_ID"
         )
         VALUES
-            ('3f4bc13d-3bc3-4c41-84ed-c92193bac935', 'auth0|test', 'corbin@foriatickets.com', 'Corbin', 'Schwalm', null);
+            ('3f4bc13d-3bc3-4c41-84ed-c92193bac935', 'auth0|5d05c0163e45e40dc76233ed', 'corbin@foriatickets.com', 'Corbin', 'Schwalm', null);

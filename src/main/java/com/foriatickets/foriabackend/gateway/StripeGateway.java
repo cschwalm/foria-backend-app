@@ -22,13 +22,12 @@ public interface StripeGateway {
      * Throws a RuntimeException if the supplied card data is invalid.
      *
      * @param stripeCustomerId id
-     * @param paymentToken token from client
      * @param orderId Order id.
      * @param amount Rounded to two decimal places and set to floor.
      * @param currencyCode Currency to bill in.
      * @return A successful charge object.
      */
-    Charge chargeCustomer(String stripeCustomerId, String paymentToken, UUID orderId, BigDecimal amount, String currencyCode);
+    Charge chargeCustomer(String stripeCustomerId, UUID orderId, BigDecimal amount, String currencyCode);
 
     /**
      * Attempts to create a customer in Stripe. This should only be called once per system user.
