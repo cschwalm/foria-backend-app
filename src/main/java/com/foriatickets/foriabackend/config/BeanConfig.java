@@ -7,10 +7,7 @@ import com.foriatickets.foriabackend.repositories.EventRepository;
 import com.foriatickets.foriabackend.repositories.TicketFeeConfigRepository;
 import com.foriatickets.foriabackend.repositories.TicketTypeConfigRepository;
 import com.foriatickets.foriabackend.repositories.VenueRepository;
-import com.foriatickets.foriabackend.service.EventService;
-import com.foriatickets.foriabackend.service.EventServiceImpl;
-import com.foriatickets.foriabackend.service.VenueService;
-import com.foriatickets.foriabackend.service.VenueServiceImpl;
+import com.foriatickets.foriabackend.service.*;
 import org.modelmapper.AbstractConverter;
 import org.modelmapper.Converter;
 import org.modelmapper.ModelMapper;
@@ -41,6 +38,8 @@ public class BeanConfig {
     private TicketFeeConfigRepository ticketFeeConfigRepository;
     private TicketTypeConfigRepository ticketTypeConfigRepository;
 
+    @Autowired TicketService ticketService;
+
     public BeanConfig(@Autowired EventRepository eventRepository, @Autowired VenueRepository venueRepository,
                       @Autowired TicketFeeConfigRepository ticketFeeConfigRepository, @Autowired TicketTypeConfigRepository ticketTypeConfigRepository) {
         this.eventRepository = eventRepository;
@@ -53,7 +52,7 @@ public class BeanConfig {
     @Bean
     @Scope(value = ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     public EventService eventService(UUID eventId) {
-        return new EventServiceImpl(eventId, eventRepository, ticketFeeConfigRepository, ticketTypeConfigRepository, venueRepository, modelMapper());
+        return new EventServiceImpl(eventId, eventRepository, ticketFeeConfigRepository, ticketTypeConfigRepository, venueRepository, modelMapper(), ticketService);
     }
 
     @Bean

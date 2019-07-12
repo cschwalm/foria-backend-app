@@ -71,7 +71,7 @@ public class TicketServiceImpl implements TicketService {
     }
 
     @Override
-    public void checkoutOrder(String auth0Id, String paymentToken, UUID eventId, List<TicketLineItem> orderConfig) {
+    public UUID checkoutOrder(String auth0Id, String paymentToken, UUID eventId, List<TicketLineItem> orderConfig) {
 
         if (StringUtils.isEmpty(auth0Id) || StringUtils.isEmpty(paymentToken) || orderConfig == null || eventId == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Checkout request is missing required data.");
@@ -120,9 +120,15 @@ public class TicketServiceImpl implements TicketService {
         //Validate ticket config IDs are valid and issue tickets.
         for (TicketLineItem ticketLineItem : orderConfig) {
             UUID ticketTypeConfigId = ticketLineItem.getTicketTypeId();
-            boolean doesExist = ticketTypeConfigRepository.existsById(ticketTypeConfigId);
-            if (!doesExist) {
+            Optional<TicketTypeConfigEntity> ticketTypeConfigEntityOptional = ticketTypeConfigRepository.findById(ticketTypeConfigId);
+            if (!ticketTypeConfigEntityOptional.isPresent()) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ticket type config is invalid.");
+            }
+
+            int ticketsRemaining = obtainTicketsRemainingByType(ticketTypeConfigEntityOptional.get());
+            if (ticketLineItem.getAmount() > ticketsRemaining) {
+                LOG.warn("Not enough tickets to complete the order. - eventId: {} - ticketConfigId: {}", eventId, ticketTypeConfigId);
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Not enough tickets to complete the order.");
             }
 
             TicketEntity issuedTicket;
@@ -159,6 +165,7 @@ public class TicketServiceImpl implements TicketService {
         orderRepository.save(orderEntity);
         LOG.info("Stripe customer (ID: {}) charged: {}{} with chargeID: {}",
                 stripeCustomerId, priceCalculationInfo.grandTotal, priceCalculationInfo.currencyCode, chargeResult.getId());
+        return orderId;
     }
 
     @Override
@@ -256,6 +263,19 @@ public class TicketServiceImpl implements TicketService {
         return priceCalculationInfo;
     }
 
+    @Override
+    public int countTicketsRemaining(UUID ticketTypeConfigId) {
+
+        Optional<TicketTypeConfigEntity> ticketTypeConfigEntityOptional = ticketTypeConfigRepository.findById(ticketTypeConfigId);
+
+        if (!ticketTypeConfigEntityOptional.isPresent()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ticket type config is invalid.");
+        }
+
+        int ticketsRemaining = obtainTicketsRemainingByType(ticketTypeConfigEntityOptional.get());
+        return ticketsRemaining > MAX_TICKETS_PER_ORDER ? MAX_TICKETS_PER_ORDER : ticketsRemaining;
+    }
+
     /**
      * Accepts subtotal, list of both flat and percent fees, and then calculates the subtotal with fees applied.
      * Payment processor fee is applied last to pass the entire amount on to the customer.
@@ -299,5 +319,17 @@ public class TicketServiceImpl implements TicketService {
         result.grandTotal = grandTotal.setScale(2, RoundingMode.FLOOR);
         result.paymentFeeSubtotal = paymentFeeAmount;
         return result;
+    }
+
+    /**
+     * Returns the amount of tickets that are allowed to be issued.
+     *
+     * @param ticketTypeConfigEntity ticket type
+     * @return A non-negative number.
+     */
+    int obtainTicketsRemainingByType(TicketTypeConfigEntity ticketTypeConfigEntity) {
+
+        int ticketsIssued = ticketRepository.countActiveTicketsIssuedByType(ticketTypeConfigEntity.getId(), ticketTypeConfigEntity.getEventEntity().getId());
+        return ticketTypeConfigEntity.getAuthorizedAmount() - ticketsIssued;
     }
 }

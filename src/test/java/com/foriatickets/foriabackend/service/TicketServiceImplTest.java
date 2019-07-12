@@ -164,4 +164,28 @@ public class TicketServiceImplTest {
         assertEquals(stripeFeeActual, actual.paymentFeeSubtotal);
         assertEquals(grandTotalActual, actual.grandTotal);
     }
+
+    @Test
+    public void obtainTicketsRemainingByType() {
+
+        UUID eventId = UUID.randomUUID();
+        UUID ticketTypeConfigId = UUID.randomUUID();
+
+        int expected = 1;
+
+        EventEntity eventEntityMock = mock(EventEntity.class);
+        when(eventEntityMock.getId()).thenReturn(eventId);
+
+        TicketTypeConfigEntity ticketTypeConfigEntityMock = mock(TicketTypeConfigEntity.class);
+        when(ticketTypeConfigEntityMock.getAuthorizedAmount()).thenReturn(5);
+        when(ticketTypeConfigEntityMock.getEventEntity()).thenReturn(eventEntityMock);
+        when(ticketTypeConfigEntityMock.getId()).thenReturn(ticketTypeConfigId);
+
+        when(ticketRepository.countActiveTicketsIssuedByType(ticketTypeConfigId, eventId)).thenReturn(4);
+
+        int actual = ticketService.obtainTicketsRemainingByType(ticketTypeConfigEntityMock);
+
+        assertEquals(expected, actual);
+        verify(ticketRepository).countActiveTicketsIssuedByType(ticketTypeConfigId, eventId);
+    }
 }

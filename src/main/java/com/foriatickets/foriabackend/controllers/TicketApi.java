@@ -30,11 +30,12 @@ public class TicketApi implements org.openapitools.api.TicketApi {
 
     @Override
     @RequestMapping(value = "/ticket/checkout", method = RequestMethod.POST)
-    public ResponseEntity<BaseApiModel> checkout(@Valid Order order) {
+    public ResponseEntity<Order> checkout(@Valid Order order) {
 
         String auth0Id = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        ticketService.checkoutOrder(auth0Id, order.getPaymentToken(), order.getEventId(), order.getTicketLineItemList());
-        return new ResponseEntity<>(new BaseApiModel(), HttpStatus.OK);
+        UUID orderId = ticketService.checkoutOrder(auth0Id, order.getPaymentToken(), order.getEventId(), order.getTicketLineItemList());
+        order.setId(orderId);
+        return new ResponseEntity<>(order, HttpStatus.OK);
     }
 
     @Override

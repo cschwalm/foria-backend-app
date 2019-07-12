@@ -9,6 +9,7 @@ import org.apache.logging.log4j.Logger;
 import org.openapitools.model.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -20,6 +21,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+@Profile("!mock")
 @Service
 public class StripeGatewayImpl implements StripeGateway {
 

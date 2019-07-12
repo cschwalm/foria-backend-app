@@ -1,7 +1,6 @@
 package com.foriatickets.foriabackend.entities;
 
 import org.hibernate.annotations.Type;
-import org.openapitools.model.TicketFeeConfig;
 
 import javax.persistence.*;
 import java.io.Serializable;
@@ -28,6 +27,7 @@ public class EventEntity implements Serializable {
     private int authorizedTickets;
     private Set<TicketEntity> tickets = new HashSet<>();
     private Set<TicketFeeConfigEntity> ticketFeeConfig = new HashSet<>();
+    private Set<TicketTypeConfigEntity> ticketTypeConfig = new HashSet<>();
 
     @Id
     @GeneratedValue
@@ -143,13 +143,23 @@ public class EventEntity implements Serializable {
         return this;
     }
 
-    @OneToMany(mappedBy = "eventEntity", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "eventEntity", fetch = FetchType.EAGER)
     public Set<TicketFeeConfigEntity> getTicketFeeConfig() {
         return ticketFeeConfig;
     }
 
     public EventEntity setTicketFeeConfig(Set<TicketFeeConfigEntity> ticketFeeConfig) {
         this.ticketFeeConfig = ticketFeeConfig;
+        return this;
+    }
+
+    @OneToMany(mappedBy = "eventEntity", fetch = FetchType.EAGER)
+    public Set<TicketTypeConfigEntity> getTicketTypeConfigEntity() {
+        return ticketTypeConfig;
+    }
+
+    public EventEntity setTicketTypeConfigEntity(Set<TicketTypeConfigEntity> ticketTypeConfig) {
+        this.ticketTypeConfig = ticketTypeConfig;
         return this;
     }
 

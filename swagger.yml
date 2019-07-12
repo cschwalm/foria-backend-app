@@ -193,7 +193,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BaseApiModel'
+                $ref: '#/components/schemas/Order'
   /ticket/{ticket_id}/reactivate:
     post:
       tags:
@@ -650,6 +650,11 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/TicketTypeConfig'
+        ticket_line_item_list:
+          type: array
+          readOnly: true
+          items:
+            $ref: '#/components/schemas/TicketLineItem'
     TransferRequest:
       type: object
       properties:

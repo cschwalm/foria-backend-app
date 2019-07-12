@@ -28,7 +28,6 @@ public class ApiKeyFilter extends OncePerRequestFilter {
 
     private static final Logger LOG = LogManager.getLogger();
 
-    @SuppressWarnings("unchecked")
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
@@ -45,10 +44,16 @@ public class ApiKeyFilter extends OncePerRequestFilter {
         Map<String, AWSSecretsManagerGateway.ApiKey> keyMap = new HashMap<>();
         if (apiKeyListString == null) {
 
+            List<String> scopes = new ArrayList<>();
+            scopes.add("write:user_create");
+            scopes.add("write:venue");
+            scopes.add("write:event");
+
             LOG.debug("API key list not provided. Using test:test for API key.");
             AWSSecretsManagerGateway.ApiKey localKey = new AWSSecretsManagerGateway.ApiKey();
             localKey.key = localKey.secret = "test";
-            localKey.scopes = Collections.singletonList("write:user_create");
+            localKey.scopes = scopes;
+            keyMap.put(localKey.key, localKey);
 
         } else {
 

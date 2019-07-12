@@ -12,10 +12,13 @@ import org.apache.logging.log4j.Logger;
 import org.modelmapper.ModelMapper;
 import org.openapitools.model.Event;
 import org.openapitools.model.TicketFeeConfig;
+import org.openapitools.model.TicketLineItem;
 import org.openapitools.model.TicketTypeConfig;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @Transactional
@@ -31,11 +34,13 @@ public class EventServiceImpl implements EventService {
     private TicketFeeConfigRepository ticketFeeConfigRepository;
     private TicketTypeConfigRepository ticketTypeConfigRepository;
     private VenueRepository venueRepository;
+    private TicketService ticketService;
 
     public EventServiceImpl(UUID eventId, EventRepository eventRepository,
                             TicketFeeConfigRepository ticketFeeConfigRepository,
                             TicketTypeConfigRepository ticketTypeConfigRepository,
-                            VenueRepository venueRepository, ModelMapper modelMapper) {
+                            VenueRepository venueRepository, ModelMapper modelMapper,
+                            TicketService ticketService) {
 
         this.eventId = eventId;
         this.eventRepository = eventRepository;
@@ -43,6 +48,7 @@ public class EventServiceImpl implements EventService {
         this.ticketTypeConfigRepository = ticketTypeConfigRepository;
         this.venueRepository = venueRepository;
         this.modelMapper = modelMapper;
+        this.ticketService = ticketService;
 
         if (eventId == null) {
             return;
@@ -99,6 +105,21 @@ public class EventServiceImpl implements EventService {
             return Optional.empty();
         }
 
-        return Optional.of(modelMapper.map(eventEntity, Event.class));
+        Event event = modelMapper.map(eventEntity, Event.class);
+
+        event.setTicketLineItemList(new ArrayList<>());
+        Set<TicketTypeConfigEntity> ticketConfig = eventEntity.getTicketTypeConfigEntity();
+        for (TicketTypeConfigEntity ticketTypeConfigEntity : ticketConfig) {
+
+            int ticketsRemaining = ticketService.countTicketsRemaining(ticketTypeConfigEntity.getId());
+
+            TicketLineItem ticketLineItem = new TicketLineItem();
+            ticketLineItem.setTicketTypeId(ticketTypeConfigEntity.getId());
+            ticketLineItem.setAmount(ticketsRemaining);
+
+            event.getTicketLineItemList().add(ticketLineItem);
+        }
+
+        return Optional.of(event);
     }
 }

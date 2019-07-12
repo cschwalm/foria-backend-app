@@ -50,3 +50,12 @@ INSERT
         )
         VALUES
             ('3f4bc13d-3bc3-4c41-84ed-c92193bac935', 'auth0|5d05c0163e45e40dc76233ed', 'corbin@foriatickets.com', 'Corbin', 'Schwalm', null);
+
+/* insert com.foriatickets.foriabackend.entities.UserEntity */
+INSERT
+INTO
+    `USER` (
+    "ID", "AUTH0_ID", "EMAIL", "FIRST_NAME", "LAST_NAME", "STRIPE_ID"
+)
+VALUES
+('9f4bc13d-3bc3-4c41-84ed-c92193bac935', 'test', 'test@foriatickets.com', 'Corbin', 'Schwalm', null);
