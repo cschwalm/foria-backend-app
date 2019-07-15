@@ -12,13 +12,10 @@ import org.apache.logging.log4j.Logger;
 import org.modelmapper.ModelMapper;
 import org.openapitools.model.Event;
 import org.openapitools.model.TicketFeeConfig;
-import org.openapitools.model.TicketLineItem;
 import org.openapitools.model.TicketTypeConfig;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 
 @Transactional
@@ -107,17 +104,10 @@ public class EventServiceImpl implements EventService {
 
         Event event = modelMapper.map(eventEntity, Event.class);
 
-        event.setTicketLineItemList(new ArrayList<>());
-        Set<TicketTypeConfigEntity> ticketConfig = eventEntity.getTicketTypeConfigEntity();
-        for (TicketTypeConfigEntity ticketTypeConfigEntity : ticketConfig) {
+        for (TicketTypeConfig ticketTypeConfig : event.getTicketTypeConfig()) {
 
-            int ticketsRemaining = ticketService.countTicketsRemaining(ticketTypeConfigEntity.getId());
-
-            TicketLineItem ticketLineItem = new TicketLineItem();
-            ticketLineItem.setTicketTypeId(ticketTypeConfigEntity.getId());
-            ticketLineItem.setAmount(ticketsRemaining);
-
-            event.getTicketLineItemList().add(ticketLineItem);
+            int ticketsRemaining = ticketService.countTicketsRemaining(ticketTypeConfig.getId());
+            ticketTypeConfig.setAmountRemaining(ticketsRemaining);
         }
 
         return Optional.of(event);

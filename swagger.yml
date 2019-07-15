@@ -518,6 +518,11 @@ components:
           example: General Admission for the Plebs
         authorized_amount:
           type: integer
+        amount_remaining:
+          type: integer
+          readOnly: true
+          minimum: 0
+          maximum: 10
         price:
           type: string
           example: "1.00"
@@ -650,11 +655,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/TicketTypeConfig'
-        ticket_line_item_list:
-          type: array
-          readOnly: true
-          items:
-            $ref: '#/components/schemas/TicketLineItem'
     TransferRequest:
       type: object
       properties:
