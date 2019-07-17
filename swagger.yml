@@ -9,7 +9,10 @@ externalDocs:
   description: JIRA Board
   url: https://foria.atlassian.net
 servers:
+  - url: https://api-test.foriatickets.com/v1
+    description: Staging hostname and base path.
   - url: https://api.foriatickets.com/v1
+    description: Production hostname and base path.
 tags:
   - name: event
     description: Event operations.
@@ -322,21 +325,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/User'
-  /user/{user_id}:
+  /user:
     get:
       tags:
         - user
-      summary: Get user by userId.
-      description: Obtains the user by their Foria userId.
+      summary: Obtains current user information.
+      description: Obtains current user information.
       operationId: getUser
-      parameters:
-        - name: user_id
-          in: path
-          description: The user ID stored in the Foria database.
-          required: true
-          schema:
-            type: string
-            format: uuid
       responses:
         200:
           description: OK
@@ -346,21 +341,16 @@ paths:
                 $ref: '#/components/schemas/User'
         404:
           description: User not found by ID.
-          content: {}
-  /user/{user_id}/tickets:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseApiModel'
+  /user/tickets:
     get:
       tags:
         - user
       summary: Gets the list of users owned tickets.
       operationId: getTickets
-      parameters:
-        - name: user_id
-          in: path
-          description: The user ID stored in the Foria database.
-          required: true
-          schema:
-            type: string
-            format: uuid
       responses:
         200:
           description: OK
@@ -372,7 +362,10 @@ paths:
                   $ref: '#/components/schemas/Ticket'
         404:
           description: User not found by ID.
-          content: {}
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseApiModel'
   /venue:
     post:
       tags:
@@ -477,9 +470,10 @@ components:
         purchaser_id:
           type: string
           format: uuid
-        secret:
+        secret_hash:
           type: string
           example: TEST_SECRET
+          readOnly: true
         status:
           type: string
           enum:
@@ -678,4 +672,5 @@ components:
           authorizationUrl: https://auth.foriatickets.com/authorize?audience=api.foriatickets.com
           tokenUrl: https://foriatickets.auth0.com/oauth/token
           scopes:
-            openid: Obtains e-mail in token.
+            write:event: Allows POST access to event endpoints.
+            write:venue: Allows POST access to venue endpoints.
