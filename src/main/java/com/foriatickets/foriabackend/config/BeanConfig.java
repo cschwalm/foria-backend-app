@@ -3,11 +3,6 @@ package com.foriatickets.foriabackend.config;
 import com.foriatickets.foriabackend.entities.EventEntity;
 import com.foriatickets.foriabackend.entities.TicketEntity;
 import com.foriatickets.foriabackend.entities.VenueEntity;
-import com.foriatickets.foriabackend.repositories.EventRepository;
-import com.foriatickets.foriabackend.repositories.TicketFeeConfigRepository;
-import com.foriatickets.foriabackend.repositories.TicketTypeConfigRepository;
-import com.foriatickets.foriabackend.repositories.VenueRepository;
-import com.foriatickets.foriabackend.service.*;
 import org.modelmapper.AbstractConverter;
 import org.modelmapper.Converter;
 import org.modelmapper.ModelMapper;
@@ -15,11 +10,10 @@ import org.modelmapper.PropertyMap;
 import org.openapitools.model.Event;
 import org.openapitools.model.Ticket;
 import org.openapitools.model.Venue;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
+import org.springframework.security.core.token.Sha512DigestUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,28 +26,6 @@ import static org.springframework.beans.factory.config.BeanDefinition.SCOPE_SING
  */
 @Configuration
 public class BeanConfig {
-
-    private EventRepository eventRepository;
-    private VenueRepository venueRepository;
-    private TicketFeeConfigRepository ticketFeeConfigRepository;
-    private TicketTypeConfigRepository ticketTypeConfigRepository;
-
-    @Autowired TicketService ticketService;
-
-    public BeanConfig(@Autowired EventRepository eventRepository, @Autowired VenueRepository venueRepository,
-                      @Autowired TicketFeeConfigRepository ticketFeeConfigRepository, @Autowired TicketTypeConfigRepository ticketTypeConfigRepository) {
-        this.eventRepository = eventRepository;
-        this.ticketFeeConfigRepository = ticketFeeConfigRepository;
-        this.ticketTypeConfigRepository = ticketTypeConfigRepository;
-        this.venueRepository = venueRepository;
-    }
-
-    @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
-    @Bean
-    @Scope(value = ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-    public EventService eventService(UUID eventId) {
-        return new EventServiceImpl(eventId, eventRepository, ticketFeeConfigRepository, ticketTypeConfigRepository, venueRepository, modelMapper(), ticketService);
-    }
 
     @Bean
     @Scope(value = SCOPE_SINGLETON)
@@ -69,29 +41,16 @@ public class BeanConfig {
         return modelMapper;
     }
 
-    @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
-    @Bean
-    @Scope(value = ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-    public VenueService venueService(UUID venueId) {
-        return new VenueServiceImpl(venueId, venueRepository, modelMapper());
-    }
-
     public static List<PropertyMap> getModelMappers() {
-        Converter<UUID, EventEntity> eventEntityConverter = new AbstractConverter<UUID, EventEntity>() {
 
-            protected EventEntity convert(UUID source) {
-
-                EventEntity eventEntity = new EventEntity();
-                return eventEntity.setId(source);
-            }
-        };
-
-        PropertyMap<Ticket, TicketEntity> ticketEntityMap = new PropertyMap<Ticket, TicketEntity>() {
+        PropertyMap<TicketEntity, Ticket> ticketMap = new PropertyMap<TicketEntity, Ticket>() {
 
             @Override
             protected void configure() {
 
-                using(eventEntityConverter).map(source.getEventId()).setEventEntity(null);
+                if (source.getSecret() != null) {
+                    map().setSecretHash(Sha512DigestUtils.shaHex(source.getSecret()));
+                }
             }
         };
 
@@ -163,9 +122,9 @@ public class BeanConfig {
         List<PropertyMap> list = new ArrayList<>();
         list.add(eventDtoMap);
         list.add(eventEntityMap);
-        list.add(ticketEntityMap);
         list.add(venueDtoMap);
         list.add(venueEntityMap);
+        list.add(ticketMap);
         return list;
     }
 }

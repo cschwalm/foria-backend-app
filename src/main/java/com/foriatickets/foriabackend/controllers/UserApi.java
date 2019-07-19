@@ -1,7 +1,10 @@
 package com.foriatickets.foriabackend.controllers;
 
+import com.foriatickets.foriabackend.service.TicketService;
+import com.foriatickets.foriabackend.service.UserCreationService;
 import org.openapitools.model.Ticket;
 import org.openapitools.model.User;
+import org.springframework.beans.factory.BeanFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -15,15 +18,28 @@ import java.util.List;
 @RequestMapping(path = "/v1/", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
 public class UserApi implements org.openapitools.api.UserApi {
 
+    private final BeanFactory beanFactory;
+
+    public UserApi(BeanFactory beanFactory) {
+        this.beanFactory = beanFactory;
+    }
+
     @Override
     @RequestMapping(value = "/user/tickets", method = RequestMethod.GET)
     public ResponseEntity<List<Ticket>> getTickets() {
-        return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
+
+        TicketService ticketService = beanFactory.getBean(TicketService.class);
+        List<Ticket> tickets = ticketService.getUsersTickets();
+        return new ResponseEntity<>(tickets, HttpStatus.OK);
     }
 
     @Override
     @RequestMapping(value = "/user", method = RequestMethod.GET)
     public ResponseEntity<User> getUser() {
-        return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
+
+        UserCreationService userCreationService = beanFactory.getBean(UserCreationService.class);
+        User user = userCreationService.getUser();
+
+        return new ResponseEntity<>(user, HttpStatus.OK);
     }
 }

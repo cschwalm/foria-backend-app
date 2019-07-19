@@ -29,7 +29,7 @@ public class VenueApi implements org.openapitools.api.VenueApi {
     @RequestMapping(value = "/venue", method = RequestMethod.POST)
     public ResponseEntity<Venue> createVenue(@Valid @RequestBody Venue body) {
 
-        VenueService venueService = beanFactory.getBean(VenueService.class, (Object) null);
+        VenueService venueService = beanFactory.getBean(VenueService.class);
         Venue response = venueService.createVenue(body);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
@@ -38,7 +38,7 @@ public class VenueApi implements org.openapitools.api.VenueApi {
     @RequestMapping(value = "/venue/{venue_id}", method = RequestMethod.GET)
     public ResponseEntity<Venue> getVenue(@PathVariable("venue_id") UUID venueId) {
 
-        VenueService venueService = beanFactory.getBean(VenueService.class, venueId);
-        return ResponseEntity.of(venueService.getVenue());
+        VenueService venueService = beanFactory.getBean(VenueService.class);
+        return ResponseEntity.of(venueService.getVenue(venueId));
     }
 }

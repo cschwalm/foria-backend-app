@@ -3,6 +3,7 @@ package com.foriatickets.foriabackend.service;
 import org.openapitools.model.Venue;
 
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Venue service to preform venue management. Scoped to the session.
@@ -21,7 +22,8 @@ public interface VenueService {
 
     /**
      * Returns the venue scoped at request.
+     * @param venueId id
      * @return Scoped venue.
      */
-    Optional<Venue> getVenue();
+    Optional<Venue> getVenue(UUID venueId);
 }

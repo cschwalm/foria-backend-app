@@ -1,6 +1,7 @@
 package com.foriatickets.foriabackend.service;
 
 import com.foriatickets.foriabackend.entities.TicketEntity;
+import org.openapitools.model.Ticket;
 import org.openapitools.model.TicketLineItem;
 
 import java.util.List;
@@ -17,12 +18,25 @@ public interface TicketService {
      * Accepts checkout data from client and completes transaction.
      * Transaction may fail if the token supplied contained invalid card data.
      *
-     * @param auth0Id ID of logged in user.
      * @param paymentToken Token to retrieve payment data and attach it to user.
      * @param orderConfig List of tickets to buy.
      * @return Returns the UUID of the created order.
      */
-    UUID checkoutOrder(String auth0Id, String paymentToken, UUID eventId, List<TicketLineItem> orderConfig);
+    UUID checkoutOrder(String paymentToken, UUID eventId, List<TicketLineItem> orderConfig);
+
+    /**
+     * Obtains information about the specified ticket.
+     * @param ticketId id
+     * @return Ticket info minus secret.
+     */
+    Ticket getTicket(UUID ticketId);
+
+    /**
+     * Returns the tickets the currently logged in user owns.
+     *
+     * @return A list of tickets without secrets.
+     */
+    List<Ticket> getUsersTickets();
 
     /**
      * Creates (issues) a ticket by creating the entry, authorizing it for the purchasing user, and generating a ticket

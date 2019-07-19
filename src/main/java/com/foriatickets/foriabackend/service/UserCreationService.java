@@ -17,4 +17,10 @@ public interface UserCreationService {
      * @return Formed object with ID.
      */
     User createUser(User newUser);
+
+    /**
+     * Obtains info for currently logged in user.
+     * @return user
+     */
+    User getUser();
 }

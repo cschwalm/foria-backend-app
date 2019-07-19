@@ -13,51 +13,43 @@ import org.modelmapper.ModelMapper;
 import org.openapitools.model.Event;
 import org.openapitools.model.TicketFeeConfig;
 import org.openapitools.model.TicketTypeConfig;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Scope;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 import java.util.UUID;
 
+import static org.springframework.web.context.WebApplicationContext.SCOPE_REQUEST;
+
+@Scope(scopeName = SCOPE_REQUEST)
+@Service
 @Transactional
 public class EventServiceImpl implements EventService {
 
     private static final Logger LOG = LogManager.getLogger();
 
     private ModelMapper modelMapper;
-
-    private EventEntity eventEntity;
-    private UUID eventId;
     private EventRepository eventRepository;
     private TicketFeeConfigRepository ticketFeeConfigRepository;
     private TicketTypeConfigRepository ticketTypeConfigRepository;
     private VenueRepository venueRepository;
     private TicketService ticketService;
 
-    public EventServiceImpl(UUID eventId, EventRepository eventRepository,
+    @Autowired
+    public EventServiceImpl(EventRepository eventRepository,
                             TicketFeeConfigRepository ticketFeeConfigRepository,
                             TicketTypeConfigRepository ticketTypeConfigRepository,
                             VenueRepository venueRepository, ModelMapper modelMapper,
                             TicketService ticketService) {
 
-        this.eventId = eventId;
         this.eventRepository = eventRepository;
         this.ticketFeeConfigRepository = ticketFeeConfigRepository;
         this.ticketTypeConfigRepository = ticketTypeConfigRepository;
         this.venueRepository = venueRepository;
         this.modelMapper = modelMapper;
         this.ticketService = ticketService;
-
-        if (eventId == null) {
-            return;
-        }
-
-        Optional<EventEntity> eventEntity = this.eventRepository.findById(eventId);
-        if (!eventEntity.isPresent()) {
-            LOG.warn("Supplied event ID {} does not exist.", eventId);
-            return;
-        }
-
-        this.eventEntity = eventEntity.get();
     }
 
     @Override
@@ -73,19 +65,19 @@ public class EventServiceImpl implements EventService {
             throw new IllegalArgumentException("Ticket config must be set.");
         }
 
-        this.eventEntity = eventRepository.save(eventEntity);
+        eventEntity = eventRepository.save(eventEntity);
         event.setId(eventEntity.getId());
 
         for (TicketFeeConfig ticketFeeConfig : event.getTicketFeeConfig()) {
             TicketFeeConfigEntity ticketFeeConfigEntity = modelMapper.map(ticketFeeConfig, TicketFeeConfigEntity.class);
-            ticketFeeConfigEntity.setEventEntity(this.eventEntity);
+            ticketFeeConfigEntity.setEventEntity(eventEntity);
             ticketFeeConfigEntity = ticketFeeConfigRepository.save(ticketFeeConfigEntity);
             ticketFeeConfig.setId(ticketFeeConfigEntity.getId());
         }
 
         for (TicketTypeConfig ticketTypeConfig : event.getTicketTypeConfig()) {
             TicketTypeConfigEntity ticketTypeConfigEntity = modelMapper.map(ticketTypeConfig, TicketTypeConfigEntity.class);
-            ticketTypeConfigEntity.setEventEntity(this.eventEntity);
+            ticketTypeConfigEntity.setEventEntity(eventEntity);
             ticketTypeConfigEntity = ticketTypeConfigRepository.save(ticketTypeConfigEntity);
             ticketTypeConfig.setId(ticketTypeConfigEntity.getId());
         }
@@ -95,13 +87,15 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
-    public Optional<Event> getEvent() {
+    public Optional<Event> getEvent(UUID eventId) {
 
-        if (eventEntity == null) {
-            LOG.warn("Failed to return event with ID: {}", eventId);
+        Optional<EventEntity> eventEntityOptional = eventRepository.findById(eventId);
+        if (!eventEntityOptional.isPresent()) {
+            LOG.warn("Supplied event ID {} does not exist.", eventId);
             return Optional.empty();
         }
 
+        EventEntity eventEntity = eventEntityOptional.get();
         Event event = modelMapper.map(eventEntity, Event.class);
 
         for (TicketTypeConfig ticketTypeConfig : event.getTicketTypeConfig()) {

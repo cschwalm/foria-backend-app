@@ -1,5 +1,6 @@
 package com.foriatickets.foriabackend.service;
 
+import com.foriatickets.foriabackend.config.BeanConfig;
 import com.foriatickets.foriabackend.entities.UserEntity;
 import com.foriatickets.foriabackend.repositories.UserRepository;
 import org.junit.Assert;
@@ -7,13 +8,17 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.modelmapper.ModelMapper;
+import org.modelmapper.PropertyMap;
 import org.openapitools.model.User;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @RunWith(SpringRunner.class)
 public class UserCreationServiceImplTest {
@@ -25,7 +30,18 @@ public class UserCreationServiceImplTest {
 
     @Before
     public void setUp() {
-        userCreationService = new UserCreationServiceImpl(userRepository);
+
+        ModelMapper modelMapper = new ModelMapper();
+        for (PropertyMap map : BeanConfig.getModelMappers()) {
+            //noinspection unchecked
+            modelMapper.addMappings(map);
+        }
+
+        Authentication authentication = mock(Authentication.class);
+        when(authentication.getPrincipal()).thenReturn("test");
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        userCreationService = new UserCreationServiceImpl(modelMapper, userRepository);
     }
 
     @Test
@@ -52,5 +68,23 @@ public class UserCreationServiceImplTest {
         Assert.assertEquals(userMock.getLastName(), actual.getLastName());
         Assert.assertEquals(userMock.getEmail(), actual.getEmail());
         Assert.assertNotNull(actual.getId());
+    }
+
+    @Test
+    public void getUser() {
+
+        UserEntity userEntityMock = mock(UserEntity.class);
+        when(userEntityMock.getId()).thenReturn(UUID.randomUUID());
+        when(userEntityMock.getStripeId()).thenReturn("stripe");
+        when(userEntityMock.getFirstName()).thenReturn("John");
+        when(userEntityMock.getLastName()).thenReturn("Doe");
+        when(userEntityMock.getEmail()).thenReturn("john.doe@test.com");
+
+        when(userRepository.findByAuth0Id(any())).thenReturn(userEntityMock);
+
+        User actual = userCreationService.getUser();
+        Assert.assertNotNull(actual);
+
+        verify(userRepository).findByAuth0Id(any());
     }
 }

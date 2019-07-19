@@ -29,7 +29,7 @@ public class EventApi implements org.openapitools.api.EventApi {
     @Override
     public ResponseEntity<Event> createEvent(@Valid @RequestBody Event body) {
 
-        EventService eventService = beanFactory.getBean(EventService.class, (Object) null);
+        EventService eventService = beanFactory.getBean(EventService.class);
         Event response = eventService.createEvent(body);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
@@ -38,7 +38,7 @@ public class EventApi implements org.openapitools.api.EventApi {
     @Override
     public ResponseEntity<Event> getEvent(@PathVariable("event_id") UUID eventId) {
 
-        EventService eventService = beanFactory.getBean(EventService.class, eventId);
-        return ResponseEntity.of(eventService.getEvent());
+        EventService eventService = beanFactory.getBean(EventService.class);
+        return ResponseEntity.of(eventService.getEvent(eventId));
     }
 }

@@ -8,9 +8,14 @@ import org.apache.commons.lang3.Validate;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.modelmapper.ModelMapper;
+import org.openapitools.model.Ticket;
 import org.openapitools.model.TicketLineItem;
 import org.openapitools.model.User;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Scope;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.token.Sha512DigestUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -21,6 +26,9 @@ import java.math.RoundingMode;
 import java.time.OffsetDateTime;
 import java.util.*;
 
+import static org.springframework.web.context.WebApplicationContext.SCOPE_REQUEST;
+
+@Scope(scopeName = SCOPE_REQUEST)
 @Service
 @Transactional
 public class TicketServiceImpl implements TicketService {
@@ -58,6 +66,9 @@ public class TicketServiceImpl implements TicketService {
 
     private final StripeGateway stripeGateway;
 
+    private UserEntity authenticatedUser;
+
+    @Autowired
     public TicketServiceImpl(ModelMapper modelMapper, EventRepository eventRepository, OrderRepository orderRepository, UserRepository userRepository, TicketTypeConfigRepository ticketTypeConfigRepository, TicketRepository ticketRepository, StripeGateway stripeGateway, OrderFeeEntryRepository orderFeeEntryRepository, OrderTicketEntryRepository orderTicketEntryRepository) {
         this.modelMapper = modelMapper;
         this.eventRepository = eventRepository;
@@ -68,12 +79,22 @@ public class TicketServiceImpl implements TicketService {
         this.stripeGateway = stripeGateway;
         this.orderFeeEntryRepository = orderFeeEntryRepository;
         this.orderTicketEntryRepository = orderTicketEntryRepository;
+
+        //Load user from Auth0 token.
+        String auth0Id = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+
+        authenticatedUser = userRepository.findByAuth0Id(auth0Id);
+        if (authenticatedUser == null) {
+
+            LOG.error("Attempted to complete checkout with non-mapped auth0Id: {}", auth0Id);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "User must be created in Foria system.");
+        }
     }
 
     @Override
-    public UUID checkoutOrder(String auth0Id, String paymentToken, UUID eventId, List<TicketLineItem> orderConfig) {
+    public UUID checkoutOrder(String paymentToken, UUID eventId, List<TicketLineItem> orderConfig) {
 
-        if (StringUtils.isEmpty(auth0Id) || StringUtils.isEmpty(paymentToken) || orderConfig == null || eventId == null) {
+        if (StringUtils.isEmpty(paymentToken) || orderConfig == null || eventId == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Checkout request is missing required data.");
         }
 
@@ -84,15 +105,6 @@ public class TicketServiceImpl implements TicketService {
         if (totalTicketCount > MAX_TICKETS_PER_ORDER) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Max of " + MAX_TICKETS_PER_ORDER + " tickets per order allowed.");
         }
-
-        //Load user from Auth0 token.
-        UserEntity userEntity = userRepository.findByAuth0Id(auth0Id);
-        if (userEntity == null) {
-
-            LOG.error("Attempted to complete checkout with non-mapped auth0Id: {}", auth0Id);
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "User must be created in Foria system.");
-        }
-        User user = modelMapper.map(userEntity, User.class);
 
         //Load price config along with fees for event.
         Optional<EventEntity> eventEntityOptional = eventRepository.findById(eventId);
@@ -111,7 +123,7 @@ public class TicketServiceImpl implements TicketService {
         //Create order entry.
         OrderEntity orderEntity = new OrderEntity();
         orderEntity.setId(orderId);
-        orderEntity.setPurchaser(userEntity);
+        orderEntity.setPurchaser(authenticatedUser);
         orderEntity.setOrderTimestamp(OffsetDateTime.now());
         orderEntity.setTotal(priceCalculationInfo.grandTotal);
         orderEntity.setCurrency(priceCalculationInfo.currencyCode);
@@ -134,7 +146,7 @@ public class TicketServiceImpl implements TicketService {
             TicketEntity issuedTicket;
             for (int i = 0; i < ticketLineItem.getAmount(); i++) {
 
-                issuedTicket = issueTicket(userEntity.getId(), eventId, ticketTypeConfigId);
+                issuedTicket = issueTicket(authenticatedUser.getId(), eventId, ticketTypeConfigId);
 
                 OrderTicketEntryEntity orderTicketEntryEntity = new OrderTicketEntryEntity();
                 orderTicketEntryEntity.setOrderEntity(orderEntity);
@@ -152,12 +164,13 @@ public class TicketServiceImpl implements TicketService {
 
         //Charge payment method - tickets have been issued. Create Stripe user if it doesn't exist.
         String stripeCustomerId;
-        if (StringUtils.isEmpty(userEntity.getStripeId())) {
+        if (StringUtils.isEmpty(authenticatedUser.getStripeId())) {
+            User user = modelMapper.map(authenticatedUser, User.class);
             stripeCustomerId = stripeGateway.createStripeCustomer(user, paymentToken).getId();
-            userEntity.setStripeId(stripeCustomerId);
-            userRepository.save(userEntity);
+            authenticatedUser.setStripeId(stripeCustomerId);
+            authenticatedUser = userRepository.save(authenticatedUser);
         } else {
-            stripeCustomerId = userEntity.getStripeId();
+            stripeCustomerId = authenticatedUser.getStripeId();
         }
 
         Charge chargeResult = stripeGateway.chargeCustomer(stripeCustomerId, orderEntity.getId(), priceCalculationInfo.grandTotal, priceCalculationInfo.currencyCode);
@@ -166,6 +179,40 @@ public class TicketServiceImpl implements TicketService {
         LOG.info("Stripe customer (ID: {}) charged: {}{} with chargeID: {}",
                 stripeCustomerId, priceCalculationInfo.grandTotal, priceCalculationInfo.currencyCode, chargeResult.getId());
         return orderId;
+    }
+
+    @Override
+    public Ticket getTicket(UUID ticketId) {
+
+        Optional<TicketEntity> ticketEntityOptional = ticketRepository.findById(ticketId);
+        if (!ticketEntityOptional.isPresent()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Invalid event ID");
+        }
+        TicketEntity ticketEntity = ticketEntityOptional.get();
+        boolean doesUserOwn = authenticatedUser.getTickets().contains(ticketEntity);
+        if (!doesUserOwn) {
+            LOG.warn("User Id: {} attempted to access non-owned ticket Id: {}", authenticatedUser.getId(), ticketEntity.getId());
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Ticket not owned by user.");
+        }
+
+        LOG.debug("Ticket ID: {} obtained.", ticketEntity.getId());
+        return modelMapper.map(ticketEntity, Ticket.class);
+    }
+
+    @Override
+    public List<Ticket> getUsersTickets() {
+
+        Set<TicketEntity> userTickets = authenticatedUser.getTickets();
+        List<Ticket> ticketList = new ArrayList<>();
+        for (TicketEntity ticketEntity : userTickets) {
+            Ticket ticket = modelMapper.map(ticketEntity, Ticket.class);
+            ticket.setOwnerId(ticketEntity.getOwnerEntity().getId());
+            ticket.setPurchaserId(ticketEntity.getPurchaserEntity().getId());
+            ticket.setSecretHash(Sha512DigestUtils.shaHex(ticketEntity.getSecret()));
+            ticketList.add(ticket);
+        }
+        LOG.debug("Tickets returned for user ID: {}", authenticatedUser.getId());
+        return ticketList;
     }
 
     @Override
