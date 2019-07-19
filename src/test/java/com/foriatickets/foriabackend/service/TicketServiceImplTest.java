@@ -13,6 +13,8 @@ import org.mockito.Mockito;
 import org.modelmapper.ModelMapper;
 import org.modelmapper.PropertyMap;
 import org.modelmapper.internal.util.Assert;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.math.BigDecimal;
@@ -63,6 +65,11 @@ public class TicketServiceImplTest {
             //noinspection unchecked
             modelMapper.addMappings(map);
         }
+
+        Authentication authentication = mock(Authentication.class);
+        when(authentication.getPrincipal()).thenReturn("test");
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        when(userRepository.findByAuth0Id(eq("test"))).thenReturn(mock(UserEntity.class));
 
         ticketService = new TicketServiceImpl(modelMapper, eventRepository, orderRepository, userRepository, ticketTypeConfigRepository, ticketRepository, stripeGateway, orderFeeEntryRepository, orderTicketEntryRepository);
     }
