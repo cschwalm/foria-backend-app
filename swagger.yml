@@ -44,6 +44,9 @@ paths:
         - event
       summary: Create event in application database.
       operationId: createEvent
+      security:
+        - OAuth2:
+            - write:event
       requestBody:
         description: Created event object.
         content:
@@ -237,6 +240,9 @@ paths:
         - ticket
       summary: Redeems the ticket if in valid state. This cannot be undone.
       operationId: redeemTicket
+      security:
+        - OAuth2:
+            - write:redeem
       parameters:
         - name: ticket_id
           in: path
@@ -311,6 +317,9 @@ paths:
       summary: Create user in application database.
       description: This should only be called from Auth0.
       operationId: registerUser
+      security:
+        - OAuth2:
+            - write:register
       requestBody:
         description: Created user object
         content:
@@ -372,6 +381,9 @@ paths:
         - venue
       summary: Create venue in application database.
       operationId: createVenue
+      security:
+        - OAuth2:
+            - write:venue
       requestBody:
         description: Created user object
         content:
@@ -674,3 +686,5 @@ components:
           scopes:
             write:event: Allows POST access to event endpoints.
             write:venue: Allows POST access to venue endpoints.
+            write:redeem: Allows tickets to be scanned.
+            write:register: Allows user to be created in Foria system.
