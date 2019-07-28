@@ -1,6 +1,7 @@
 package com.foriatickets.foriabackend.service;
 
 import com.foriatickets.foriabackend.entities.TicketEntity;
+import org.openapitools.model.ActivationResult;
 import org.openapitools.model.Ticket;
 import org.openapitools.model.TicketLineItem;
 
@@ -13,6 +14,15 @@ import java.util.UUID;
  * @author Corbin Schwalm
  */
 public interface TicketService {
+
+    /**
+     * Activates a ticket for a user. This allows the ticket secret to be saved securely on user device.
+     * Reactivate must be called to change devices.
+     *
+     * @param ticketId Ticket to activate.
+     * @return Result object.
+     */
+    ActivationResult activateTicket(UUID ticketId);
 
     /**
      * Accepts checkout data from client and completes transaction.

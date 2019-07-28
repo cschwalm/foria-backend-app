@@ -15,6 +15,7 @@ public class TicketEntity implements Serializable {
 
     public enum Status {
         ISSUED,
+        ACTIVE,
         TRANSFER_PENDING,
         REDEEMED,
         CANCELED,

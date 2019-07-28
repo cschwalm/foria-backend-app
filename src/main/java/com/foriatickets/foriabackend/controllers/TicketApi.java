@@ -1,10 +1,7 @@
 package com.foriatickets.foriabackend.controllers;
 
 import com.foriatickets.foriabackend.service.TicketService;
-import org.openapitools.model.BaseApiModel;
-import org.openapitools.model.Order;
-import org.openapitools.model.Ticket;
-import org.openapitools.model.TransferRequest;
+import org.openapitools.model.*;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -40,8 +37,11 @@ public class TicketApi implements org.openapitools.api.TicketApi {
 
     @Override
     @RequestMapping(value = "/ticket/{ticket_id}/activate", method = RequestMethod.POST)
-    public ResponseEntity<BaseApiModel> activateTicket(@PathVariable("ticket_id") UUID ticketId) {
-        return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
+    public ResponseEntity<ActivationResult> activateTicket(@PathVariable("ticket_id") UUID ticketId) {
+
+        TicketService ticketService = beanFactory.getBean(TicketService.class);
+        ActivationResult activationResult = ticketService.activateTicket(ticketId);
+        return new ResponseEntity<>(activationResult, HttpStatus.OK);
     }
 
     @Override
@@ -61,13 +61,13 @@ public class TicketApi implements org.openapitools.api.TicketApi {
 
     @Override
     @RequestMapping(value = "/ticket/{ticket_id}/reactivate", method = RequestMethod.POST)
-    public ResponseEntity<BaseApiModel> reactivateTicket(@PathVariable("ticket_id") UUID ticketId) {
+    public ResponseEntity<ActivationResult> reactivateTicket(@PathVariable("ticket_id") UUID ticketId) {
         return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
     }
 
     @Override
     @RequestMapping(value = "/ticket/{ticket_id}/redeem", method = RequestMethod.POST)
-    public ResponseEntity<BaseApiModel> redeemTicket(@PathVariable("ticket_id") UUID ticketId) {
+    public ResponseEntity<RedemptionResult> redeemTicket(@PathVariable("ticket_id") UUID ticketId, @Valid @RequestBody RedemptionRequest redemptionRequest) {
         return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
     }
 

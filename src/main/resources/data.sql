@@ -10,10 +10,10 @@ insert
 insert
         into
             `EVENT` (
-                `AUTHORIZED_TICKETS`, `EVENT_CITY`, `EVENT_COUNTRY`, `EVENT_POSTAL`, `EVENT_STATE`, `EVENT_STREET_ADDRESS`, `EVENT_TIME`, `NAME`, `VENUE_ID`, `ID`
+                `AUTHORIZED_TICKETS`, `EVENT_CITY`, `EVENT_COUNTRY`, `EVENT_POSTAL`, `EVENT_STATE`, `EVENT_STREET_ADDRESS`, `EVENT_START_TIME`, `EVENT_END_TIME`, `NAME`, `VENUE_ID`, `ID`
             )
         values
-            (100, 'Test City', 'USA', '54444', 'TT', '12345 Maple Ln', '2019-07-09T16:23:25.847Z', 'Test Event', '2b2c8c0f-5b17-429a-a5f6-44dd47935e9a', '40c6a84f-9505-40b9-a9ea-817074aac2f1');
+            (100, 'Test City', 'USA', '54444', 'TT', '12345 Maple Ln', '2019-07-09T16:23:25.847Z', '2019-07-09T18:23:25.847Z', 'Test Event', '2b2c8c0f-5b17-429a-a5f6-44dd47935e9a', '40c6a84f-9505-40b9-a9ea-817074aac2f1');
 
 /* insert com.foriatickets.foriabackend.entities.TicketFeeConfigEntity */
 insert

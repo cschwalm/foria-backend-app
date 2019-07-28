@@ -73,7 +73,8 @@ public class BeanConfig {
                 map().getAddress().setState(source.getEventState());
                 map().getAddress().setZip(source.getEventPostal());
                 map().getAddress().setCountry(source.getEventCountry());
-                map().setTime(source.getEventTime());
+                map().setStartTime(source.getEventStartTime());
+                map().setEndTime(source.getEventEndTime());
                 map().setVenueId(source.getVenueEntity().getId());
             }
         };
@@ -88,7 +89,8 @@ public class BeanConfig {
                 map().setEventState(source.getAddress().getState());
                 map().setEventPostal(source.getAddress().getZip());
                 map().setEventCountry(source.getAddress().getCountry());
-                map().setEventTime(source.getTime());
+                map().setEventStartTime(source.getStartTime());
+                map().setEventEndTime(source.getEndTime());
                 using(entityConverter).map(source.getVenueId()).setVenueEntity(null);
             }
         };

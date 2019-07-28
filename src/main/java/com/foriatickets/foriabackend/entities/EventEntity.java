@@ -18,7 +18,8 @@ public class EventEntity implements Serializable {
     private UUID id;
     private VenueEntity venueEntity;
     private String name;
-    private OffsetDateTime eventTime;
+    private OffsetDateTime eventStartTime;
+    private OffsetDateTime eventEndTime;
     private String eventStreetAddress;
     private String eventCity;
     private String eventState;
@@ -63,13 +64,23 @@ public class EventEntity implements Serializable {
         return this;
     }
 
-    @Column(name = "event_time", nullable = false)
-    public OffsetDateTime getEventTime() {
-        return eventTime;
+    @Column(name = "event_start_time", nullable = false)
+    public OffsetDateTime getEventStartTime() {
+        return eventStartTime;
     }
 
-    public EventEntity setEventTime(OffsetDateTime eventTime) {
-        this.eventTime = eventTime;
+    public EventEntity setEventStartTime(OffsetDateTime eventStartTime) {
+        this.eventStartTime = eventStartTime;
+        return this;
+    }
+
+    @Column(name = "event_end_time", nullable = false)
+    public OffsetDateTime getEventEndTime() {
+        return eventEndTime;
+    }
+
+    public EventEntity setEventEndTime(OffsetDateTime eventEndTime) {
+        this.eventEndTime = eventEndTime;
         return this;
     }
 
@@ -168,7 +179,8 @@ public class EventEntity implements Serializable {
         return "EventEntity{" +
                 "key=" + id +
                 ", name='" + name + '\'' +
-                ", eventTime=" + eventTime +
+                ", eventStartTime=" + eventStartTime +
+                ", eventEndTime=" + eventEndTime +
                 ", eventStreetAddress='" + eventStreetAddress + '\'' +
                 ", eventCity='" + eventCity + '\'' +
                 ", eventState='" + eventState + '\'' +
@@ -186,7 +198,8 @@ public class EventEntity implements Serializable {
         return authorizedTickets == that.authorizedTickets &&
                 Objects.equals(id, that.id) &&
                 Objects.equals(name, that.name) &&
-                Objects.equals(eventTime, that.eventTime) &&
+                Objects.equals(eventStartTime, that.eventStartTime) &&
+                Objects.equals(eventEndTime, that.eventEndTime) &&
                 Objects.equals(eventStreetAddress, that.eventStreetAddress) &&
                 Objects.equals(eventCity, that.eventCity) &&
                 Objects.equals(eventState, that.eventState) &&
@@ -196,6 +209,6 @@ public class EventEntity implements Serializable {
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, name, eventTime, eventStreetAddress, eventCity, eventState, eventPostal, eventCountry, authorizedTickets);
+        return Objects.hash(id, name, eventStartTime, eventEndTime, eventStreetAddress, eventCity, eventState, eventPostal, eventCountry, authorizedTickets);
     }
 }

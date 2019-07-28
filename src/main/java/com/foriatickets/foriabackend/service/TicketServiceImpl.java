@@ -8,6 +8,7 @@ import org.apache.commons.lang3.Validate;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.modelmapper.ModelMapper;
+import org.openapitools.model.ActivationResult;
 import org.openapitools.model.Ticket;
 import org.openapitools.model.TicketLineItem;
 import org.openapitools.model.User;
@@ -89,6 +90,41 @@ public class TicketServiceImpl implements TicketService {
             LOG.error("Attempted to complete checkout with non-mapped auth0Id: {}", auth0Id);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "User must be created in Foria system.");
         }
+    }
+
+    @Override
+    public ActivationResult activateTicket(UUID ticketId) {
+
+        if (ticketId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ticket ID must not be null.");
+        }
+
+        Optional<TicketEntity> ticketEntityOptional = ticketRepository.findById(ticketId);
+        if (!ticketEntityOptional.isPresent()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ticket ID is invalid.");
+        }
+
+        TicketEntity ticketEntity = ticketEntityOptional.get();
+
+        if (!ticketEntity.getOwnerEntity().getId().equals(authenticatedUser.getId())) {
+            LOG.warn("User ID: {} attempted to activate not owned ticket ID: {}", authenticatedUser.getId(), ticketEntity.getId());
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Ticket owned by another user.");
+        }
+
+        if (ticketEntity.getStatus() != TicketEntity.Status.ISSUED) {
+            LOG.warn("User ID: {} attempted to activate ticket not having ISSUED status. Ticket ID: {}", authenticatedUser.getId(), ticketEntity.getId());
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Ticket is not in ISSUED status.");
+        }
+
+        ticketEntity.setStatus(TicketEntity.Status.ACTIVE);
+        ticketEntity = ticketRepository.save(ticketEntity);
+
+        ActivationResult activationResult = new ActivationResult();
+        activationResult.setTicketSecret(ticketEntity.getSecret());
+        activationResult.setTicket(getTicket(ticketId));
+
+        LOG.info("Ticket ID: {} activated by user ID: {}", ticketEntity.getId(), authenticatedUser.getId());
+        return activationResult;
     }
 
     @Override
@@ -189,14 +225,20 @@ public class TicketServiceImpl implements TicketService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Invalid event ID");
         }
         TicketEntity ticketEntity = ticketEntityOptional.get();
-        boolean doesUserOwn = authenticatedUser.getTickets().contains(ticketEntity);
+        boolean doesUserOwn = ticketEntity.getOwnerEntity().getId().equals(authenticatedUser.getId());
         if (!doesUserOwn) {
             LOG.warn("User Id: {} attempted to access non-owned ticket Id: {}", authenticatedUser.getId(), ticketEntity.getId());
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Ticket not owned by user.");
         }
 
+        Ticket ticket = modelMapper.map(ticketEntity, Ticket.class);
+        ticket.setOwnerId(ticketEntity.getOwnerEntity().getId());
+        ticket.setPurchaserId(ticketEntity.getPurchaserEntity().getId());
+        ticket.setSecretHash(Sha512DigestUtils.shaHex(ticketEntity.getSecret()));
+        ticket.setStatus(Ticket.StatusEnum.fromValue(ticketEntity.getStatus().name()));
+
         LOG.debug("Ticket ID: {} obtained.", ticketEntity.getId());
-        return modelMapper.map(ticketEntity, Ticket.class);
+        return ticket;
     }
 
     @Override
@@ -206,6 +248,7 @@ public class TicketServiceImpl implements TicketService {
         List<Ticket> ticketList = new ArrayList<>();
         for (TicketEntity ticketEntity : userTickets) {
             Ticket ticket = modelMapper.map(ticketEntity, Ticket.class);
+            ticket.setStatus(Ticket.StatusEnum.fromValue(ticketEntity.getStatus().name()));
             ticket.setOwnerId(ticketEntity.getOwnerEntity().getId());
             ticket.setPurchaserId(ticketEntity.getPurchaserEntity().getId());
             ticket.setSecretHash(Sha512DigestUtils.shaHex(ticketEntity.getSecret()));

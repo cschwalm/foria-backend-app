@@ -8,8 +8,10 @@ info:
 externalDocs:
   description: JIRA Board
   url: https://foria.atlassian.net
+security:
+  - OAuth2: []
 servers:
-  - url: https://api-test.foriatickets.com/v1
+  - url: https://test-api.foriatickets.com/v1
     description: Staging hostname and base path.
   - url: https://api.foriatickets.com/v1
     description: Production hostname and base path.
@@ -68,6 +70,7 @@ paths:
       summary: Get event by event_id.
       description: Obtains the event by their Foria event_id.
       operationId: getEvent
+      security: []
       parameters:
         - name: event_id
           in: path
@@ -134,7 +137,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BaseApiModel'
+                $ref: '#/components/schemas/ActivationResult'
         400:
           description: Not able to activate ticket. Invalid state.
           content:
@@ -221,7 +224,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BaseApiModel'
+                $ref: '#/components/schemas/ActivationResult'
         400:
           description: Not able to reactivate ticket. Invalid status.
           content:
@@ -251,19 +254,26 @@ paths:
           schema:
             type: string
             format: uuid
+      requestBody:
+        description: Checkout request object.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RedemptionRequest'
+        required: true
       responses:
         200:
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BaseApiModel'
+                $ref: '#/components/schemas/RedemptionResult'
         400:
           description: Not able to redeem ticket. Invalid status.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BaseApiModel'
+                $ref: '#/components/schemas/RedemptionResult'
         404:
           description: Ticket not found by ID.
           content:
@@ -320,6 +330,7 @@ paths:
       security:
         - OAuth2:
             - write:register
+
       requestBody:
         description: Created user object
         content:
@@ -425,6 +436,14 @@ paths:
           content: {}
 components:
   schemas:
+    ActivationResult:
+      type: object
+      properties:
+        ticket_secret:
+          type: string
+          readOnly: true
+        ticket:
+          $ref: '#/components/schemas/Ticket'
     Address:
       type: object
       properties:
@@ -489,6 +508,7 @@ components:
         status:
           type: string
           enum:
+            - ACTIVE
             - ISSUED
             - TRANSFER_PENDING
             - REDEEMED
@@ -648,7 +668,10 @@ components:
         image_url:
           type: string
           example: https://foriatickets.com/favicon.ico
-        time:
+        start_time:
+          type: string
+          format: date-time
+        end_time:
           type: string
           format: date-time
         address:
@@ -661,6 +684,25 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/TicketTypeConfig'
+    RedemptionRequest:
+      type: object
+      properties:
+        ticket_id:
+          type: string
+          format: uuid
+        ticket_otp:
+          type: string
+          maxLength: 6
+    RedemptionResult:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+            - ALLOW
+            - DENY
+        ticket:
+          $ref: '#/components/schemas/Ticket'
     TransferRequest:
       type: object
       properties:
@@ -682,7 +724,7 @@ components:
       flows:
         authorizationCode:
           authorizationUrl: https://auth.foriatickets.com/authorize?audience=api.foriatickets.com
-          tokenUrl: https://foriatickets.auth0.com/oauth/token
+          tokenUrl: https://auth.foriatickets.com/oauth/token
           scopes:
             write:event: Allows POST access to event endpoints.
             write:venue: Allows POST access to venue endpoints.

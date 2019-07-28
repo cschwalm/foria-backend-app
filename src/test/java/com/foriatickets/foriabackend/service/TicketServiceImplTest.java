@@ -13,9 +13,11 @@ import org.mockito.Mockito;
 import org.modelmapper.ModelMapper;
 import org.modelmapper.PropertyMap;
 import org.modelmapper.internal.util.Assert;
+import org.openapitools.model.ActivationResult;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.util.HashSet;
@@ -57,6 +59,8 @@ public class TicketServiceImplTest {
 
     private TicketServiceImpl ticketService;
 
+    private UserEntity authenticatedUser;
+
     @Before
     public void setUp() {
 
@@ -66,12 +70,58 @@ public class TicketServiceImplTest {
             modelMapper.addMappings(map);
         }
 
+        this.authenticatedUser = mock(UserEntity.class);
+        when(authenticatedUser.getId()).thenReturn(UUID.randomUUID());
+
         Authentication authentication = mock(Authentication.class);
         when(authentication.getPrincipal()).thenReturn("test");
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        when(userRepository.findByAuth0Id(eq("test"))).thenReturn(mock(UserEntity.class));
+        when(userRepository.findByAuth0Id(eq("test"))).thenReturn(authenticatedUser);
 
         ticketService = new TicketServiceImpl(modelMapper, eventRepository, orderRepository, userRepository, ticketTypeConfigRepository, ticketRepository, stripeGateway, orderFeeEntryRepository, orderTicketEntryRepository);
+    }
+
+    @Test
+    public void activateTicket() {
+
+        UUID ticketId = UUID.randomUUID();
+        TicketEntity ticketEntityMock = mock(TicketEntity.class);
+
+        when(ticketEntityMock.getSecret()).thenReturn("SECRET");
+        when(ticketEntityMock.getStatus()).thenReturn(TicketEntity.Status.ISSUED);
+        when(ticketEntityMock.getOwnerEntity()).thenReturn(authenticatedUser);
+        when(ticketEntityMock.getId()).thenReturn(ticketId);
+        when(ticketEntityMock.getPurchaserEntity()).thenReturn(authenticatedUser);
+
+        when(ticketRepository.findById(ticketId)).thenReturn(Optional.of(ticketEntityMock));
+        when(ticketRepository.save(any())).thenReturn(ticketEntityMock);
+
+        ActivationResult actual = ticketService.activateTicket(ticketId);
+
+        assertNotNull(actual);
+        assertEquals("SECRET", actual.getTicketSecret());
+        assertEquals(ticketId, actual.getTicket().getId());
+
+        verify(ticketRepository, atLeastOnce()).save(ticketEntityMock);
+    }
+
+    @Test(expected = ResponseStatusException.class)
+    public void activateTicket_BadStatus() {
+
+        UUID ticketId = UUID.randomUUID();
+        TicketEntity ticketEntityMock = mock(TicketEntity.class);
+
+        when(ticketEntityMock.getSecret()).thenReturn("SECRET");
+        when(ticketEntityMock.getStatus()).thenReturn(TicketEntity.Status.CANCELED);
+        when(ticketEntityMock.getOwnerEntity()).thenReturn(authenticatedUser);
+        when(ticketEntityMock.getId()).thenReturn(ticketId);
+        when(ticketEntityMock.getPurchaserEntity()).thenReturn(authenticatedUser);
+
+        when(ticketRepository.findById(ticketId)).thenReturn(Optional.of(ticketEntityMock));
+        when(ticketRepository.save(any())).thenReturn(ticketEntityMock);
+
+        ticketService.activateTicket(ticketId);
+        verify(ticketRepository, times(0)).save(ticketEntityMock);
     }
 
     @Test
