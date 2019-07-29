@@ -4,6 +4,8 @@ import com.foriatickets.foriabackend.config.BeanConfig;
 import com.foriatickets.foriabackend.entities.*;
 import com.foriatickets.foriabackend.gateway.StripeGateway;
 import com.foriatickets.foriabackend.repositories.*;
+import com.warrenstrange.googleauth.GoogleAuthenticator;
+import com.warrenstrange.googleauth.GoogleAuthenticatorKey;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -13,7 +15,10 @@ import org.mockito.Mockito;
 import org.modelmapper.ModelMapper;
 import org.modelmapper.PropertyMap;
 import org.modelmapper.internal.util.Assert;
+import org.openapitools.api.TicketApi;
 import org.openapitools.model.ActivationResult;
+import org.openapitools.model.RedemptionResult;
+import org.openapitools.model.Ticket;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -25,8 +30,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -244,5 +248,55 @@ public class TicketServiceImplTest {
 
         assertEquals(expected, actual);
         verify(ticketRepository).countActiveTicketsIssuedByType(ticketTypeConfigId, eventId);
+    }
+
+    @Test
+    public void redeemTicket() {
+
+        final GoogleAuthenticator gAuth = new GoogleAuthenticator();
+        final GoogleAuthenticatorKey googleAuthenticatorKey = gAuth.createCredentials();
+
+        UUID ticketId = UUID.randomUUID();
+        TicketEntity ticketEntityMock = mock(TicketEntity.class);
+
+        when(ticketEntityMock.getSecret()).thenReturn(googleAuthenticatorKey.getKey());
+        when(ticketEntityMock.getStatus()).thenReturn(TicketEntity.Status.ACTIVE);
+        when(ticketEntityMock.getOwnerEntity()).thenReturn(authenticatedUser);
+        when(ticketEntityMock.getId()).thenReturn(ticketId);
+        when(ticketEntityMock.getPurchaserEntity()).thenReturn(authenticatedUser);
+
+        when(ticketRepository.findById(ticketId)).thenReturn(Optional.of(ticketEntityMock));
+        when(ticketRepository.save(any())).thenReturn(ticketEntityMock);
+
+        RedemptionResult actual = ticketService.redeemTicket(ticketId, String.valueOf(gAuth.getTotpPassword(googleAuthenticatorKey.getKey())));
+        assertEquals(RedemptionResult.StatusEnum.ALLOW, actual.getStatus());
+        assertNotNull(actual.getTicket());
+
+        verify(ticketRepository, atLeastOnce()).save(ticketEntityMock);
+    }
+
+    @Test
+    public void redeemTicket_BadOtp() {
+
+        final GoogleAuthenticator gAuth = new GoogleAuthenticator();
+        final GoogleAuthenticatorKey googleAuthenticatorKey = gAuth.createCredentials();
+
+        UUID ticketId = UUID.randomUUID();
+        TicketEntity ticketEntityMock = mock(TicketEntity.class);
+
+        when(ticketEntityMock.getSecret()).thenReturn(googleAuthenticatorKey.getKey());
+        when(ticketEntityMock.getStatus()).thenReturn(TicketEntity.Status.ACTIVE);
+        when(ticketEntityMock.getOwnerEntity()).thenReturn(authenticatedUser);
+        when(ticketEntityMock.getId()).thenReturn(ticketId);
+        when(ticketEntityMock.getPurchaserEntity()).thenReturn(authenticatedUser);
+
+        when(ticketRepository.findById(ticketId)).thenReturn(Optional.of(ticketEntityMock));
+        when(ticketRepository.save(any())).thenReturn(ticketEntityMock);
+
+        RedemptionResult actual = ticketService.redeemTicket(ticketId, "000000");
+        assertEquals(RedemptionResult.StatusEnum.DENY, actual.getStatus());
+        assertNotNull(actual.getTicket());
+
+        verify(ticketRepository, times(0)).save(ticketEntityMock);
     }
 }

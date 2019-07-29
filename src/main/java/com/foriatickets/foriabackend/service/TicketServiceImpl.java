@@ -4,14 +4,12 @@ import com.foriatickets.foriabackend.entities.*;
 import com.foriatickets.foriabackend.gateway.StripeGateway;
 import com.foriatickets.foriabackend.repositories.*;
 import com.stripe.model.Charge;
+import com.warrenstrange.googleauth.GoogleAuthenticator;
 import org.apache.commons.lang3.Validate;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.modelmapper.ModelMapper;
-import org.openapitools.model.ActivationResult;
-import org.openapitools.model.Ticket;
-import org.openapitools.model.TicketLineItem;
-import org.openapitools.model.User;
+import org.openapitools.model.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.http.HttpStatus;
@@ -50,6 +48,8 @@ public class TicketServiceImpl implements TicketService {
     private final ModelMapper modelMapper;
 
     private final EventRepository eventRepository;
+
+    private final GoogleAuthenticator gAuth = new GoogleAuthenticator();
 
     private final OrderFeeEntryRepository orderFeeEntryRepository;
 
@@ -95,25 +95,11 @@ public class TicketServiceImpl implements TicketService {
     @Override
     public ActivationResult activateTicket(UUID ticketId) {
 
-        if (ticketId == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ticket ID must not be null.");
-        }
-
-        Optional<TicketEntity> ticketEntityOptional = ticketRepository.findById(ticketId);
-        if (!ticketEntityOptional.isPresent()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ticket ID is invalid.");
-        }
-
-        TicketEntity ticketEntity = ticketEntityOptional.get();
+        TicketEntity ticketEntity = verifyTicketValidity(ticketId, TicketEntity.Status.ISSUED);
 
         if (!ticketEntity.getOwnerEntity().getId().equals(authenticatedUser.getId())) {
             LOG.warn("User ID: {} attempted to activate not owned ticket ID: {}", authenticatedUser.getId(), ticketEntity.getId());
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Ticket owned by another user.");
-        }
-
-        if (ticketEntity.getStatus() != TicketEntity.Status.ISSUED) {
-            LOG.warn("User ID: {} attempted to activate ticket not having ISSUED status. Ticket ID: {}", authenticatedUser.getId(), ticketEntity.getId());
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Ticket is not in ISSUED status.");
         }
 
         ticketEntity.setStatus(TicketEntity.Status.ACTIVE);
@@ -288,7 +274,7 @@ public class TicketServiceImpl implements TicketService {
         ticketEntity.setEventEntity(eventEntity);
         ticketEntity.setOwnerEntity(userEntity);
         ticketEntity.setPurchaserEntity(userEntity);
-        ticketEntity.setSecret(UUID.randomUUID().toString());
+        ticketEntity.setSecret(gAuth.createCredentials().getKey());
         ticketEntity.setTicketTypeConfigEntity(ticketTypeConfigEntity);
         ticketEntity.setStatus(TicketEntity.Status.ISSUED);
         ticketEntity.setIssuedDate(OffsetDateTime.now());
@@ -297,6 +283,37 @@ public class TicketServiceImpl implements TicketService {
 
         LOG.info("Issued ticket: {} for userID: {}", ticketEntity.getId(), userEntity.getId());
         return ticketEntity;
+    }
+
+    @Override
+    public RedemptionResult redeemTicket(UUID ticketId, String otpCode) {
+
+        int otpCodeInteger;
+        try {
+            otpCodeInteger = Integer.parseInt(otpCode);
+        } catch (RuntimeException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "OTP must be a valid integer.");
+        }
+
+        TicketEntity ticketEntity = verifyTicketValidity(ticketId, TicketEntity.Status.ACTIVE);
+        final String ticketSecret = ticketEntity.getSecret();
+
+        boolean isValid = gAuth.authorize(ticketSecret, otpCodeInteger);
+        RedemptionResult redemptionResult = new RedemptionResult();
+        redemptionResult.setStatus(isValid ? RedemptionResult.StatusEnum.ALLOW : RedemptionResult.StatusEnum.DENY);
+        redemptionResult.setTicket(getTicket(ticketId));
+
+        if (isValid) {
+
+            ticketEntity.setStatus(TicketEntity.Status.REDEEMED);
+            ticketRepository.save(ticketEntity);
+
+            LOG.info("Redeemed ticket ID: {} for userID: {}", ticketId, authenticatedUser.getId());
+        } else {
+            LOG.warn("Failed to redeem ticket ID: {} for userID: {}", ticketId, authenticatedUser.getId());
+        }
+
+        return redemptionResult;
     }
 
     private PriceCalculationInfo calculateTotalPrice(UUID eventId, List<TicketLineItem> orderConfig) {
@@ -421,5 +438,36 @@ public class TicketServiceImpl implements TicketService {
 
         int ticketsIssued = ticketRepository.countActiveTicketsIssuedByType(ticketTypeConfigEntity.getId(), ticketTypeConfigEntity.getEventEntity().getId());
         return ticketTypeConfigEntity.getAuthorizedAmount() - ticketsIssued;
+    }
+
+    /**
+     * Preforms the following validation checks on the specified ticket.
+     *
+     * Ensures that the ticket is:
+     * 1) Ticket ID is not null and a ticket.
+     * 2) The ticket is in the expected status.
+     *
+     * @param ticketId Ticket ID to verify.
+     * @param expectedStatus Status to check.
+     */
+    private TicketEntity verifyTicketValidity(UUID ticketId, TicketEntity.Status expectedStatus) {
+
+        if (ticketId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ticket ID must not be null.");
+        }
+
+        Optional<TicketEntity> ticketEntityOptional = ticketRepository.findById(ticketId);
+        if (!ticketEntityOptional.isPresent()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ticket ID is invalid.");
+        }
+
+        TicketEntity ticketEntity = ticketEntityOptional.get();
+
+        if (ticketEntity.getStatus() != expectedStatus) {
+            LOG.warn("User ID: {} attempted to activate ticket not having {} status. Ticket ID: {}", authenticatedUser.getId(), expectedStatus, ticketEntity.getId());
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Ticket is not in " + expectedStatus + " status.");
+        }
+
+        return ticketEntity;
     }
 }

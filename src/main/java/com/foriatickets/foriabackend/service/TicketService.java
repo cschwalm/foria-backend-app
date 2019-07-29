@@ -2,6 +2,7 @@ package com.foriatickets.foriabackend.service;
 
 import com.foriatickets.foriabackend.entities.TicketEntity;
 import org.openapitools.model.ActivationResult;
+import org.openapitools.model.RedemptionResult;
 import org.openapitools.model.Ticket;
 import org.openapitools.model.TicketLineItem;
 
@@ -35,6 +36,14 @@ public interface TicketService {
     UUID checkoutOrder(String paymentToken, UUID eventId, List<TicketLineItem> orderConfig);
 
     /**
+     * Returns the amount of tickets for type bucket capped at the ticket order max.
+     *
+     * @param ticketTypeConfigId id
+     * @return Non-negative number not to exceed order max.
+     */
+    int countTicketsRemaining(UUID ticketTypeConfigId);
+
+    /**
      * Obtains information about the specified ticket.
      * @param ticketId id
      * @return Ticket info minus secret.
@@ -60,10 +69,13 @@ public interface TicketService {
     TicketEntity issueTicket(UUID purchaserId, UUID eventId, UUID ticketTypeId);
 
     /**
-     * Returns the amount of tickets for type bucket capped at the ticket order max.
+     * Attempts to redeem the ticket via the specified ID and ticket secret.
      *
-     * @param ticketTypeConfigId id
-     * @return Non-negative number not to exceed order max.
+     * @param ticketId Ticket to redeem.
+     * @param otpCode OTP code supplied by client device.
+     * @return API result.
      */
-    int countTicketsRemaining(UUID ticketTypeConfigId);
+    RedemptionResult redeemTicket(UUID ticketId, String otpCode);
+
+
 }
