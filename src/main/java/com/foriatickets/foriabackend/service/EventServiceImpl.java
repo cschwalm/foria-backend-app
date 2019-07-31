@@ -15,8 +15,10 @@ import org.openapitools.model.TicketFeeConfig;
 import org.openapitools.model.TicketTypeConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -87,12 +89,11 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
-    public Optional<Event> getEvent(UUID eventId) {
+    public Event getEvent(UUID eventId) {
 
         Optional<EventEntity> eventEntityOptional = eventRepository.findById(eventId);
         if (!eventEntityOptional.isPresent()) {
-            LOG.warn("Supplied event ID {} does not exist.", eventId);
-            return Optional.empty();
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Event ID is invalid.");
         }
 
         EventEntity eventEntity = eventEntityOptional.get();
@@ -104,6 +105,6 @@ public class EventServiceImpl implements EventService {
             ticketTypeConfig.setAmountRemaining(ticketsRemaining);
         }
 
-        return Optional.of(event);
+        return event;
     }
 }

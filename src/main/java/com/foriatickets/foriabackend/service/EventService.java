@@ -2,7 +2,6 @@ package com.foriatickets.foriabackend.service;
 
 import org.openapitools.model.Event;
 
-import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -25,5 +24,5 @@ public interface EventService {
      * @param eventId id
      * @return Scoped venue.
      */
-    Optional<Event> getEvent(UUID eventId);
+    Event getEvent(UUID eventId);
 }

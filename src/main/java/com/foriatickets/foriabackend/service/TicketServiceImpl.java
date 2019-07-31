@@ -85,9 +85,9 @@ public class TicketServiceImpl implements TicketService {
         String auth0Id = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
         authenticatedUser = userRepository.findByAuth0Id(auth0Id);
-        if (authenticatedUser == null) {
+        if (authenticatedUser == null && !auth0Id.equalsIgnoreCase("anonymousUser")) {
 
-            LOG.error("Attempted to complete checkout with non-mapped auth0Id: {}", auth0Id);
+            LOG.error("Attempted to create ticket service with non-mapped auth0Id: {}", auth0Id);
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "User must be created in Foria system.");
         }
     }
