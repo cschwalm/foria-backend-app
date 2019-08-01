@@ -3,6 +3,7 @@ package com.foriatickets.foriabackend.config;
 import com.auth0.spring.security.api.JwtWebSecurityConfigurer;
 import com.foriatickets.foriabackend.security.ApiKeyFilter;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -10,6 +11,11 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.header.HeaderWriterFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.Arrays;
 
 /**
  * Auth0 token validator to verify that the access tokens from the Auth0 OAuth2 authentication server are valid.
@@ -26,6 +32,20 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Value(value = "${auth0.issuer}")
     private String issuer;
+
+    private static final String[] ALLOWED_CORS_ORIGINS = { "http://localhost", "https://events.foriatickets.com", "https://foria.ngrok.com" };
+
+    @Bean
+    CorsConfigurationSource corsConfigurationSource() {
+
+        CorsConfiguration config = new CorsConfiguration().applyPermitDefaultValues();
+        config.setAllowedOrigins(Arrays.asList(ALLOWED_CORS_ORIGINS));
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+
+        return source;
+    }
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
@@ -52,6 +72,8 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                     .and()
                 .httpBasic()
                     .disable()
+                .cors()
+                    .and()
                 .sessionManagement()
                     .sessionCreationPolicy(SessionCreationPolicy.STATELESS);
     }
