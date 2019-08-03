@@ -286,6 +286,27 @@ public class TicketServiceImpl implements TicketService {
     }
 
     @Override
+    public ActivationResult reactivateTicket(UUID ticketId) {
+
+        TicketEntity ticketEntity = verifyTicketValidity(ticketId, TicketEntity.Status.ACTIVE);
+
+        if (!ticketEntity.getOwnerEntity().getId().equals(authenticatedUser.getId())) {
+            LOG.warn("User ID: {} attempted to activate not owned ticket ID: {}", authenticatedUser.getId(), ticketEntity.getId());
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Ticket owned by another user.");
+        }
+
+        ticketEntity.setSecret(gAuth.createCredentials().getKey());
+        ticketEntity = ticketRepository.save(ticketEntity);
+
+        ActivationResult activationResult = new ActivationResult();
+        activationResult.setTicketSecret(ticketEntity.getSecret());
+        activationResult.setTicket(getTicket(ticketId));
+
+        LOG.info("Ticket ID: {} reactivated by user ID: {}", ticketEntity.getId(), authenticatedUser.getId());
+        return activationResult;
+    }
+
+    @Override
     public RedemptionResult redeemTicket(UUID ticketId, String otpCode) {
 
         int otpCodeInteger;
@@ -464,7 +485,7 @@ public class TicketServiceImpl implements TicketService {
         TicketEntity ticketEntity = ticketEntityOptional.get();
 
         if (ticketEntity.getStatus() != expectedStatus) {
-            LOG.warn("User ID: {} attempted to activate ticket not having {} status. Ticket ID: {}", authenticatedUser.getId(), expectedStatus, ticketEntity.getId());
+            LOG.warn("User ID: {} attempted to activate/reactivate ticket not having {} status. Ticket ID: {}", authenticatedUser.getId(), expectedStatus, ticketEntity.getId());
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Ticket is not in " + expectedStatus + " status.");
         }
 

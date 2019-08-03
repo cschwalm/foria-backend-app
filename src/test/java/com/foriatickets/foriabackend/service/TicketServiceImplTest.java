@@ -15,10 +15,8 @@ import org.mockito.Mockito;
 import org.modelmapper.ModelMapper;
 import org.modelmapper.PropertyMap;
 import org.modelmapper.internal.util.Assert;
-import org.openapitools.api.TicketApi;
 import org.openapitools.model.ActivationResult;
 import org.openapitools.model.RedemptionResult;
-import org.openapitools.model.Ticket;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -248,6 +246,30 @@ public class TicketServiceImplTest {
 
         assertEquals(expected, actual);
         verify(ticketRepository).countActiveTicketsIssuedByType(ticketTypeConfigId, eventId);
+    }
+
+    @Test
+    public void reactivateTicket() {
+
+        UUID ticketId = UUID.randomUUID();
+        TicketEntity ticketEntityMock = mock(TicketEntity.class);
+
+        when(ticketEntityMock.getSecret()).thenReturn("SECRET");
+        when(ticketEntityMock.getStatus()).thenReturn(TicketEntity.Status.ACTIVE);
+        when(ticketEntityMock.getOwnerEntity()).thenReturn(authenticatedUser);
+        when(ticketEntityMock.getId()).thenReturn(ticketId);
+        when(ticketEntityMock.getPurchaserEntity()).thenReturn(authenticatedUser);
+
+        when(ticketRepository.findById(ticketId)).thenReturn(Optional.of(ticketEntityMock));
+        when(ticketRepository.save(any())).thenReturn(ticketEntityMock);
+
+        ActivationResult actual = ticketService.reactivateTicket(ticketId);
+
+        assertNotNull(actual);
+        assertEquals(ticketId, actual.getTicket().getId());
+
+        verify(ticketRepository, atLeastOnce()).save(ticketEntityMock);
+        verify(ticketEntityMock).setSecret(anyString());
     }
 
     @Test

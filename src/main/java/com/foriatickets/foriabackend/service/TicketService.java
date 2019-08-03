@@ -69,6 +69,15 @@ public interface TicketService {
     TicketEntity issueTicket(UUID purchaserId, UUID eventId, UUID ticketTypeId);
 
     /**
+     * Allows user to allow ticket to be displayed on a new device.
+     * This preforms verification checks, generates and saves a new ticket secret, and returns.
+     *
+     * @param ticketId Ticket to reactivate. Old device won't be able to use.
+     * @return API result.
+     */
+    ActivationResult reactivateTicket(UUID ticketId);
+
+    /**
      * Attempts to redeem the ticket via the specified ID and ticket secret.
      *
      * @param ticketId Ticket to redeem.
