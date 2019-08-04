@@ -466,6 +466,32 @@ components:
           minLength: 3
           type: string
           example: USA
+    EventAddress:
+      type: object
+      readOnly: true
+      properties:
+        venue_name:
+          type: string
+          example: Madison Square Garden
+        street_address:
+          type: string
+          example: 12345 Fake Ln
+        city:
+          type: string
+          example: Fake City
+        state:
+          type: string
+          example: MO
+        zip:
+          maxLength: 5
+          minLength: 5
+          type: string
+          example: "55555"
+        country:
+          maxLength: 3
+          minLength: 3
+          type: string
+          example: USA
     Order:
       type: object
       required:
@@ -678,7 +704,7 @@ components:
           type: string
           format: date-time
         address:
-          $ref: '#/components/schemas/Address'
+          $ref: '#/components/schemas/EventAddress'
         ticket_fee_config:
           type: array
           items:

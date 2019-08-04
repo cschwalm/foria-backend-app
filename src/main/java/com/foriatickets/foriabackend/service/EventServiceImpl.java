@@ -3,6 +3,7 @@ package com.foriatickets.foriabackend.service;
 import com.foriatickets.foriabackend.entities.EventEntity;
 import com.foriatickets.foriabackend.entities.TicketFeeConfigEntity;
 import com.foriatickets.foriabackend.entities.TicketTypeConfigEntity;
+import com.foriatickets.foriabackend.entities.VenueEntity;
 import com.foriatickets.foriabackend.repositories.EventRepository;
 import com.foriatickets.foriabackend.repositories.TicketFeeConfigRepository;
 import com.foriatickets.foriabackend.repositories.TicketTypeConfigRepository;
@@ -10,9 +11,7 @@ import com.foriatickets.foriabackend.repositories.VenueRepository;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.modelmapper.ModelMapper;
-import org.openapitools.model.Event;
-import org.openapitools.model.TicketFeeConfig;
-import org.openapitools.model.TicketTypeConfig;
+import org.openapitools.model.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.http.HttpStatus;
@@ -69,6 +68,7 @@ public class EventServiceImpl implements EventService {
 
         eventEntity = eventRepository.save(eventEntity);
         event.setId(eventEntity.getId());
+        populateEventModelWithAddress(event, eventEntity.getVenueEntity());
 
         for (TicketFeeConfig ticketFeeConfig : event.getTicketFeeConfig()) {
             TicketFeeConfigEntity ticketFeeConfigEntity = modelMapper.map(ticketFeeConfig, TicketFeeConfigEntity.class);
@@ -98,6 +98,7 @@ public class EventServiceImpl implements EventService {
 
         EventEntity eventEntity = eventEntityOptional.get();
         Event event = modelMapper.map(eventEntity, Event.class);
+        populateEventModelWithAddress(event, eventEntity.getVenueEntity());
 
         for (TicketTypeConfig ticketTypeConfig : event.getTicketTypeConfig()) {
 
@@ -106,5 +107,24 @@ public class EventServiceImpl implements EventService {
         }
 
         return event;
+    }
+
+    /**
+     * Transforms venue address and name to set inside of an Event API model.
+     *
+     * @param event Model to set.
+     * @param venueEntity Venue info.
+     */
+    private void populateEventModelWithAddress(final Event event, final VenueEntity venueEntity) {
+
+        EventAddress addr = new EventAddress();
+        addr.setVenueName(venueEntity.getName());
+        addr.setStreetAddress(venueEntity.getContactStreetAddress());
+        addr.setCity(venueEntity.getContactCity());
+        addr.setState(venueEntity.getContactState());
+        addr.setZip(venueEntity.getContactZip());
+        addr.setCountry(venueEntity.getContactCountry());
+
+        event.setAddress(addr);
     }
 }

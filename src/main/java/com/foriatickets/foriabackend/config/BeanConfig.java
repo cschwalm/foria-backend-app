@@ -68,11 +68,6 @@ public class BeanConfig {
             @Override
             protected void configure() {
 
-                map().getAddress().setStreetAddress(source.getEventStreetAddress());
-                map().getAddress().setCity(source.getEventCity());
-                map().getAddress().setState(source.getEventState());
-                map().getAddress().setZip(source.getEventPostal());
-                map().getAddress().setCountry(source.getEventCountry());
                 map().setStartTime(source.getEventStartTime());
                 map().setEndTime(source.getEventEndTime());
                 map().setVenueId(source.getVenueEntity().getId());
@@ -84,11 +79,6 @@ public class BeanConfig {
             @Override
             protected void configure() {
 
-                map().setEventStreetAddress(source.getAddress().getStreetAddress());
-                map().setEventCity(source.getAddress().getCity());
-                map().setEventState(source.getAddress().getState());
-                map().setEventPostal(source.getAddress().getZip());
-                map().setEventCountry(source.getAddress().getCountry());
                 map().setEventStartTime(source.getStartTime());
                 map().setEventEndTime(source.getEndTime());
                 using(entityConverter).map(source.getVenueId()).setVenueEntity(null);

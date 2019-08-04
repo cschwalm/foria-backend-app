@@ -23,11 +23,6 @@ public class EventEntity implements Serializable {
     private String description;
     private OffsetDateTime eventStartTime;
     private OffsetDateTime eventEndTime;
-    private String eventStreetAddress;
-    private String eventCity;
-    private String eventState;
-    private String eventPostal;
-    private String eventCountry;
     private int authorizedTickets;
     private Set<TicketEntity> tickets = new HashSet<>();
     private Set<TicketFeeConfigEntity> ticketFeeConfig = new HashSet<>();
@@ -117,56 +112,6 @@ public class EventEntity implements Serializable {
         return this;
     }
 
-    @Column(name = "event_street_address", nullable = false)
-    public String getEventStreetAddress() {
-        return eventStreetAddress;
-    }
-
-    public EventEntity setEventStreetAddress(String eventStreetAddress) {
-        this.eventStreetAddress = eventStreetAddress;
-        return this;
-    }
-
-    @Column(name = "event_city", nullable = false)
-    public String getEventCity() {
-        return eventCity;
-    }
-
-    public EventEntity setEventCity(String eventCity) {
-        this.eventCity = eventCity;
-        return this;
-    }
-
-    @Column(name = "event_state", nullable = false)
-    public String getEventState() {
-        return eventState;
-    }
-
-    public EventEntity setEventState(String eventState) {
-        this.eventState = eventState;
-        return this;
-    }
-
-    @Column(name = "event_postal", length = 6)
-    public String getEventPostal() {
-        return eventPostal;
-    }
-
-    public EventEntity setEventPostal(String eventPostal) {
-        this.eventPostal = eventPostal;
-        return this;
-    }
-
-    @Column(name = "event_country", nullable = false, length = 3)
-    public String getEventCountry() {
-        return eventCountry;
-    }
-
-    public EventEntity setEventCountry(String eventCountry) {
-        this.eventCountry = eventCountry;
-        return this;
-    }
-
     @Column(name = "authorized_tickets", nullable = false, length = 6)
     public int getAuthorizedTickets() {
         return authorizedTickets;
@@ -217,11 +162,6 @@ public class EventEntity implements Serializable {
                 ", description='" + description + '\'' +
                 ", eventStartTime=" + eventStartTime +
                 ", eventEndTime=" + eventEndTime +
-                ", eventStreetAddress='" + eventStreetAddress + '\'' +
-                ", eventCity='" + eventCity + '\'' +
-                ", eventState='" + eventState + '\'' +
-                ", eventPostal='" + eventPostal + '\'' +
-                ", eventCountry='" + eventCountry + '\'' +
                 ", authorizedTickets=" + authorizedTickets +
                 '}';
     }
@@ -238,16 +178,11 @@ public class EventEntity implements Serializable {
                 Objects.equals(imageUrl, that.imageUrl) &&
                 Objects.equals(description, that.description) &&
                 Objects.equals(eventStartTime, that.eventStartTime) &&
-                Objects.equals(eventEndTime, that.eventEndTime) &&
-                Objects.equals(eventStreetAddress, that.eventStreetAddress) &&
-                Objects.equals(eventCity, that.eventCity) &&
-                Objects.equals(eventState, that.eventState) &&
-                Objects.equals(eventPostal, that.eventPostal) &&
-                Objects.equals(eventCountry, that.eventCountry);
+                Objects.equals(eventEndTime, that.eventEndTime);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, name, tagLine, imageUrl, description, eventStartTime, eventEndTime, eventStreetAddress, eventCity, eventState, eventPostal, eventCountry, authorizedTickets);
+        return Objects.hash(id, name, tagLine, imageUrl, description, eventStartTime, eventEndTime, authorizedTickets);
     }
 }
