@@ -1,10 +1,7 @@
 package com.foriatickets.foriabackend.service;
 
 import com.foriatickets.foriabackend.entities.TicketEntity;
-import org.openapitools.model.ActivationResult;
-import org.openapitools.model.RedemptionResult;
-import org.openapitools.model.Ticket;
-import org.openapitools.model.TicketLineItem;
+import org.openapitools.model.*;
 
 import java.util.List;
 import java.util.UUID;
@@ -24,6 +21,15 @@ public interface TicketService {
      * @return Result object.
      */
     ActivationResult activateTicket(UUID ticketId);
+
+    /**
+     * Calculates the order total to display to the user.
+     * This uses the same logic that checkout uses to ensure the price is the same.
+     *
+     * @param eventId eventId
+     * @param orderConfig List of tickets to buy.
+     */
+    OrderTotal calculateOrderTotal(UUID eventId, List<TicketLineItem> orderConfig);
 
     /**
      * Accepts checkout data from client and completes transaction.

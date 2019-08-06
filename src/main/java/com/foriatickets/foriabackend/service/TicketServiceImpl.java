@@ -114,6 +114,31 @@ public class TicketServiceImpl implements TicketService {
     }
 
     @Override
+    public OrderTotal calculateOrderTotal(UUID eventId, List<TicketLineItem> orderConfig) {
+
+        if (orderConfig == null || eventId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Checkout request is missing required data.");
+        }
+
+        //Check that event exists.
+        Optional<EventEntity> eventEntityOptional = eventRepository.findById(eventId);
+        if (!eventEntityOptional.isPresent()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Event ID is invalid.");
+        }
+
+        //Calculate order total.
+        OrderTotal orderTotal = new OrderTotal();
+        PriceCalculationInfo priceCalculationInfo = calculateTotalPrice(eventId, orderConfig);
+
+        orderTotal.setSubtotal(priceCalculationInfo.ticketSubtotal.toPlainString());
+        orderTotal.setFees(priceCalculationInfo.feeSubtotal.add(priceCalculationInfo.paymentFeeSubtotal).toPlainString());
+        orderTotal.setGrandTotal(priceCalculationInfo.grandTotal.toPlainString());
+        orderTotal.setCurrency(priceCalculationInfo.currencyCode);
+
+        return orderTotal;
+    }
+
+    @Override
     public UUID checkoutOrder(String paymentToken, UUID eventId, List<TicketLineItem> orderConfig) {
 
         if (StringUtils.isEmpty(paymentToken) || orderConfig == null || eventId == null) {

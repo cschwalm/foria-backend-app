@@ -26,6 +26,13 @@ public class TicketApi implements org.openapitools.api.TicketApi {
     }
 
     @Override
+    public ResponseEntity<OrderTotal> calculateOrderTotal(@Valid Order order) {
+        TicketService ticketService = beanFactory.getBean(TicketService.class);
+        OrderTotal orderTotal = ticketService.calculateOrderTotal(order.getEventId(), order.getTicketLineItemList());
+        return new ResponseEntity<>(orderTotal, HttpStatus.OK);
+    }
+
+    @Override
     @RequestMapping(value = "/ticket/checkout", method = RequestMethod.POST)
     public ResponseEntity<Order> checkout(@Valid Order order) {
 

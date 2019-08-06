@@ -183,6 +183,26 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BaseApiModel'
+  /ticket/calculateOrderTotal:
+    post:
+      tags:
+        - ticket
+      summary: Calculates the order total to display to the user. This uses the same logic that checkout uses to ensure the price is the same.
+      operationId: calculateOrderTotal
+      requestBody:
+        description: Checkout request object minus payment token.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Order'
+        required: true
+      responses:
+        200:
+          description: Checkout successful.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderTotal'
   /ticket/checkout:
     post:
       tags:
@@ -496,7 +516,7 @@ components:
       type: object
       required:
         - ticket_amount_map
-        - payment_token
+        - event_id
       properties:
         id:
           type: string
@@ -511,6 +531,25 @@ components:
             $ref: '#/components/schemas/TicketLineItem'
         payment_token:
           type: string
+    OrderTotal:
+      type: object
+      properties:
+        subtotal:
+          type: string
+          readOnly: true
+        fees:
+          type: string
+          readOnly: true
+        grand_total:
+          type: string
+          readOnly: true
+        currency:
+          maxLength: 3
+          minLength: 3
+          type: string
+          example: USD
+          default: USD
+          readOnly: true
     Ticket:
       type: object
       properties:
