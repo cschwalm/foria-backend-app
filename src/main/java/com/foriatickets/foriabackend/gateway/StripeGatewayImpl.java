@@ -81,7 +81,7 @@ public class StripeGatewayImpl implements StripeGateway {
     }
 
     @Override
-    public Charge chargeCustomer(String stripeCustomerId, UUID orderId, BigDecimal amount, String currencyCode) {
+    public Charge chargeCustomer(String stripeCustomerId, String stripeToken, UUID orderId, BigDecimal amount, String currencyCode) {
 
         if (StringUtils.isEmpty(stripeCustomerId) || StringUtils.isEmpty(currencyCode) || amount == null) {
             LOG.error("Attempted to charge Stripe user with null data!");
@@ -106,6 +106,7 @@ public class StripeGatewayImpl implements StripeGateway {
 
         chargeParams.put("amount", amount);
         chargeParams.put("currency", currencyCode);
+        chargeParams.put("source", stripeToken);
         chargeParams.put("customer", stripeCustomerId);
         chargeParams.put("metadata", metadata);
         chargeParams.put("description", DESCRIPTION);

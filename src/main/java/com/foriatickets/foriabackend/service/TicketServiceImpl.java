@@ -228,7 +228,7 @@ public class TicketServiceImpl implements TicketService {
             stripeCustomerId = authenticatedUser.getStripeId();
         }
 
-        Charge chargeResult = stripeGateway.chargeCustomer(stripeCustomerId, orderEntity.getId(), priceCalculationInfo.grandTotal, priceCalculationInfo.currencyCode);
+        Charge chargeResult = stripeGateway.chargeCustomer(stripeCustomerId, paymentToken, orderEntity.getId(), priceCalculationInfo.grandTotal, priceCalculationInfo.currencyCode);
         orderEntity.setChargeReferenceId(chargeResult.getId());
         orderRepository.save(orderEntity);
         LOG.info("Stripe customer (ID: {}) charged: {}{} with chargeID: {}",
