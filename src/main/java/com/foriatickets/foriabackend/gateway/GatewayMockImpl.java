@@ -18,7 +18,7 @@ public class GatewayMockImpl implements GatewayMock {
     private static final Logger LOG = LogManager.getLogger();
 
     @Override
-    public Charge chargeCustomer(String stripeCustomerId, UUID orderId, BigDecimal amount, String currencyCode) {
+    public Charge chargeCustomer(String stripeCustomerId, String stripeToken, UUID orderId, BigDecimal amount, String currencyCode) {
         Charge charge = new Charge();
         charge.setAmount(amount.toBigInteger().longValueExact());
         charge.setCurrency(currencyCode);
