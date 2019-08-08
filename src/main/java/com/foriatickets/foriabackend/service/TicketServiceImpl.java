@@ -117,7 +117,7 @@ public class TicketServiceImpl implements TicketService {
     public OrderTotal calculateOrderTotal(UUID eventId, List<TicketLineItem> orderConfig) {
 
         if (orderConfig == null || eventId == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Checkout request is missing required data.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Calculate order total request is missing required data.");
         }
 
         //Check that event exists.
@@ -130,10 +130,18 @@ public class TicketServiceImpl implements TicketService {
         OrderTotal orderTotal = new OrderTotal();
         PriceCalculationInfo priceCalculationInfo = calculateTotalPrice(eventId, orderConfig);
 
-        orderTotal.setSubtotal(priceCalculationInfo.ticketSubtotal.toPlainString());
-        orderTotal.setFees(priceCalculationInfo.feeSubtotal.add(priceCalculationInfo.paymentFeeSubtotal).toPlainString());
-        orderTotal.setGrandTotal(priceCalculationInfo.grandTotal.toPlainString());
+        BigDecimal subtotal = priceCalculationInfo.ticketSubtotal;
+        BigDecimal fees = priceCalculationInfo.feeSubtotal.add(priceCalculationInfo.paymentFeeSubtotal);
+        BigDecimal total = priceCalculationInfo.grandTotal;
+
+        orderTotal.setSubtotal(subtotal.toPlainString());
+        orderTotal.setFees(fees.toPlainString());
+        orderTotal.setGrandTotal(total.toPlainString());
         orderTotal.setCurrency(priceCalculationInfo.currencyCode);
+
+        orderTotal.setSubtotalCents(subtotal.movePointRight(subtotal.scale()).stripTrailingZeros().toPlainString());
+        orderTotal.setFeesCents(fees.movePointRight(fees.scale()).stripTrailingZeros().toPlainString());
+        orderTotal.setGrandTotalCents(total.movePointRight(total.scale()).stripTrailingZeros().toPlainString());
 
         return orderTotal;
     }

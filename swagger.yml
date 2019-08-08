@@ -543,6 +543,15 @@ components:
         grand_total:
           type: string
           readOnly: true
+        subtotal_cents:
+          type: string
+          readOnly: true
+        fees_cents:
+          type: string
+          readOnly: true
+        grand_total_cents:
+          type: string
+          readOnly: true
         currency:
           maxLength: 3
           minLength: 3
@@ -586,6 +595,9 @@ components:
           format: date_time
     TicketLineItem:
       type: object
+      required:
+        - ticket_type_id
+        - amount
       properties:
         ticket_type_id:
           type: string
