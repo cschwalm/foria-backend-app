@@ -124,7 +124,6 @@ public class StripeGatewayImpl implements StripeGateway {
         chargeParams.put("amount", amount);
         chargeParams.put("currency", currencyCode);
         chargeParams.put("source", stripeToken);
-        chargeParams.put("customer", stripeCustomerId);
         chargeParams.put("metadata", metadata);
         chargeParams.put("description", DESCRIPTION);
         chargeParams.put("statement_descriptor", DESCRIPTOR);
