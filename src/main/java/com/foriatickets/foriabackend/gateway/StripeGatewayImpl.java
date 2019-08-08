@@ -98,24 +98,9 @@ public class StripeGatewayImpl implements StripeGateway {
             amount = amount.movePointRight(amount.scale()).stripTrailingZeros();
         }
 
+        updateCustomerPaymentMethod(stripeCustomerId, stripeToken);
+
         LOG.debug("Stripe amount to charge is: {}{}", amount, currencyCode);
-
-        //Update customer default source to new type.
-        Map<String, Object> customerParams = new HashMap<>();
-        customerParams.put("source", stripeToken);
-
-        Customer customer;
-        try {
-            customer = Customer.retrieve(stripeCustomerId);
-            customer.update(customerParams);
-        } catch (CardException e) {
-
-            LOG.info("Failed to save payment method to customer. Decline Code: {} - Error Message: {}", e.getDeclineCode(), e.getMessage());
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
-        } catch (Exception e) {
-            LOG.error("ERROR: Setting default payment method! Error message: {} | userID: {}", e.getMessage(), stripeCustomerId);
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Failed to update default payment method. Please contact support.");
-        }
 
         Map<String, Object> chargeParams = new HashMap<>();
         Map<String, Object> metadata = new HashMap<>();
@@ -123,7 +108,7 @@ public class StripeGatewayImpl implements StripeGateway {
 
         chargeParams.put("amount", amount);
         chargeParams.put("currency", currencyCode);
-        chargeParams.put("source", stripeToken);
+        chargeParams.put("customer", stripeCustomerId);
         chargeParams.put("metadata", metadata);
         chargeParams.put("description", DESCRIPTION);
         chargeParams.put("statement_descriptor", DESCRIPTOR);
@@ -142,6 +127,31 @@ public class StripeGatewayImpl implements StripeGateway {
 
         LOG.info("Charged customer with amount: {} {} - stripeId: {} ", amount, currencyCode, stripeCustomerId);
         return charge;
+    }
+
+    /**
+     * Update customer default source to new type.
+     * Tokens may only be used once. Use it here and then charge the customer directly.
+     *
+     * @param stripeCustomerId Customer to update.
+     * @param stripePaymentToken Token to use for payment device.
+     */
+    private void updateCustomerPaymentMethod(String stripeCustomerId, String stripePaymentToken) {
+
+        Map<String, Object> customerParams = new HashMap<>();
+        customerParams.put("source", stripePaymentToken);
+
+        Customer customer;
+        try {
+            customer = Customer.retrieve(stripeCustomerId);
+            customer.update(customerParams);
+        } catch (CardException e) {
+            LOG.info("Failed to save payment method to customer. Decline Code: {} - Error Message: {}", e.getDeclineCode(), e.getMessage());
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+        } catch (Exception e) {
+            LOG.error("ERROR: Setting default payment method! Error message: {} | userID: {}", e.getMessage(), stripeCustomerId);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Failed to update default payment method. Please contact support.");
+        }
     }
 }
 
