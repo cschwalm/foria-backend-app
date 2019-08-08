@@ -15,7 +15,10 @@ import org.mockito.Mockito;
 import org.modelmapper.ModelMapper;
 import org.modelmapper.PropertyMap;
 import org.modelmapper.internal.util.Assert;
-import org.openapitools.model.*;
+import org.openapitools.model.ActivationResult;
+import org.openapitools.model.OrderTotal;
+import org.openapitools.model.RedemptionResult;
+import org.openapitools.model.TicketLineItem;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -220,8 +223,7 @@ public class TicketServiceImplTest {
         BigDecimal stripeFeeActual = new BigDecimal("3.67");
         BigDecimal grandTotalActual = new BigDecimal("116.17");
 
-        Set<TicketFeeConfigEntity> flatFeeSet = new HashSet<>();
-        Set<TicketFeeConfigEntity> percentFeeSet = new HashSet<>();
+        Set<TicketFeeConfigEntity> feeSet = new HashSet<>();
 
         TicketFeeConfigEntity ticketFeeConfigEntityFlatMock = mock(TicketFeeConfigEntity.class);
         when(ticketFeeConfigEntityFlatMock.getMethod()).thenReturn(TicketFeeConfigEntity.FeeMethod.FLAT);
@@ -229,7 +231,7 @@ public class TicketServiceImplTest {
         when(ticketFeeConfigEntityFlatMock.getAmount()).thenReturn(BigDecimal.valueOf(1.50));
         when(ticketFeeConfigEntityFlatMock.getCurrency()).thenReturn("USD");
         when(ticketFeeConfigEntityFlatMock.getType()).thenReturn(TicketFeeConfigEntity.FeeType.ISSUER);
-        flatFeeSet.add(ticketFeeConfigEntityFlatMock);
+        feeSet.add(ticketFeeConfigEntityFlatMock);
 
         TicketFeeConfigEntity ticketFeeConfigEntityPercentMock = mock(TicketFeeConfigEntity.class);
         when(ticketFeeConfigEntityPercentMock.getMethod()).thenReturn(TicketFeeConfigEntity.FeeMethod.PERCENT);
@@ -237,9 +239,9 @@ public class TicketServiceImplTest {
         when(ticketFeeConfigEntityPercentMock.getAmount()).thenReturn(BigDecimal.valueOf(0.11));
         when(ticketFeeConfigEntityPercentMock.getCurrency()).thenReturn("USD");
         when(ticketFeeConfigEntityPercentMock.getType()).thenReturn(TicketFeeConfigEntity.FeeType.ISSUER);
-        percentFeeSet.add(ticketFeeConfigEntityPercentMock);
+        feeSet.add(ticketFeeConfigEntityPercentMock);
 
-        TicketServiceImpl.PriceCalculationInfo actual = ticketService.calculateFees(subtotal, percentFeeSet, flatFeeSet);
+        TicketServiceImpl.PriceCalculationInfo actual = ticketService.calculateFees(subtotal, feeSet);
 
         assertEquals(subtotal, actual.ticketSubtotal);
         assertEquals(feeActual, actual.feeSubtotal);
@@ -255,8 +257,7 @@ public class TicketServiceImplTest {
         BigDecimal stripeFeeActual = new BigDecimal("3.68");
         BigDecimal grandTotalActual = new BigDecimal("116.55");
 
-        Set<TicketFeeConfigEntity> flatFeeSet = new HashSet<>();
-        Set<TicketFeeConfigEntity> percentFeeSet = new HashSet<>();
+        Set<TicketFeeConfigEntity> feeSet = new HashSet<>();
 
         TicketFeeConfigEntity ticketFeeConfigEntityFlatMock = mock(TicketFeeConfigEntity.class);
         when(ticketFeeConfigEntityFlatMock.getMethod()).thenReturn(TicketFeeConfigEntity.FeeMethod.FLAT);
@@ -264,7 +265,7 @@ public class TicketServiceImplTest {
         when(ticketFeeConfigEntityFlatMock.getAmount()).thenReturn(BigDecimal.valueOf(1.50));
         when(ticketFeeConfigEntityFlatMock.getCurrency()).thenReturn("USD");
         when(ticketFeeConfigEntityFlatMock.getType()).thenReturn(TicketFeeConfigEntity.FeeType.ISSUER);
-        flatFeeSet.add(ticketFeeConfigEntityFlatMock);
+        feeSet.add(ticketFeeConfigEntityFlatMock);
 
         TicketFeeConfigEntity ticketFeeConfigEntityPercentMock = mock(TicketFeeConfigEntity.class);
         when(ticketFeeConfigEntityPercentMock.getMethod()).thenReturn(TicketFeeConfigEntity.FeeMethod.PERCENT);
@@ -272,9 +273,9 @@ public class TicketServiceImplTest {
         when(ticketFeeConfigEntityPercentMock.getAmount()).thenReturn(BigDecimal.valueOf(0.11));
         when(ticketFeeConfigEntityPercentMock.getCurrency()).thenReturn("USD");
         when(ticketFeeConfigEntityPercentMock.getType()).thenReturn(TicketFeeConfigEntity.FeeType.ISSUER);
-        percentFeeSet.add(ticketFeeConfigEntityPercentMock);
+        feeSet.add(ticketFeeConfigEntityPercentMock);
 
-        TicketServiceImpl.PriceCalculationInfo actual = ticketService.calculateFees(subtotal, percentFeeSet, flatFeeSet);
+        TicketServiceImpl.PriceCalculationInfo actual = ticketService.calculateFees(subtotal, feeSet);
 
         assertEquals(subtotal, actual.ticketSubtotal);
         assertEquals(feeActual, actual.feeSubtotal);

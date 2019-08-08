@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -104,6 +105,11 @@ public class EventServiceImpl implements EventService {
 
             int ticketsRemaining = ticketService.countTicketsRemaining(ticketTypeConfig.getId());
             ticketTypeConfig.setAmountRemaining(ticketsRemaining);
+
+            //Add calculated fee to assist front ends.
+            TicketServiceImpl.PriceCalculationInfo calc = ticketService.calculateFees(new BigDecimal(ticketTypeConfig.getPrice()), eventEntity.getTicketFeeConfig());
+            BigDecimal feeSubtotal = calc.feeSubtotal.add(calc.paymentFeeSubtotal);
+            ticketTypeConfig.setCalculatedFee(feeSubtotal.toPlainString());
         }
 
         return event;

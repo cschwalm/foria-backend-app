@@ -372,10 +372,6 @@ public class TicketServiceImpl implements TicketService {
 
     private PriceCalculationInfo calculateTotalPrice(UUID eventId, List<TicketLineItem> orderConfig) {
 
-        //Group fees by type.
-        Set<TicketFeeConfigEntity> percentFeeSet = new HashSet<>();
-        Set<TicketFeeConfigEntity> flatFeeSet = new HashSet<>();
-
         String currencyCode = "USD";
         BigDecimal ticketSubtotal = BigDecimal.ZERO;
 
@@ -385,22 +381,7 @@ public class TicketServiceImpl implements TicketService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Event ID is invalid.");
         }
         EventEntity eventEntity = eventEntityOptional.get();
-        eventEntity.getTicketFeeConfig().forEach(fee -> {
-
-            switch (fee.getMethod()) {
-
-                case FLAT:
-                    flatFeeSet.add(fee);
-                    break;
-
-                case PERCENT:
-                    percentFeeSet.add(fee);
-                    break;
-
-                default:
-                    LOG.warn("Unknown fee method: {} Skipping.", fee.getMethod());
-            }
-        });
+        Set<TicketFeeConfigEntity> feeSet = eventEntity.getTicketFeeConfig();
 
         //Load ticket price configs.
         //Summate over tickets to calculate sub-total.
@@ -419,7 +400,7 @@ public class TicketServiceImpl implements TicketService {
             }
         }
 
-        PriceCalculationInfo priceCalculationInfo = calculateFees(ticketSubtotal, percentFeeSet, flatFeeSet);
+        PriceCalculationInfo priceCalculationInfo = calculateFees(ticketSubtotal, feeSet);
         priceCalculationInfo.currencyCode = currencyCode;
         return priceCalculationInfo;
     }
@@ -437,16 +418,28 @@ public class TicketServiceImpl implements TicketService {
         return ticketsRemaining > MAX_TICKETS_PER_ORDER ? MAX_TICKETS_PER_ORDER : ticketsRemaining;
     }
 
-    /**
-     * Accepts subtotal, list of both flat and percent fees, and then calculates the subtotal with fees applied.
-     * Payment processor fee is applied last to pass the entire amount on to the customer.
-     *
-     * @param ticketSubtotal Subtotal to apply fees on.
-     * @param percentFeeSet List of percent fees to calculate on.
-     * @param flatFeeSet List of flat fees.
-     * @return Object containing break down of fees.
-     */
-    PriceCalculationInfo calculateFees(final BigDecimal ticketSubtotal, Set<TicketFeeConfigEntity> percentFeeSet, Set<TicketFeeConfigEntity> flatFeeSet) {
+    public PriceCalculationInfo calculateFees(final BigDecimal ticketSubtotal, final Set<TicketFeeConfigEntity> feeSet) {
+
+        //Group fees by type.
+        Set<TicketFeeConfigEntity> percentFeeSet = new HashSet<>();
+        Set<TicketFeeConfigEntity> flatFeeSet = new HashSet<>();
+
+        feeSet.forEach(fee -> {
+
+            switch (fee.getMethod()) {
+
+                case FLAT:
+                    flatFeeSet.add(fee);
+                    break;
+
+                case PERCENT:
+                    percentFeeSet.add(fee);
+                    break;
+
+                default:
+                    LOG.warn("Unknown fee method: {} Skipping.", fee.getMethod());
+            }
+        });
 
         BigDecimal ticketFeeAmount;
         BigDecimal paymentFeeAmount;

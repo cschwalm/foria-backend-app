@@ -1,9 +1,12 @@
 package com.foriatickets.foriabackend.service;
 
 import com.foriatickets.foriabackend.entities.TicketEntity;
+import com.foriatickets.foriabackend.entities.TicketFeeConfigEntity;
 import org.openapitools.model.*;
 
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -21,6 +24,16 @@ public interface TicketService {
      * @return Result object.
      */
     ActivationResult activateTicket(UUID ticketId);
+
+    /**
+     * Accepts subtotal, list of both flat and percent fees, and then calculates the subtotal with fees applied.
+     * Payment processor fee is applied last to pass the entire amount on to the customer.
+     *
+     * @param ticketSubtotal Subtotal to apply fees on.
+     * @param feeSet List of percent fees to calculate on.
+     * @return Object containing break down of fees.
+     */
+    TicketServiceImpl.PriceCalculationInfo calculateFees(final BigDecimal ticketSubtotal, final Set<TicketFeeConfigEntity> feeSet);
 
     /**
      * Calculates the order total to display to the user.

@@ -629,6 +629,10 @@ components:
         price:
           type: string
           example: "1.00"
+        calculated_fee:
+          type: string
+          example: "2.50"
+          readOnly: true
         currency:
           maxLength: 3
           minLength: 3
