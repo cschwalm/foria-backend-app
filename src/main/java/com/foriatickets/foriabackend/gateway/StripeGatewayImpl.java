@@ -100,6 +100,23 @@ public class StripeGatewayImpl implements StripeGateway {
 
         LOG.debug("Stripe amount to charge is: {}{}", amount, currencyCode);
 
+        //Update customer default source to new type.
+        Map<String, Object> customerParams = new HashMap<>();
+        customerParams.put("source", stripeToken);
+
+        Customer customer;
+        try {
+            customer = Customer.retrieve(stripeCustomerId);
+            customer.update(customerParams);
+        } catch (CardException e) {
+
+            LOG.info("Failed to save payment method to customer. Decline Code: {} - Error Message: {}", e.getDeclineCode(), e.getMessage());
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+        } catch (Exception e) {
+            LOG.error("ERROR: Setting default payment method! Error message: {} | userID: {}", e.getMessage(), stripeCustomerId);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Failed to update default payment method. Please contact support.");
+        }
+
         Map<String, Object> chargeParams = new HashMap<>();
         Map<String, Object> metadata = new HashMap<>();
         metadata.put("order_id", orderId.toString());
