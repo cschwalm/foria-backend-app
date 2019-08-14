@@ -39,4 +39,13 @@ public interface StripeGateway {
      * @return A created Stripe customer.
      */
     Customer createStripeCustomer(User user, String paymentToken);
+
+    /**
+     * Update customer default source to new type.
+     * Tokens may only be used once. Use it here and then charge the customer directly.
+     *
+     * @param stripeCustomerId Customer to update.
+     * @param stripePaymentToken Token to use for payment device.
+     */
+    void updateCustomerPaymentMethod(String stripeCustomerId, String stripePaymentToken);
 }

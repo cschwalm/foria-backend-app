@@ -98,8 +98,6 @@ public class StripeGatewayImpl implements StripeGateway {
             amount = amount.movePointRight(amount.scale()).stripTrailingZeros();
         }
 
-        updateCustomerPaymentMethod(stripeCustomerId, stripeToken);
-
         LOG.debug("Stripe amount to charge is: {}{}", amount, currencyCode);
 
         Map<String, Object> chargeParams = new HashMap<>();
@@ -129,14 +127,13 @@ public class StripeGatewayImpl implements StripeGateway {
         return charge;
     }
 
-    /**
-     * Update customer default source to new type.
-     * Tokens may only be used once. Use it here and then charge the customer directly.
-     *
-     * @param stripeCustomerId Customer to update.
-     * @param stripePaymentToken Token to use for payment device.
-     */
-    private void updateCustomerPaymentMethod(String stripeCustomerId, String stripePaymentToken) {
+    @Override
+    public void updateCustomerPaymentMethod(String stripeCustomerId, String stripePaymentToken) {
+
+        if (StringUtils.isEmpty(stripeCustomerId) || StringUtils.isEmpty(stripePaymentToken)) {
+            LOG.error("Attempted to update Stripe user with null data!");
+            throw new RuntimeException("Attempted to update Stripe user with null data!");
+        }
 
         Map<String, Object> customerParams = new HashMap<>();
         customerParams.put("source", stripePaymentToken);

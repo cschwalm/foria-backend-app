@@ -224,8 +224,12 @@ public class TicketServiceImpl implements TicketService {
             stripeCustomerId = stripeGateway.createStripeCustomer(user, paymentToken).getId();
             authenticatedUser.setStripeId(stripeCustomerId);
             authenticatedUser = userRepository.save(authenticatedUser);
+
         } else {
+
+            //Replace Stripe customer default payment method with new one.
             stripeCustomerId = authenticatedUser.getStripeId();
+            stripeGateway.updateCustomerPaymentMethod(stripeCustomerId, paymentToken);
         }
 
         Charge chargeResult = stripeGateway.chargeCustomer(stripeCustomerId, paymentToken, orderEntity.getId(), priceCalculationInfo.grandTotal, priceCalculationInfo.currencyCode);
@@ -385,9 +389,11 @@ public class TicketServiceImpl implements TicketService {
 
         //Load ticket price configs.
         //Summate over tickets to calculate sub-total.
+        int numTickets = 0;
         for (TicketLineItem ticketLineItem : orderConfig) {
             UUID ticketTypeConfigId = ticketLineItem.getTicketTypeId();
             int orderAmount = ticketLineItem.getAmount();
+            numTickets += orderAmount;
             Optional<TicketTypeConfigEntity> ticketTypeConfigEntityOptional = ticketTypeConfigRepository.findById(ticketTypeConfigId);
 
             if (ticketTypeConfigEntityOptional.isPresent()) {
@@ -400,7 +406,7 @@ public class TicketServiceImpl implements TicketService {
             }
         }
 
-        PriceCalculationInfo priceCalculationInfo = calculateFees(ticketSubtotal, feeSet);
+        PriceCalculationInfo priceCalculationInfo = calculateFees(numTickets, ticketSubtotal, feeSet);
         priceCalculationInfo.currencyCode = currencyCode;
         return priceCalculationInfo;
     }
@@ -418,7 +424,7 @@ public class TicketServiceImpl implements TicketService {
         return ticketsRemaining > MAX_TICKETS_PER_ORDER ? MAX_TICKETS_PER_ORDER : ticketsRemaining;
     }
 
-    public PriceCalculationInfo calculateFees(final BigDecimal ticketSubtotal, final Set<TicketFeeConfigEntity> feeSet) {
+    public PriceCalculationInfo calculateFees(final int numTickets, final BigDecimal ticketSubtotal, final Set<TicketFeeConfigEntity> feeSet) {
 
         //Group fees by type.
         Set<TicketFeeConfigEntity> percentFeeSet = new HashSet<>();
@@ -453,11 +459,12 @@ public class TicketServiceImpl implements TicketService {
         ticketFeeAmount = ticketSubtotal.multiply(feePercentToApply);
 
         //Summate flat fees and apply.
-        BigDecimal feeFlatToApply = BigDecimal.ZERO;
+        BigDecimal feeFlatToApplyPerTicket = BigDecimal.ZERO;
         for (TicketFeeConfigEntity feeConfigEntity : flatFeeSet) {
-            feeFlatToApply = feeFlatToApply.add(feeConfigEntity.getAmount());
+            feeFlatToApplyPerTicket = feeFlatToApplyPerTicket.add(feeConfigEntity.getAmount());
         }
-        ticketFeeAmount = ticketFeeAmount.add(feeFlatToApply).setScale(2, BigDecimal.ROUND_HALF_UP);
+        BigDecimal flatFeeAmount = feeFlatToApplyPerTicket.multiply(BigDecimal.valueOf(numTickets));
+        ticketFeeAmount = ticketFeeAmount.add(flatFeeAmount).setScale(2, BigDecimal.ROUND_HALF_UP);
 
         //Apply payment vendor fee.
         //charge_amount = (subtotal + 0.30) / (1 - 2.90 / 100)

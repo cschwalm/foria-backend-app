@@ -29,11 +29,12 @@ public interface TicketService {
      * Accepts subtotal, list of both flat and percent fees, and then calculates the subtotal with fees applied.
      * Payment processor fee is applied last to pass the entire amount on to the customer.
      *
+     * @param numTickets Number of tickets. Used for FLAT fee calculation.
      * @param ticketSubtotal Subtotal to apply fees on.
      * @param feeSet List of percent fees to calculate on.
      * @return Object containing break down of fees.
      */
-    TicketServiceImpl.PriceCalculationInfo calculateFees(final BigDecimal ticketSubtotal, final Set<TicketFeeConfigEntity> feeSet);
+    TicketServiceImpl.PriceCalculationInfo calculateFees(final int numTickets, final BigDecimal ticketSubtotal, final Set<TicketFeeConfigEntity> feeSet);
 
     /**
      * Calculates the order total to display to the user.

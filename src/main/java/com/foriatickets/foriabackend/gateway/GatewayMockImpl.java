@@ -37,4 +37,9 @@ public class GatewayMockImpl implements GatewayMock {
         LOG.info("Stripe mock in use. Customer not created.");
         return customer;
     }
+
+    @Override
+    public void updateCustomerPaymentMethod(String stripeCustomerId, String stripePaymentToken) {
+        LOG.info("Stripe mock in use. Customer not updated.");
+    }
 }
