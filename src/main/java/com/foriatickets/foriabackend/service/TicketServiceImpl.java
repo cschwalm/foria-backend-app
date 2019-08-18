@@ -267,9 +267,20 @@ public class TicketServiceImpl implements TicketService {
     @Override
     public List<Ticket> getUsersTickets() {
 
+        final Set<TicketEntity.Status> statusSet = new HashSet<>(Arrays.asList(
+                        TicketEntity.Status.REDEEMED,
+                        TicketEntity.Status.CANCELED,
+                        TicketEntity.Status.CANCELED_FRAUD)
+        );
+
         Set<TicketEntity> userTickets = authenticatedUser.getTickets();
         List<Ticket> ticketList = new ArrayList<>();
         for (TicketEntity ticketEntity : userTickets) {
+
+            if (statusSet.contains(ticketEntity.getStatus())) {
+                continue;
+            }
+
             Ticket ticket = modelMapper.map(ticketEntity, Ticket.class);
             ticket.setStatus(Ticket.StatusEnum.fromValue(ticketEntity.getStatus().name()));
             ticket.setOwnerId(ticketEntity.getOwnerEntity().getId());
