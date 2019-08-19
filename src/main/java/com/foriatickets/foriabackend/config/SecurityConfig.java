@@ -61,7 +61,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                     .antMatchers(HttpMethod.OPTIONS, "/v1/event/**").permitAll()
                     .antMatchers(HttpMethod.POST, "/v1/event").hasAuthority("write:event")
                     .antMatchers(HttpMethod.POST, "/v1/venue").hasAuthority("write:venue")
-                    .antMatchers(HttpMethod.POST, "/v1/ticket/*/redeem").hasAuthority("write:venue_redeem")
+                    .antMatchers(HttpMethod.POST, "/v1/ticket/**/redeem").hasAuthority("write:venue_redeem")
                     .anyRequest().fullyAuthenticated()
                     .and()
                 .csrf()
