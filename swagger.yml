@@ -257,7 +257,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BaseApiModel'
-  /ticket/{ticket_id}/redeem:
+  /ticket/redeem:
     post:
       tags:
         - ticket
@@ -266,14 +266,6 @@ paths:
       security:
         - OAuth2:
             - write:redeem
-      parameters:
-        - name: ticket_id
-          in: path
-          description: The ticket ID stored in the Foria database.
-          required: true
-          schema:
-            type: string
-            format: uuid
       requestBody:
         description: Checkout request object.
         content:
