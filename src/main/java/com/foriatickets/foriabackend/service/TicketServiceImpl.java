@@ -364,13 +364,21 @@ public class TicketServiceImpl implements TicketService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "OTP must be a valid integer.");
         }
 
-        TicketEntity ticketEntity = verifyTicketValidity(ticketId, TicketEntity.Status.ACTIVE);
-        final String ticketSecret = ticketEntity.getSecret();
-
-        boolean isValid = gAuth.authorize(ticketSecret, otpCodeInteger);
         RedemptionResult redemptionResult = new RedemptionResult();
-        redemptionResult.setStatus(isValid ? RedemptionResult.StatusEnum.ALLOW : RedemptionResult.StatusEnum.DENY);
         redemptionResult.setTicket(getTicket(ticketId));
+
+        TicketEntity ticketEntity;
+        try {
+            ticketEntity = verifyTicketValidity(ticketId, TicketEntity.Status.ACTIVE);
+        } catch (Exception ex) {
+            redemptionResult.setStatus(RedemptionResult.StatusEnum.DENY);
+            LOG.warn("Failed to redeem ticket ID: {} for userID: {}", ticketId, authenticatedUser.getId());
+            return redemptionResult;
+        }
+
+        final String ticketSecret = ticketEntity.getSecret();
+        boolean isValid = gAuth.authorize(ticketSecret, otpCodeInteger);
+        redemptionResult.setStatus(isValid ? RedemptionResult.StatusEnum.ALLOW : RedemptionResult.StatusEnum.DENY);
 
         if (isValid) {
 
@@ -528,7 +536,7 @@ public class TicketServiceImpl implements TicketService {
 
         TicketEntity ticketEntity = ticketEntityOptional.get();
 
-        if (ticketEntity.getStatus() != expectedStatus) {
+        if (expectedStatus != null && ticketEntity.getStatus() != expectedStatus) {
             LOG.warn("User ID: {} attempted to activate/reactivate ticket not having {} status. Ticket ID: {}", authenticatedUser.getId(), expectedStatus, ticketEntity.getId());
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Ticket is not in " + expectedStatus + " status.");
         }
