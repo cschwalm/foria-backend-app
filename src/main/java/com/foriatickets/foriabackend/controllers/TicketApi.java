@@ -81,7 +81,7 @@ public class TicketApi implements org.openapitools.api.TicketApi {
 
         TicketService ticketService = beanFactory.getBean(TicketService.class);
         RedemptionResult redemptionResult = ticketService.redeemTicket(redemptionRequest.getTicketId(), redemptionRequest.getTicketOtp());
-        return new ResponseEntity<>(redemptionResult, redemptionResult.getStatus() == RedemptionResult.StatusEnum.ALLOW ? HttpStatus.OK : HttpStatus.BAD_REQUEST);
+        return new ResponseEntity<>(redemptionResult, HttpStatus.OK);
     }
 
     @Override
