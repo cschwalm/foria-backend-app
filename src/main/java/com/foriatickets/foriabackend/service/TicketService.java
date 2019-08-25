@@ -66,9 +66,10 @@ public interface TicketService {
     /**
      * Obtains information about the specified ticket.
      * @param ticketId id
+     * @param doOwnerCheck Checks if user owns ticket.
      * @return Ticket info minus secret.
      */
-    Ticket getTicket(UUID ticketId);
+    Ticket getTicket(UUID ticketId, boolean doOwnerCheck);
 
     /**
      * Returns the tickets the currently logged in user owns.

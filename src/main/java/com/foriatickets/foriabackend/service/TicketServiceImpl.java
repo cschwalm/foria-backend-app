@@ -107,7 +107,7 @@ public class TicketServiceImpl implements TicketService {
 
         ActivationResult activationResult = new ActivationResult();
         activationResult.setTicketSecret(ticketEntity.getSecret());
-        activationResult.setTicket(getTicket(ticketId));
+        activationResult.setTicket(getTicket(ticketId, true));
 
         LOG.info("Ticket ID: {} activated by user ID: {}", ticketEntity.getId(), authenticatedUser.getId());
         return activationResult;
@@ -241,7 +241,7 @@ public class TicketServiceImpl implements TicketService {
     }
 
     @Override
-    public Ticket getTicket(UUID ticketId) {
+    public Ticket getTicket(UUID ticketId, boolean doOwnerCheck) {
 
         Optional<TicketEntity> ticketEntityOptional = ticketRepository.findById(ticketId);
         if (!ticketEntityOptional.isPresent()) {
@@ -249,7 +249,7 @@ public class TicketServiceImpl implements TicketService {
         }
         TicketEntity ticketEntity = ticketEntityOptional.get();
         boolean doesUserOwn = ticketEntity.getOwnerEntity().getId().equals(authenticatedUser.getId());
-        if (!doesUserOwn) {
+        if (doOwnerCheck && !doesUserOwn) {
             LOG.warn("User Id: {} attempted to access non-owned ticket Id: {}", authenticatedUser.getId(), ticketEntity.getId());
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Ticket not owned by user.");
         }
@@ -348,7 +348,7 @@ public class TicketServiceImpl implements TicketService {
 
         ActivationResult activationResult = new ActivationResult();
         activationResult.setTicketSecret(ticketEntity.getSecret());
-        activationResult.setTicket(getTicket(ticketId));
+        activationResult.setTicket(getTicket(ticketId, true));
 
         LOG.info("Ticket ID: {} reactivated by user ID: {}", ticketEntity.getId(), authenticatedUser.getId());
         return activationResult;
@@ -365,7 +365,7 @@ public class TicketServiceImpl implements TicketService {
         }
 
         RedemptionResult redemptionResult = new RedemptionResult();
-        redemptionResult.setTicket(getTicket(ticketId));
+        redemptionResult.setTicket(getTicket(ticketId, false));
 
         TicketEntity ticketEntity;
         try {
