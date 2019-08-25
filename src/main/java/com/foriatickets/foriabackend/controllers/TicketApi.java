@@ -62,7 +62,7 @@ public class TicketApi implements org.openapitools.api.TicketApi {
     public ResponseEntity<Ticket> getTicket(@PathVariable("ticket_id") UUID ticketId) {
 
         TicketService ticketService = beanFactory.getBean(TicketService.class);
-        Ticket ticket = ticketService.getTicket(ticketId);
+        Ticket ticket = ticketService.getTicket(ticketId, true);
         return new ResponseEntity<>(ticket, HttpStatus.OK);
     }
 
