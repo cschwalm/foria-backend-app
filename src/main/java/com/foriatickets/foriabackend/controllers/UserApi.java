@@ -2,6 +2,8 @@ package com.foriatickets.foriabackend.controllers;
 
 import com.foriatickets.foriabackend.service.TicketService;
 import com.foriatickets.foriabackend.service.UserCreationService;
+import org.openapitools.model.BaseApiModel;
+import org.openapitools.model.DeviceToken;
 import org.openapitools.model.Ticket;
 import org.openapitools.model.User;
 import org.springframework.beans.factory.BeanFactory;
@@ -12,6 +14,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
+import javax.validation.Valid;
 import java.util.List;
 
 @Controller
@@ -41,5 +44,13 @@ public class UserApi implements org.openapitools.api.UserApi {
         User user = userCreationService.getUser();
 
         return new ResponseEntity<>(user, HttpStatus.OK);
+    }
+
+    @Override
+    public ResponseEntity<BaseApiModel> registerToken(@Valid DeviceToken deviceToken) {
+
+        UserCreationService userCreationService = beanFactory.getBean(UserCreationService.class);
+        userCreationService.registerDeviceToken(deviceToken.getToken());
+        return new ResponseEntity<>(new BaseApiModel(), HttpStatus.OK);
     }
 }

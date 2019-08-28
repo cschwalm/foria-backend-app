@@ -2,6 +2,7 @@ package com.foriatickets.foriabackend.service;
 
 import com.foriatickets.foriabackend.config.BeanConfig;
 import com.foriatickets.foriabackend.entities.UserEntity;
+import com.foriatickets.foriabackend.repositories.DeviceTokenRepository;
 import com.foriatickets.foriabackend.repositories.UserRepository;
 import org.junit.Assert;
 import org.junit.Before;
@@ -24,6 +25,9 @@ import static org.mockito.Mockito.*;
 public class UserCreationServiceImplTest {
 
     @Mock
+    private DeviceTokenRepository deviceTokenRepository;
+
+    @Mock
     private UserRepository userRepository;
 
     private UserCreationService userCreationService;
@@ -41,7 +45,7 @@ public class UserCreationServiceImplTest {
         when(authentication.getPrincipal()).thenReturn("test");
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        userCreationService = new UserCreationServiceImpl(modelMapper, userRepository);
+        userCreationService = new UserCreationServiceImpl(deviceTokenRepository, modelMapper, userRepository);
     }
 
     @Test

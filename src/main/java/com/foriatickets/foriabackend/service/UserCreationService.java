@@ -23,4 +23,10 @@ public interface UserCreationService {
      * @return user
      */
     User getUser();
+
+    /**
+     * Registers the token obtained for FCM. Allows for targeted device messaging.
+     * @param deviceToken Obtained from FCM.
+     */
+    void registerDeviceToken(String deviceToken);
 }

@@ -20,6 +20,7 @@ public class UserEntity implements Serializable {
     private String firstName;
     private String lastName;
     private String email;
+    private Set<DeviceTokenEntity> deviceTokens = new HashSet<>();
     private Set<TicketEntity> tickets = new HashSet<>();
     private Set<TicketEntity> purchasedTickets = new HashSet<>();
 
@@ -83,6 +84,16 @@ public class UserEntity implements Serializable {
 
     public UserEntity setEmail(String email) {
         this.email = email;
+        return this;
+    }
+
+    @OneToMany(mappedBy = "userEntity", fetch = FetchType.LAZY)
+    public Set<DeviceTokenEntity> getDeviceTokens() {
+        return deviceTokens;
+    }
+
+    public UserEntity setDeviceTokens(Set<DeviceTokenEntity> deviceTokens) {
+        this.deviceTokens = deviceTokens;
         return this;
     }
 
