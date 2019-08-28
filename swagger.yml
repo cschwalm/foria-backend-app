@@ -398,6 +398,26 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BaseApiModel'
+  /user/registerToken:
+    post:
+      tags:
+        - user
+      summary: Enrolls the created/refreshed device token.
+      operationId: registerToken
+      requestBody:
+        description: Token obtained from FCM.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceToken'
+        required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseApiModel'
   /venue:
     post:
       tags:
@@ -478,6 +498,11 @@ components:
           minLength: 3
           type: string
           example: USA
+    DeviceToken:
+      type: object
+      properties:
+        token:
+          type: string
     EventAddress:
       type: object
       readOnly: true
