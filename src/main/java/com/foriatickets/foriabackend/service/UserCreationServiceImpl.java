@@ -89,6 +89,10 @@ public class UserCreationServiceImpl implements UserCreationService {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "User must be created in Foria system.");
         }
 
+        if (deviceTokenRepository.findByDeviceToken(deviceToken) != null) {
+            return;
+        }
+
         DeviceTokenEntity entity = new DeviceTokenEntity();
         entity.setDeviceToken(deviceToken)
                 .setCreatedDate(OffsetDateTime.now())

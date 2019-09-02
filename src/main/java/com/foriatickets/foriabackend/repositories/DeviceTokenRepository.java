@@ -6,4 +6,6 @@ import org.springframework.data.repository.CrudRepository;
 import java.util.UUID;
 
 public interface DeviceTokenRepository extends CrudRepository<DeviceTokenEntity, UUID> {
+
+    DeviceTokenEntity findByDeviceToken(String deviceToken);
 }
