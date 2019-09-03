@@ -40,6 +40,10 @@ db.password: sa
 # Stripe
 stripeApiKey: corp_foria_stripe_secret_key
 
+# Auth0
+auth0.issuer: https://foriatickets-test.auth0.com/
+auth0.apiAudience: api.foriatickets.com
+
 ---
 spring:
     profiles: staging
@@ -52,6 +56,10 @@ apiKeyList: corp_foria_auth0_api_key
 # Stripe
 stripeApiKey: corp_foria_stripe_secret_key
 
+# Auth0
+auth0.issuer: https://foriatickets-test.auth0.com/
+auth0.apiAudience: api.foriatickets.com
+
 ---
 spring:
   profiles: production
@@ -63,3 +71,7 @@ apiKeyList: prod_foria_auth0_api_key
 
 # Stripe LIVE Key
 stripeApiKey: prod_foria_stripe_secret_key
+
+# Auth0
+auth0.issuer: https://auth.foriatickets.com/
+auth0.apiAudience: api.foriatickets.com
