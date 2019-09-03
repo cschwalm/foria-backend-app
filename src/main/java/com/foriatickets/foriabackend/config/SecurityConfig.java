@@ -4,7 +4,6 @@ import com.auth0.spring.security.api.JwtWebSecurityConfigurer;
 import com.foriatickets.foriabackend.security.ApiKeyFilter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.PropertySource;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -32,7 +31,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     @Value(value = "${auth0.issuer}")
     private String issuer;
 
-    private static final String[] ALLOWED_CORS_ORIGINS = { "http://localhost", "https://events.foriatickets.com", "https://foria.ngrok.io" };
+    private static final String[] ALLOWED_CORS_ORIGINS = { "http://localhost", "https://events.foriatickets.com", "https://foria.ngrok.io", "https://events-test.foriatickets.com" };
 
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
