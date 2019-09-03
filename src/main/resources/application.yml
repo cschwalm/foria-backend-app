@@ -51,3 +51,15 @@ apiKeyList: corp_foria_auth0_api_key
 
 # Stripe
 stripeApiKey: corp_foria_stripe_secret_key
+
+---
+spring:
+  profiles: production
+
+# Prod Database Connection Info
+db.name: foria
+db.secret: prod_db_foria
+apiKeyList: prod_foria_auth0_api_key
+
+# Stripe LIVE Key
+stripeApiKey: prod_foria_stripe_secret_key
