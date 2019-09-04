@@ -85,11 +85,11 @@ public class UserCreationServiceImpl implements UserCreationService {
         UserEntity authenticatedUser = userRepository.findByAuth0Id(auth0Id);
         if (authenticatedUser == null) {
 
-            LOG.error("Attempted to complete checkout with non-mapped auth0Id: {}", auth0Id);
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "User must be created in Foria system.");
+            LOG.error("Attempted to register token with non-mapped auth0Id: {}", auth0Id);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User must be created in Foria system.");
         }
 
-        if (deviceTokenRepository.findByDeviceToken(deviceToken) != null) {
+        if (deviceTokenRepository.existsByDeviceToken(deviceToken)) {
             return;
         }
 
