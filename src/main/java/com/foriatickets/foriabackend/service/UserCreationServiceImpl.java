@@ -8,6 +8,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.modelmapper.ModelMapper;
 import org.openapitools.model.User;
+import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -23,14 +24,16 @@ public class UserCreationServiceImpl implements UserCreationService {
 
     private static final Logger LOG = LogManager.getLogger();
 
+    private final BeanFactory beanFactory;
     private final DeviceTokenRepository deviceTokenRepository;
     private final ModelMapper modelMapper;
     private final UserRepository userRepository;
 
     @Autowired
-    public UserCreationServiceImpl(DeviceTokenRepository deviceTokenRepository, ModelMapper modelMapper, UserRepository userRepository) {
+    public UserCreationServiceImpl(BeanFactory beanFactory, DeviceTokenRepository deviceTokenRepository, ModelMapper modelMapper, UserRepository userRepository) {
 
         assert userRepository != null;
+        this.beanFactory = beanFactory;
         this.deviceTokenRepository = deviceTokenRepository;
         this.modelMapper = modelMapper;
         this.userRepository = userRepository;
@@ -56,6 +59,10 @@ public class UserCreationServiceImpl implements UserCreationService {
 
         userEntity = userRepository.save(userEntity);
         newUser.setId(userEntity.getId());
+
+        //Transfer any pending tickets.
+        TicketService ticketService = beanFactory.getBean(TicketService.class);
+        ticketService.checkAndConfirmPendingTicketTransfers(userEntity);
 
         LOG.info("Created new user with ID: {}", newUser.getId());
         return newUser;

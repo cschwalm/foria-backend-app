@@ -48,6 +48,7 @@ public class ApiKeyFilter extends OncePerRequestFilter {
             scopes.add("write:user_create");
             scopes.add("write:venue");
             scopes.add("write:event");
+            scopes.add("write:register");
 
             LOG.debug("API key list not provided. Using test:test for API key.");
             AWSSecretsManagerGateway.ApiKey localKey = new AWSSecretsManagerGateway.ApiKey();

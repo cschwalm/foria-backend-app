@@ -48,6 +48,9 @@ public class TicketServiceImplTest {
     private TicketRepository ticketRepository;
 
     @Mock
+    private TransferRequestRepository transferRequestRepository;
+
+    @Mock
     private OrderRepository orderRepository;
 
     @Mock
@@ -80,7 +83,7 @@ public class TicketServiceImplTest {
         SecurityContextHolder.getContext().setAuthentication(authentication);
         when(userRepository.findByAuth0Id(eq("test"))).thenReturn(authenticatedUser);
 
-        ticketService = new TicketServiceImpl(modelMapper, eventRepository, orderRepository, userRepository, ticketTypeConfigRepository, ticketRepository, stripeGateway, orderFeeEntryRepository, orderTicketEntryRepository);
+        ticketService = new TicketServiceImpl(modelMapper, eventRepository, orderRepository, userRepository, ticketTypeConfigRepository, ticketRepository, stripeGateway, orderFeeEntryRepository, orderTicketEntryRepository, transferRequestRepository);
     }
 
     @Test

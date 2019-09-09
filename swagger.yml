@@ -319,7 +319,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BaseApiModel'
+                $ref: '#/components/schemas/Ticket'
         400:
           description: Not able to transfer ticket. Invalid status.
           content:
@@ -811,13 +811,9 @@ components:
           type: string
           format: uuid
           readOnly: true
-        receiver_name:
-          type: string
         receiver_email:
           type: string
           format: email
-        receiver_phone:
-          type: string
   securitySchemes:
     auth:
       type: oauth2

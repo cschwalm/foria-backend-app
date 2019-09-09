@@ -12,6 +12,7 @@ import org.mockito.Mock;
 import org.modelmapper.ModelMapper;
 import org.modelmapper.PropertyMap;
 import org.openapitools.model.User;
+import org.springframework.beans.factory.BeanFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -25,7 +26,13 @@ import static org.mockito.Mockito.*;
 public class UserCreationServiceImplTest {
 
     @Mock
+    private BeanFactory beanFactory;
+
+    @Mock
     private DeviceTokenRepository deviceTokenRepository;
+
+    @Mock
+    private TicketService ticketService;
 
     @Mock
     private UserRepository userRepository;
@@ -45,7 +52,10 @@ public class UserCreationServiceImplTest {
         when(authentication.getPrincipal()).thenReturn("test");
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        userCreationService = new UserCreationServiceImpl(deviceTokenRepository, modelMapper, userRepository);
+        doNothing().when(ticketService).checkAndConfirmPendingTicketTransfers(any());
+        when(beanFactory.getBean(TicketService.class)).thenReturn(ticketService);
+
+        userCreationService = new UserCreationServiceImpl(beanFactory, deviceTokenRepository, modelMapper, userRepository);
     }
 
     @Test

@@ -63,6 +63,8 @@ public class TicketServiceImpl implements TicketService {
 
     private final TicketRepository ticketRepository;
 
+    private final TransferRequestRepository transferRequestRepository;
+
     private static final Logger LOG = LogManager.getLogger();
 
     private final StripeGateway stripeGateway;
@@ -70,7 +72,7 @@ public class TicketServiceImpl implements TicketService {
     private UserEntity authenticatedUser;
 
     @Autowired
-    public TicketServiceImpl(ModelMapper modelMapper, EventRepository eventRepository, OrderRepository orderRepository, UserRepository userRepository, TicketTypeConfigRepository ticketTypeConfigRepository, TicketRepository ticketRepository, StripeGateway stripeGateway, OrderFeeEntryRepository orderFeeEntryRepository, OrderTicketEntryRepository orderTicketEntryRepository) {
+    public TicketServiceImpl(ModelMapper modelMapper, EventRepository eventRepository, OrderRepository orderRepository, UserRepository userRepository, TicketTypeConfigRepository ticketTypeConfigRepository, TicketRepository ticketRepository, StripeGateway stripeGateway, OrderFeeEntryRepository orderFeeEntryRepository, OrderTicketEntryRepository orderTicketEntryRepository, TransferRequestRepository transferRequestRepository) {
         this.modelMapper = modelMapper;
         this.eventRepository = eventRepository;
         this.orderRepository = orderRepository;
@@ -80,6 +82,7 @@ public class TicketServiceImpl implements TicketService {
         this.stripeGateway = stripeGateway;
         this.orderFeeEntryRepository = orderFeeEntryRepository;
         this.orderTicketEntryRepository = orderTicketEntryRepository;
+        this.transferRequestRepository = transferRequestRepository;
 
         //Load user from Auth0 token.
         String auth0Id = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
@@ -538,9 +541,116 @@ public class TicketServiceImpl implements TicketService {
 
         if (expectedStatus != null && ticketEntity.getStatus() != expectedStatus) {
             LOG.warn("User ID: {} attempted to activate/reactivate ticket not having {} status. Ticket ID: {}", authenticatedUser.getId(), expectedStatus, ticketEntity.getId());
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Ticket is not in " + expectedStatus + " status.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ticket is not in " + expectedStatus + " status.");
         }
 
         return ticketEntity;
+    }
+
+    @Override
+    public void cancelTransferTicket(UUID ticketId) {
+
+        TicketEntity ticketEntity = verifyTicketValidity(ticketId, TicketEntity.Status.TRANSFER_PENDING);
+        if (!ticketEntity.getOwnerEntity().equals(authenticatedUser)) {
+            LOG.warn("User ID: {} attempted to transfer ticket ID: {} they dont own.", authenticatedUser.getId(), ticketId);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unauthorized");
+        }
+
+        TransferRequestEntity transferRequestEntity = transferRequestRepository.findFirstByTicketAndStatus(ticketEntity, TransferRequestEntity.Status.PENDING);
+        if (transferRequestEntity == null) {
+            LOG.warn("User ID: {} attempted to cancel non-pending transfer. Ticket ID: {}", authenticatedUser.getId(), ticketId);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Attempted to cancel non-pending transfer");
+        }
+
+        ticketEntity.setStatus(TicketEntity.Status.ACTIVE);
+        ticketRepository.save(ticketEntity);
+
+        transferRequestEntity.setCompletedDate(OffsetDateTime.now());
+        transferRequestEntity.setStatus(TransferRequestEntity.Status.CANCELED);
+        transferRequestEntity = transferRequestRepository.save(transferRequestEntity);
+
+        LOG.info("User ID: {} canceled transfer request ID: {}", authenticatedUser.getId(), transferRequestEntity.getId());
+    }
+
+    @Override
+    public Ticket transferTicket(UUID ticketId, TransferRequest transferRequest) {
+
+        TicketEntity ticketEntity = verifyTicketValidity(ticketId, TicketEntity.Status.ACTIVE);
+        if (!ticketEntity.getOwnerEntity().equals(authenticatedUser)) {
+            LOG.warn("User ID: {} attempted to transfer ticket ID: {} they dont own.", authenticatedUser.getId(), ticketId);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unauthorized");
+        }
+
+        final String receiverEmail = transferRequest.getReceiverEmail();
+
+        //Attempt to locate user with requested email in transfer request.
+        TransferRequestEntity transferRequestEntity = new TransferRequestEntity();
+        transferRequestEntity.setTicket(ticketEntity);
+        transferRequestEntity.setCreatedDate(OffsetDateTime.now());
+        transferRequestEntity.setReceiverEmail(receiverEmail);
+        transferRequestEntity.setTransferor(authenticatedUser);
+
+        UserEntity receiver = userRepository.findFirstByEmail(receiverEmail);
+        if (receiver != null) { //Complete transfer ASAP.
+
+            transferRequestEntity.setReceiver(receiver);
+            transferRequestEntity.setCompletedDate(OffsetDateTime.now());
+            transferRequestEntity.setStatus(TransferRequestEntity.Status.COMPLETED);
+
+            changeTicketOwner(ticketEntity, receiver);
+
+        } else {
+            transferRequestEntity.setStatus(TransferRequestEntity.Status.PENDING);
+            ticketEntity.setStatus(TicketEntity.Status.TRANSFER_PENDING);
+            ticketRepository.save(ticketEntity);
+        }
+
+        transferRequestRepository.save(transferRequestEntity);
+        return getTicket(ticketId, false);
+    }
+
+    /**
+     * Changes the owner of the ticket Id to a new user.
+     * This method ensures that the ticket secret is rotated and that the status is set back to ISSUED.
+     *
+     * @param ticketEntity Ticket to transfer.
+     * @param newOwner New owner.
+     */
+    private void changeTicketOwner(TicketEntity ticketEntity, UserEntity newOwner) {
+
+        ticketEntity.setOwnerEntity(newOwner);
+        ticketEntity.setStatus(TicketEntity.Status.ISSUED);
+        ticketEntity.setSecret(gAuth.createCredentials().getKey());
+
+        LOG.info("Ticket ID: {} transferred to new owner Id: {}", ticketEntity.getId(), newOwner.getId());
+        ticketRepository.save(ticketEntity);
+    }
+
+    @Override
+    public void checkAndConfirmPendingTicketTransfers(UserEntity newUser) {
+
+        if (newUser == null || newUser.getEmail() == null) {
+            return;
+        }
+
+        final String receiverEmail = newUser.getEmail();
+        List<TransferRequestEntity> pendingTickets = transferRequestRepository.findAllByReceiverEmail(receiverEmail);
+
+        if (pendingTickets == null || pendingTickets.isEmpty()) {
+            LOG.info("No pending tickets to confirm for userId: {}", newUser.getId());
+            return;
+        }
+
+        for (TransferRequestEntity ticketRequest : pendingTickets) {
+
+            ticketRequest.setReceiver(newUser);
+            ticketRequest.setCompletedDate(OffsetDateTime.now());
+            ticketRequest.setStatus(TransferRequestEntity.Status.COMPLETED);
+
+            changeTicketOwner(ticketRequest.getTicket(), newUser);
+        }
+
+        transferRequestRepository.saveAll(pendingTickets);
+        LOG.info("{} tickets confirmed and transferred for userId: {}", pendingTickets.size(), newUser.getId());
     }
 }

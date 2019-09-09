@@ -2,6 +2,7 @@ package com.foriatickets.foriabackend.service;
 
 import com.foriatickets.foriabackend.entities.TicketEntity;
 import com.foriatickets.foriabackend.entities.TicketFeeConfigEntity;
+import com.foriatickets.foriabackend.entities.UserEntity;
 import org.openapitools.model.*;
 
 import java.math.BigDecimal;
@@ -46,6 +47,13 @@ public interface TicketService {
     OrderTotal calculateOrderTotal(UUID eventId, List<TicketLineItem> orderConfig);
 
     /**
+     * Cancels a pending ticket transfer.
+     *
+     * @param ticketId Ticket UUID to cancel transfer.
+     */
+    void cancelTransferTicket(UUID ticketId);
+
+    /**
      * Accepts checkout data from client and completes transaction.
      * Transaction may fail if the token supplied contained invalid card data.
      *
@@ -54,6 +62,14 @@ public interface TicketService {
      * @return Returns the UUID of the created order.
      */
     UUID checkoutOrder(String paymentToken, UUID eventId, List<TicketLineItem> orderConfig);
+
+    /**
+     * Checks the recently created user to see if it has and pending tickets for it to receive.
+     * This will allow new users to receive their tickets after their accounts have been created.
+     *
+     * @param newUser New user.
+     */
+    void checkAndConfirmPendingTicketTransfers(UserEntity newUser);
 
     /**
      * Returns the amount of tickets for type bucket capped at the ticket order max.
@@ -106,6 +122,17 @@ public interface TicketService {
      * @return API result.
      */
     RedemptionResult redeemTicket(UUID ticketId, String otpCode);
+
+    /**
+     * Allows one user to transfer tickets to email addresses.
+     * If the email address is already registered, the transfer completes immediately.
+     * Else it will be pending.
+     *
+     * @param ticketId Ticket UUID to transfer.
+     * @param transferRequest Model from mobile app.
+     * @return The ticket with new status.
+     */
+    Ticket transferTicket(UUID ticketId, TransferRequest transferRequest);
 
 
 }
