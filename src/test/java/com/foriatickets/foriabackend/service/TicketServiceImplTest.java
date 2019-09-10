@@ -27,6 +27,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.math.BigDecimal;
 import java.util.*;
 
+import static com.foriatickets.foriabackend.entities.TicketEntity.Status.ISSUED;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
@@ -93,7 +94,7 @@ public class TicketServiceImplTest {
         TicketEntity ticketEntityMock = mock(TicketEntity.class);
 
         when(ticketEntityMock.getSecret()).thenReturn("SECRET");
-        when(ticketEntityMock.getStatus()).thenReturn(TicketEntity.Status.ISSUED);
+        when(ticketEntityMock.getStatus()).thenReturn(ISSUED);
         when(ticketEntityMock.getOwnerEntity()).thenReturn(authenticatedUser);
         when(ticketEntityMock.getId()).thenReturn(ticketId);
         when(ticketEntityMock.getPurchaserEntity()).thenReturn(authenticatedUser);
@@ -154,7 +155,7 @@ public class TicketServiceImplTest {
         assertEquals(userEntityMock, ticketEntity.getPurchaserEntity());
         assertEquals(userEntityMock, ticketEntity.getOwnerEntity());
         assertNotNull(ticketEntity.getSecret());
-        assertEquals(TicketEntity.Status.ISSUED, ticketEntity.getStatus());
+        assertEquals(ISSUED, ticketEntity.getStatus());
     }
 
     @Test
@@ -416,5 +417,36 @@ public class TicketServiceImplTest {
         assertNotNull(actual.getTicket());
 
         verify(ticketRepository, times(0)).save(ticketEntityMock);
+    }
+
+    @Test
+    public void checkAndConfirmPendingTicketTransfers() {
+
+        TicketEntity ticketEntityMock = mock(TicketEntity.class);
+        when(ticketEntityMock.getId()).thenReturn(UUID.randomUUID());
+        when(ticketRepository.save(ticketEntityMock)).thenReturn(ticketEntityMock);
+
+        UserEntity userEntityMock = mock(UserEntity.class);
+        when(userEntityMock.getId()).thenReturn(UUID.randomUUID());
+        when(userEntityMock.getEmail()).thenReturn("test@test.com");
+
+        TransferRequestEntity transferRequestEntityMock = mock(TransferRequestEntity.class);
+        when(transferRequestEntityMock.getTicket()).thenReturn(ticketEntityMock);
+        List<TransferRequestEntity> list = new ArrayList<>();
+        list.add(transferRequestEntityMock);
+
+        when(transferRequestRepository.findAllByReceiverEmail(anyString())).thenReturn(list);
+        when(transferRequestRepository.saveAll(list)).thenReturn(list);
+
+        ticketService.checkAndConfirmPendingTicketTransfers(userEntityMock);
+
+        verify(transferRequestRepository).saveAll(list);
+        verify(transferRequestEntityMock).setStatus(eq(TransferRequestEntity.Status.COMPLETED));
+        verify(transferRequestEntityMock).setReceiver(eq(userEntityMock));
+        verify(transferRequestEntityMock).setCompletedDate(any());
+
+        verify(ticketEntityMock).setStatus(eq(ISSUED));
+        verify(ticketEntityMock).setSecret(any());
+        verify(ticketEntityMock).setOwnerEntity(userEntityMock);
     }
 }
