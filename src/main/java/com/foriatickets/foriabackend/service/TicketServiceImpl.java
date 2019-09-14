@@ -100,7 +100,7 @@ public class TicketServiceImpl implements TicketService {
 
         if (!ticketEntity.getOwnerEntity().getId().equals(authenticatedUser.getId())) {
             LOG.warn("User ID: {} attempted to activate not owned ticket ID: {}", authenticatedUser.getId(), ticketEntity.getId());
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Ticket owned by another user.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ticket owned by another user.");
         }
 
         ticketEntity.setStatus(TicketEntity.Status.ACTIVE);
@@ -252,7 +252,7 @@ public class TicketServiceImpl implements TicketService {
         boolean doesUserOwn = ticketEntity.getOwnerEntity().getId().equals(authenticatedUser.getId());
         if (doOwnerCheck && !doesUserOwn) {
             LOG.warn("User Id: {} attempted to access non-owned ticket Id: {}", authenticatedUser.getId(), ticketEntity.getId());
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Ticket not owned by user.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ticket not owned by user.");
         }
 
         Ticket ticket = modelMapper.map(ticketEntity, Ticket.class);
@@ -341,7 +341,7 @@ public class TicketServiceImpl implements TicketService {
 
         if (!ticketEntity.getOwnerEntity().getId().equals(authenticatedUser.getId())) {
             LOG.warn("User ID: {} attempted to activate not owned ticket ID: {}", authenticatedUser.getId(), ticketEntity.getId());
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Ticket owned by another user.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ticket owned by another user.");
         }
 
         ticketEntity.setSecret(gAuth.createCredentials().getKey());
@@ -594,17 +594,20 @@ public class TicketServiceImpl implements TicketService {
             transferRequestEntity.setReceiver(receiver);
             transferRequestEntity.setCompletedDate(OffsetDateTime.now());
             transferRequestEntity.setStatus(TransferRequestEntity.Status.COMPLETED);
+            transferRequestRepository.save(transferRequestEntity);
 
             changeTicketOwner(ticketEntity, receiver);
+            return null;
 
         } else {
+
             transferRequestEntity.setStatus(TransferRequestEntity.Status.PENDING);
             ticketEntity.setStatus(TicketEntity.Status.TRANSFER_PENDING);
             ticketRepository.save(ticketEntity);
-        }
 
-        transferRequestRepository.save(transferRequestEntity);
-        return getTicket(ticketId, false);
+            transferRequestRepository.save(transferRequestEntity);
+            return getTicket(ticketId, false);
+        }
     }
 
     /**

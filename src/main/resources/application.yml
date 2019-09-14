@@ -41,7 +41,7 @@ db.password: sa
 stripeApiKey: corp_foria_stripe_secret_key
 
 # Auth0
-auth0.issuer: https://foriatickets-test.auth0.com/
+auth0.issuer: https://auth-test.foriatickets.com/
 auth0.apiAudience: api.foriatickets.com
 
 ---
@@ -57,7 +57,7 @@ apiKeyList: corp_foria_auth0_api_key
 stripeApiKey: corp_foria_stripe_secret_key
 
 # Auth0
-auth0.issuer: https://foriatickets-test.auth0.com/
+auth0.issuer: https://auth-test.foriatickets.com/
 auth0.apiAudience: api.foriatickets.com
 
 ---
