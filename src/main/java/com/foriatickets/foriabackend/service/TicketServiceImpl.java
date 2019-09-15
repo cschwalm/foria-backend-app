@@ -1,6 +1,7 @@
 package com.foriatickets.foriabackend.service;
 
 import com.foriatickets.foriabackend.entities.*;
+import com.foriatickets.foriabackend.gateway.AWSSimpleEmailServiceGateway;
 import com.foriatickets.foriabackend.gateway.FCMGateway;
 import com.foriatickets.foriabackend.gateway.StripeGateway;
 import com.foriatickets.foriabackend.repositories.*;
@@ -72,6 +73,8 @@ public class TicketServiceImpl implements TicketService {
 
     private final TransferRequestRepository transferRequestRepository;
 
+    private final AWSSimpleEmailServiceGateway awsSimpleEmailServiceGateway;
+
     private static final Logger LOG = LogManager.getLogger();
 
     private final StripeGateway stripeGateway;
@@ -79,7 +82,7 @@ public class TicketServiceImpl implements TicketService {
     private UserEntity authenticatedUser;
 
     @Autowired
-    public TicketServiceImpl(ModelMapper modelMapper, EventRepository eventRepository, OrderRepository orderRepository, UserRepository userRepository, TicketTypeConfigRepository ticketTypeConfigRepository, TicketRepository ticketRepository, StripeGateway stripeGateway, OrderFeeEntryRepository orderFeeEntryRepository, OrderTicketEntryRepository orderTicketEntryRepository, TransferRequestRepository transferRequestRepository, FCMGateway fcmGateway) {
+    public TicketServiceImpl(ModelMapper modelMapper, EventRepository eventRepository, OrderRepository orderRepository, UserRepository userRepository, TicketTypeConfigRepository ticketTypeConfigRepository, TicketRepository ticketRepository, StripeGateway stripeGateway, OrderFeeEntryRepository orderFeeEntryRepository, OrderTicketEntryRepository orderTicketEntryRepository, TransferRequestRepository transferRequestRepository, FCMGateway fcmGateway, AWSSimpleEmailServiceGateway awsSimpleEmailServiceGateway) {
         this.modelMapper = modelMapper;
         this.eventRepository = eventRepository;
         this.orderRepository = orderRepository;
@@ -91,6 +94,7 @@ public class TicketServiceImpl implements TicketService {
         this.orderTicketEntryRepository = orderTicketEntryRepository;
         this.transferRequestRepository = transferRequestRepository;
         this.fcmGateway = fcmGateway;
+        this.awsSimpleEmailServiceGateway = awsSimpleEmailServiceGateway;
 
         //Load user from Auth0 token.
         String auth0Id = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
@@ -614,6 +618,14 @@ public class TicketServiceImpl implements TicketService {
             ticketRepository.save(ticketEntity);
 
             transferRequestRepository.save(transferRequestEntity);
+
+            final Map<String, String> templateData = new HashMap<>();
+            templateData.put("nametransfree", receiverEmail);
+            templateData.put("name", authenticatedUser.getFirstName());
+
+            awsSimpleEmailServiceGateway.sendEmailFromTemplate(authenticatedUser.getEmail(),
+                    AWSSimpleEmailServiceGateway.EMAIL_TRANSFER_PENDING_TEMPLATE, templateData);
+
             return getTicket(ticketId, false);
         }
     }
@@ -638,6 +650,14 @@ public class TicketServiceImpl implements TicketService {
 
             fcmGateway.sendPushNotification(token.getDeviceToken(), notification);
         }
+
+        final Map<String, String> templateData = new HashMap<>();
+        templateData.put("nametransferer", newOwner.getFirstName());
+        templateData.put("eventname", ticketEntity.getEventEntity().getName());
+        templateData.put("name", ticketEntity.getOwnerEntity().getFirstName());
+
+        awsSimpleEmailServiceGateway.sendEmailFromTemplate(ticketEntity.getOwnerEntity().getEmail(),
+                AWSSimpleEmailServiceGateway.TRANSFERER_EMAIL_TRANSFER_COMPLETE, templateData);
 
         ticketEntity.setOwnerEntity(newOwner);
         ticketEntity.setStatus(TicketEntity.Status.ISSUED);

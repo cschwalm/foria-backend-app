@@ -2,6 +2,7 @@ package com.foriatickets.foriabackend.service;
 
 import com.foriatickets.foriabackend.config.BeanConfig;
 import com.foriatickets.foriabackend.entities.*;
+import com.foriatickets.foriabackend.gateway.AWSSimpleEmailServiceGateway;
 import com.foriatickets.foriabackend.gateway.FCMGateway;
 import com.foriatickets.foriabackend.gateway.StripeGateway;
 import com.foriatickets.foriabackend.repositories.*;
@@ -67,6 +68,9 @@ public class TicketServiceImplTest {
     @Mock
     private FCMGateway fcmGateway;
 
+    @Mock
+    private AWSSimpleEmailServiceGateway awsSimpleEmailServiceGateway;
+
     private TicketServiceImpl ticketService;
 
     private UserEntity authenticatedUser;
@@ -88,7 +92,7 @@ public class TicketServiceImplTest {
         SecurityContextHolder.getContext().setAuthentication(authentication);
         when(userRepository.findByAuth0Id(eq("test"))).thenReturn(authenticatedUser);
 
-        ticketService = new TicketServiceImpl(modelMapper, eventRepository, orderRepository, userRepository, ticketTypeConfigRepository, ticketRepository, stripeGateway, orderFeeEntryRepository, orderTicketEntryRepository, transferRequestRepository, fcmGateway);
+        ticketService = new TicketServiceImpl(modelMapper, eventRepository, orderRepository, userRepository, ticketTypeConfigRepository, ticketRepository, stripeGateway, orderFeeEntryRepository, orderTicketEntryRepository, transferRequestRepository, fcmGateway, awsSimpleEmailServiceGateway);
     }
 
     @Test
@@ -426,13 +430,16 @@ public class TicketServiceImplTest {
     @Test
     public void checkAndConfirmPendingTicketTransfers() {
 
-        TicketEntity ticketEntityMock = mock(TicketEntity.class);
-        when(ticketEntityMock.getId()).thenReturn(UUID.randomUUID());
-        when(ticketRepository.save(ticketEntityMock)).thenReturn(ticketEntityMock);
-
         UserEntity userEntityMock = mock(UserEntity.class);
         when(userEntityMock.getId()).thenReturn(UUID.randomUUID());
         when(userEntityMock.getEmail()).thenReturn("test@test.com");
+        when(userEntityMock.getFirstName()).thenReturn("Test");
+
+        TicketEntity ticketEntityMock = mock(TicketEntity.class);
+        when(ticketEntityMock.getId()).thenReturn(UUID.randomUUID());
+        when(ticketEntityMock.getEventEntity()).thenReturn(mock(EventEntity.class));
+        when(ticketEntityMock.getOwnerEntity()).thenReturn(userEntityMock);
+        when(ticketRepository.save(ticketEntityMock)).thenReturn(ticketEntityMock);
 
         TransferRequestEntity transferRequestEntityMock = mock(TransferRequestEntity.class);
         when(transferRequestEntityMock.getTicket()).thenReturn(ticketEntityMock);
