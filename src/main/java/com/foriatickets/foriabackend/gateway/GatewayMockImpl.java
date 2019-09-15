@@ -1,5 +1,6 @@
 package com.foriatickets.foriabackend.gateway;
 
+import com.google.firebase.messaging.Notification;
 import com.stripe.model.Charge;
 import com.stripe.model.Customer;
 import org.apache.logging.log4j.LogManager;
@@ -41,5 +42,10 @@ public class GatewayMockImpl implements GatewayMock {
     @Override
     public void updateCustomerPaymentMethod(String stripeCustomerId, String stripePaymentToken) {
         LOG.info("Stripe mock in use. Customer not updated.");
+    }
+
+    @Override
+    public void sendPushNotification(String token, Notification notification) {
+        LOG.info("FCM mock in use. No push sent.");
     }
 }
