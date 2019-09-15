@@ -45,8 +45,8 @@ auth0.issuer: https://auth-test.foriatickets.com/
 auth0.apiAudience: api.foriatickets.com
 
 #FCM
-fcmDatabaseUrl: https://foria-tickets.firebaseio.com
-fcmKey: prod_foria_google_fcm_key
+fcmDatabaseUrl: https://foria-stage.firebaseio.com
+fcmKey: corp_foria_google_fcm_key
 
 ---
 spring:
@@ -65,8 +65,8 @@ auth0.issuer: https://auth-test.foriatickets.com/
 auth0.apiAudience: api.foriatickets.com
 
 #FCM
-fcmDatabaseUrl: https://foria-tickets.firebaseio.com
-fcmKey: prod_foria_google_fcm_key
+fcmDatabaseUrl: https://foria-stage.firebaseio.com
+fcmKey: corp_foria_google_fcm_key
 
 ---
 spring:
