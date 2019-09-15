@@ -99,6 +99,19 @@ public class AWSSecretsManagerGatewayImpl implements AWSSecretsManagerGateway {
     }
 
     @Override
+    public Optional<String> getSecretRaw(String secretFriendlyName) {
+
+        GetSecretValueResponse payload = getSecretPayload(secretFriendlyName);
+
+        if (payload == null) {
+            return Optional.empty();
+        }
+
+        LOG.info("Successfully loaded secret with key: {}", secretFriendlyName);
+        return Optional.of(payload.secretString());
+    }
+
+    @Override
     public Optional<DBInfo> getDbInfo(String secretFriendlyName) {
 
         GetSecretValueResponse payload = getSecretPayload(secretFriendlyName);

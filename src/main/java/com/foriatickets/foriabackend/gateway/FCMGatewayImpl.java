@@ -28,7 +28,7 @@ public class FCMGatewayImpl implements FCMGateway {
                           @Value("${fcmKey}") String fcmKeyName,
                           @Value("${fcmDatabaseUrl}") String fcmDatabaseUrl) throws IOException {
 
-        final Optional<String> fcmKey = awsSecretsManagerGateway.getSecretString(fcmKeyName);
+        final Optional<String> fcmKey = awsSecretsManagerGateway.getSecretRaw(fcmKeyName);
         if (!fcmKey.isPresent()) {
             LOG.error("Failed to load FCM key with friendlyName: {}", fcmKeyName);
             throw new RuntimeException("Failed to load FCM key with friendlyName: " + fcmKeyName);

@@ -74,6 +74,15 @@ public interface AWSSecretsManagerGateway {
     Optional<String> getSecretString(String secretFriendlyName);
 
     /**
+     * Returns the RAW payload stored in KMS.
+     * Useful for secrets that are stored as JSON directly.
+     *
+     * @param secretFriendlyName Tag
+     * @return string
+     */
+    Optional<String> getSecretRaw(String secretFriendlyName);
+
+    /**
      * Returns Db connection info as a structure.
      *
      * @param friendlyName Tag
