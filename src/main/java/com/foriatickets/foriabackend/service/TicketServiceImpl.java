@@ -1,8 +1,10 @@
 package com.foriatickets.foriabackend.service;
 
 import com.foriatickets.foriabackend.entities.*;
+import com.foriatickets.foriabackend.gateway.FCMGateway;
 import com.foriatickets.foriabackend.gateway.StripeGateway;
 import com.foriatickets.foriabackend.repositories.*;
+import com.google.firebase.messaging.Notification;
 import com.stripe.model.Charge;
 import com.warrenstrange.googleauth.GoogleAuthenticator;
 import org.apache.commons.lang3.Validate;
@@ -36,6 +38,9 @@ public class TicketServiceImpl implements TicketService {
     private static final BigDecimal STRIPE_FLAT_FEE = BigDecimal.valueOf(0.30);
     private static final int MAX_TICKETS_PER_ORDER = 10;
 
+    private static final String RECEIVED_TICKET_TITLE = "Foria Pass Received";
+    private static final String RECEIVED_TICKET_BODY = "You received a pass for {{eventName}} from {{previousName}}.";
+
     static class PriceCalculationInfo {
 
         BigDecimal ticketSubtotal;
@@ -48,6 +53,8 @@ public class TicketServiceImpl implements TicketService {
     private final ModelMapper modelMapper;
 
     private final EventRepository eventRepository;
+
+    private final FCMGateway fcmGateway;
 
     private final GoogleAuthenticator gAuth = new GoogleAuthenticator();
 
@@ -72,7 +79,7 @@ public class TicketServiceImpl implements TicketService {
     private UserEntity authenticatedUser;
 
     @Autowired
-    public TicketServiceImpl(ModelMapper modelMapper, EventRepository eventRepository, OrderRepository orderRepository, UserRepository userRepository, TicketTypeConfigRepository ticketTypeConfigRepository, TicketRepository ticketRepository, StripeGateway stripeGateway, OrderFeeEntryRepository orderFeeEntryRepository, OrderTicketEntryRepository orderTicketEntryRepository, TransferRequestRepository transferRequestRepository) {
+    public TicketServiceImpl(ModelMapper modelMapper, EventRepository eventRepository, OrderRepository orderRepository, UserRepository userRepository, TicketTypeConfigRepository ticketTypeConfigRepository, TicketRepository ticketRepository, StripeGateway stripeGateway, OrderFeeEntryRepository orderFeeEntryRepository, OrderTicketEntryRepository orderTicketEntryRepository, TransferRequestRepository transferRequestRepository, FCMGateway fcmGateway) {
         this.modelMapper = modelMapper;
         this.eventRepository = eventRepository;
         this.orderRepository = orderRepository;
@@ -83,6 +90,7 @@ public class TicketServiceImpl implements TicketService {
         this.orderFeeEntryRepository = orderFeeEntryRepository;
         this.orderTicketEntryRepository = orderTicketEntryRepository;
         this.transferRequestRepository = transferRequestRepository;
+        this.fcmGateway = fcmGateway;
 
         //Load user from Auth0 token.
         String auth0Id = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
@@ -622,6 +630,18 @@ public class TicketServiceImpl implements TicketService {
         ticketEntity.setOwnerEntity(newOwner);
         ticketEntity.setStatus(TicketEntity.Status.ISSUED);
         ticketEntity.setSecret(gAuth.createCredentials().getKey());
+
+        //Send push to all of users logged in devices.
+        for (DeviceTokenEntity token : newOwner.getDeviceTokens()) {
+
+            final String eventName = ticketEntity.getEventEntity().getName();
+            final String message = RECEIVED_TICKET_BODY
+                    .replace("{{eventName}}", eventName)
+                    .replace("{{previousName}}", ticketEntity.getOwnerEntity().getFirstName());
+            final Notification notification = new Notification(RECEIVED_TICKET_TITLE, message);
+
+            fcmGateway.sendPushNotification(token.getDeviceToken(), notification);
+        }
 
         LOG.info("Ticket ID: {} transferred to new owner Id: {}", ticketEntity.getId(), newOwner.getId());
         ticketRepository.save(ticketEntity);

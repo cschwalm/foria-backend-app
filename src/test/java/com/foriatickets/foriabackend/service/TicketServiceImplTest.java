@@ -2,6 +2,7 @@ package com.foriatickets.foriabackend.service;
 
 import com.foriatickets.foriabackend.config.BeanConfig;
 import com.foriatickets.foriabackend.entities.*;
+import com.foriatickets.foriabackend.gateway.FCMGateway;
 import com.foriatickets.foriabackend.gateway.StripeGateway;
 import com.foriatickets.foriabackend.repositories.*;
 import com.warrenstrange.googleauth.GoogleAuthenticator;
@@ -63,6 +64,9 @@ public class TicketServiceImplTest {
     @Mock
     private StripeGateway stripeGateway;
 
+    @Mock
+    private FCMGateway fcmGateway;
+
     private TicketServiceImpl ticketService;
 
     private UserEntity authenticatedUser;
@@ -84,7 +88,7 @@ public class TicketServiceImplTest {
         SecurityContextHolder.getContext().setAuthentication(authentication);
         when(userRepository.findByAuth0Id(eq("test"))).thenReturn(authenticatedUser);
 
-        ticketService = new TicketServiceImpl(modelMapper, eventRepository, orderRepository, userRepository, ticketTypeConfigRepository, ticketRepository, stripeGateway, orderFeeEntryRepository, orderTicketEntryRepository, transferRequestRepository);
+        ticketService = new TicketServiceImpl(modelMapper, eventRepository, orderRepository, userRepository, ticketTypeConfigRepository, ticketRepository, stripeGateway, orderFeeEntryRepository, orderTicketEntryRepository, transferRequestRepository, fcmGateway);
     }
 
     @Test
