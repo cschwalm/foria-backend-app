@@ -627,10 +627,6 @@ public class TicketServiceImpl implements TicketService {
      */
     private void changeTicketOwner(TicketEntity ticketEntity, UserEntity newOwner) {
 
-        ticketEntity.setOwnerEntity(newOwner);
-        ticketEntity.setStatus(TicketEntity.Status.ISSUED);
-        ticketEntity.setSecret(gAuth.createCredentials().getKey());
-
         //Send push to all of users logged in devices.
         for (DeviceTokenEntity token : newOwner.getDeviceTokens()) {
 
@@ -643,8 +639,12 @@ public class TicketServiceImpl implements TicketService {
             fcmGateway.sendPushNotification(token.getDeviceToken(), notification);
         }
 
-        LOG.info("Ticket ID: {} transferred to new owner Id: {}", ticketEntity.getId(), newOwner.getId());
+        ticketEntity.setOwnerEntity(newOwner);
+        ticketEntity.setStatus(TicketEntity.Status.ISSUED);
+        ticketEntity.setSecret(gAuth.createCredentials().getKey());
         ticketRepository.save(ticketEntity);
+
+        LOG.info("Ticket ID: {} transferred to new owner Id: {}", ticketEntity.getId(), newOwner.getId());
     }
 
     @Override
