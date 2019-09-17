@@ -28,6 +28,7 @@ import java.math.RoundingMode;
 import java.time.OffsetDateTime;
 import java.util.*;
 
+import static java.util.Arrays.asList;
 import static org.springframework.web.context.WebApplicationContext.SCOPE_REQUEST;
 
 @Scope(scopeName = SCOPE_REQUEST)
@@ -280,7 +281,7 @@ public class TicketServiceImpl implements TicketService {
     @Override
     public List<Ticket> getUsersTickets() {
 
-        final Set<TicketEntity.Status> statusSet = new HashSet<>(Arrays.asList(
+        final Set<TicketEntity.Status> statusSet = new HashSet<>(asList(
                         TicketEntity.Status.REDEEMED,
                         TicketEntity.Status.CANCELED,
                         TicketEntity.Status.CANCELED_FRAUD)
@@ -349,7 +350,7 @@ public class TicketServiceImpl implements TicketService {
     @Override
     public ActivationResult reactivateTicket(UUID ticketId) {
 
-        TicketEntity ticketEntity = verifyTicketValidity(ticketId, TicketEntity.Status.ACTIVE);
+        TicketEntity ticketEntity = verifyTicketValidity(ticketId, TicketEntity.Status.ACTIVE, TicketEntity.Status.TRANSFER_PENDING);
 
         if (!ticketEntity.getOwnerEntity().getId().equals(authenticatedUser.getId())) {
             LOG.warn("User ID: {} attempted to activate not owned ticket ID: {}", authenticatedUser.getId(), ticketEntity.getId());
@@ -534,9 +535,9 @@ public class TicketServiceImpl implements TicketService {
      * 2) The ticket is in the expected status.
      *
      * @param ticketId Ticket ID to verify.
-     * @param expectedStatus Status to check.
+     * @param expectedStatuses Status to check.
      */
-    private TicketEntity verifyTicketValidity(UUID ticketId, TicketEntity.Status expectedStatus) {
+    private TicketEntity verifyTicketValidity(UUID ticketId, TicketEntity.Status... expectedStatuses) {
 
         if (ticketId == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ticket ID must not be null.");
@@ -547,11 +548,15 @@ public class TicketServiceImpl implements TicketService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ticket ID is invalid.");
         }
 
+        List<TicketEntity.Status> expectedStatusList = null;
+        if (expectedStatuses != null) {
+            expectedStatusList = Arrays.asList(expectedStatuses);
+        }
         TicketEntity ticketEntity = ticketEntityOptional.get();
 
-        if (expectedStatus != null && ticketEntity.getStatus() != expectedStatus) {
-            LOG.warn("User ID: {} attempted to activate/reactivate ticket not having {} status. Ticket ID: {}", authenticatedUser.getId(), expectedStatus, ticketEntity.getId());
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ticket is not in " + expectedStatus + " status.");
+        if (expectedStatusList != null && !expectedStatusList.contains(ticketEntity.getStatus())) {
+            LOG.warn("User ID: {} attempted to activate/reactivate ticket not having {} status. Ticket ID: {}", authenticatedUser.getId(), expectedStatusList, ticketEntity.getId());
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ticket is not in " + expectedStatusList + " status.");
         }
 
         return ticketEntity;
