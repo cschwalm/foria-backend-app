@@ -26,6 +26,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 import static java.util.Arrays.asList;
@@ -42,6 +43,8 @@ public class TicketServiceImpl implements TicketService {
 
     private static final String RECEIVED_TICKET_TITLE = "Foria Pass Received";
     private static final String RECEIVED_TICKET_BODY = "You received a pass for {{eventName}} from {{previousName}}.";
+
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("MM/dd/yyyy at HH:mm a z");
 
     static class PriceCalculationInfo {
 
@@ -249,6 +252,18 @@ public class TicketServiceImpl implements TicketService {
         Charge chargeResult = stripeGateway.chargeCustomer(stripeCustomerId, paymentToken, orderEntity.getId(), priceCalculationInfo.grandTotal, priceCalculationInfo.currencyCode);
         orderEntity.setChargeReferenceId(chargeResult.getId());
         orderRepository.save(orderEntity);
+
+        //Send order confirmation email.
+        Map<String, String> map = new HashMap<>();
+        map.put("eventDate", eventEntity.getEventStartTime().format(DATE_TIME_FORMATTER));
+        map.put("eventName", eventEntity.getName());
+        map.put("eventId", eventEntity.getId().toString());
+        map.put("accountFirstName", authenticatedUser.getFirstName());
+        map.put("orderNumber", orderId.toString());
+        map.put("grandTotal", orderId.toString());
+
+        awsSimpleEmailServiceGateway.sendEmailFromTemplate(authenticatedUser.getEmail(), AWSSimpleEmailServiceGateway.TICKET_PURCHASE_EMAIL, map);
+
         LOG.info("Stripe customer (ID: {}) charged: {}{} with chargeID: {}",
                 stripeCustomerId, priceCalculationInfo.grandTotal, priceCalculationInfo.currencyCode, chargeResult.getId());
         return orderId;
@@ -624,12 +639,11 @@ public class TicketServiceImpl implements TicketService {
 
             transferRequestRepository.save(transferRequestEntity);
 
-            final Map<String, String> templateData = new HashMap<>();
-            templateData.put("nametransfree", receiverEmail);
-            templateData.put("name", authenticatedUser.getFirstName());
-
-            awsSimpleEmailServiceGateway.sendEmailFromTemplate(authenticatedUser.getEmail(),
-                    AWSSimpleEmailServiceGateway.EMAIL_TRANSFER_PENDING_TEMPLATE, templateData);
+            final Map<String, String> templateData = buildTransferTemplateDataPayload(ticketEntity, null, ticketEntity.getOwnerEntity());
+            awsSimpleEmailServiceGateway.sendEmailFromTemplate(ticketEntity.getOwnerEntity().getEmail(),
+                    AWSSimpleEmailServiceGateway.TRANSFEROR_PENDING_EMAIL, templateData);
+            awsSimpleEmailServiceGateway.sendEmailFromTemplate(receiverEmail,
+                    AWSSimpleEmailServiceGateway.TRANSFEREE_PENDING_EMAIL, templateData);
 
             return getTicket(ticketId, false);
         }
@@ -656,13 +670,12 @@ public class TicketServiceImpl implements TicketService {
             fcmGateway.sendPushNotification(token.getDeviceToken(), notification);
         }
 
-        final Map<String, String> templateData = new HashMap<>();
-        templateData.put("nametransferer", newOwner.getFirstName());
-        templateData.put("eventname", ticketEntity.getEventEntity().getName());
-        templateData.put("name", ticketEntity.getOwnerEntity().getFirstName());
-
+        //Send email to both new and old owner.
+        final Map<String, String> templateData = buildTransferTemplateDataPayload(ticketEntity, newOwner, ticketEntity.getOwnerEntity());
+        awsSimpleEmailServiceGateway.sendEmailFromTemplate(newOwner.getEmail(),
+                AWSSimpleEmailServiceGateway.TRANSFEREE_COMPLETE_EMAIL, templateData);
         awsSimpleEmailServiceGateway.sendEmailFromTemplate(ticketEntity.getOwnerEntity().getEmail(),
-                AWSSimpleEmailServiceGateway.TRANSFERER_EMAIL_TRANSFER_COMPLETE, templateData);
+                AWSSimpleEmailServiceGateway.TRANSFEROR_COMPLETE_EMAIL, templateData);
 
         ticketEntity.setOwnerEntity(newOwner);
         ticketEntity.setStatus(TicketEntity.Status.ISSUED);
@@ -670,6 +683,29 @@ public class TicketServiceImpl implements TicketService {
         ticketRepository.save(ticketEntity);
 
         LOG.info("Ticket ID: {} transferred to new owner Id: {}", ticketEntity.getId(), newOwner.getId());
+    }
+
+    /**
+     * Builds payload map used for template data.
+     *
+     * @param ticketEntity Event to load info for.
+     * @param newUser New owner.
+     * @param oldUser Previous owner.
+     * @return A map to send to SES.
+     */
+    private Map<String, String> buildTransferTemplateDataPayload(TicketEntity ticketEntity, UserEntity newUser, UserEntity oldUser) {
+
+        Map<String, String> map = new HashMap<>();
+        map.put("eventDate", ticketEntity.getEventEntity().getEventStartTime().format(DATE_TIME_FORMATTER));
+        map.put("eventName", ticketEntity.getEventEntity().getName());
+        map.put("eventId", ticketEntity.getEventEntity().getId().toString());
+        map.put("nameTransferor", oldUser.getFirstName());
+
+        if (newUser != null) {
+            map.put("nameTransferee", newUser.getFirstName());
+        }
+
+        return map;
     }
 
     @Override

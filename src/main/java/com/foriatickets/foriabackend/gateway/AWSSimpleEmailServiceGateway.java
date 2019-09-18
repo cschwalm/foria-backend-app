@@ -9,9 +9,11 @@ import java.util.Map;
  */
 public interface AWSSimpleEmailServiceGateway {
 
-    String EMAIL_TRANSFER_PENDING_TEMPLATE = "email_transfer_pending";
-    String TICKETS_PURCHASED_TEMPLATE = "ticket_purchase_email";
-    String TRANSFERER_EMAIL_TRANSFER_COMPLETE = "transferer_email_transfer_complete";
+    String TRANSFEREE_PENDING_EMAIL = "transferee_pending_email";
+    String TRANSFEROR_PENDING_EMAIL = "transferor_pending_email";
+    String TRANSFEREE_COMPLETE_EMAIL = "transferee_complete_email";
+    String TRANSFEROR_COMPLETE_EMAIL = "transferor_complete_email";
+    String TICKET_PURCHASE_EMAIL = "ticket_purchase_email";
 
     /**
      * Email template must be loaded into SES account.
