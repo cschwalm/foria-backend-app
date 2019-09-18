@@ -44,7 +44,8 @@ public class TicketServiceImpl implements TicketService {
     private static final String RECEIVED_TICKET_TITLE = "Foria Pass Received";
     private static final String RECEIVED_TICKET_BODY = "You received a pass for {{eventName}} from {{previousName}}.";
 
-    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("MM/dd/yyyy at HH:mm a z");
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("MM/dd/yyyy");
+    private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm a");
 
     static class PriceCalculationInfo {
 
@@ -255,7 +256,8 @@ public class TicketServiceImpl implements TicketService {
 
         //Send order confirmation email.
         Map<String, String> map = new HashMap<>();
-        map.put("eventDate", eventEntity.getEventStartTime().format(DATE_TIME_FORMATTER));
+        map.put("eventDate", eventEntity.getEventStartTime().format(DATE_FORMATTER));
+        map.put("eventTime", eventEntity.getEventStartTime().format(TIME_FORMATTER));
         map.put("eventName", eventEntity.getName());
         map.put("eventId", eventEntity.getId().toString());
         map.put("accountFirstName", authenticatedUser.getFirstName());
@@ -696,7 +698,8 @@ public class TicketServiceImpl implements TicketService {
     private Map<String, String> buildTransferTemplateDataPayload(TicketEntity ticketEntity, UserEntity newUser, UserEntity oldUser) {
 
         Map<String, String> map = new HashMap<>();
-        map.put("eventDate", ticketEntity.getEventEntity().getEventStartTime().format(DATE_TIME_FORMATTER));
+        map.put("eventDate", ticketEntity.getEventEntity().getEventStartTime().format(DATE_FORMATTER));
+        map.put("eventTime", ticketEntity.getEventEntity().getEventStartTime().format(TIME_FORMATTER));
         map.put("eventName", ticketEntity.getEventEntity().getName());
         map.put("eventId", ticketEntity.getEventEntity().getId().toString());
         map.put("nameTransferor", oldUser.getFirstName());

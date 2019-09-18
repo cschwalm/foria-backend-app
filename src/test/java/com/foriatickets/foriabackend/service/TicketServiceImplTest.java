@@ -27,6 +27,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.util.*;
 
 import static com.foriatickets.foriabackend.entities.TicketEntity.Status.ISSUED;
@@ -435,10 +436,15 @@ public class TicketServiceImplTest {
         when(userEntityMock.getEmail()).thenReturn("test@test.com");
         when(userEntityMock.getFirstName()).thenReturn("Test");
 
+        EventEntity eventEntity = mock(EventEntity.class);
+        when(eventEntity.getEventStartTime()).thenReturn(OffsetDateTime.now());
+        when(eventEntity.getId()).thenReturn(UUID.randomUUID());
+
         TicketEntity ticketEntityMock = mock(TicketEntity.class);
         when(ticketEntityMock.getId()).thenReturn(UUID.randomUUID());
         when(ticketEntityMock.getEventEntity()).thenReturn(mock(EventEntity.class));
         when(ticketEntityMock.getOwnerEntity()).thenReturn(userEntityMock);
+        when(ticketEntityMock.getEventEntity()).thenReturn(eventEntity);
         when(ticketRepository.save(ticketEntityMock)).thenReturn(ticketEntityMock);
 
         TransferRequestEntity transferRequestEntityMock = mock(TransferRequestEntity.class);
