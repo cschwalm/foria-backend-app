@@ -104,7 +104,7 @@ public class StripeGatewayImpl implements StripeGateway {
         Map<String, Object> metadata = new HashMap<>();
         metadata.put("order_id", orderId.toString());
 
-        chargeParams.put("amount", amount);
+        chargeParams.put("amount", amount.toPlainString());
         chargeParams.put("currency", currencyCode);
         chargeParams.put("customer", stripeCustomerId);
         chargeParams.put("metadata", metadata);
