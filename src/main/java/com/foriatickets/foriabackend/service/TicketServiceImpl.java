@@ -643,6 +643,7 @@ public class TicketServiceImpl implements TicketService {
             transferRequestRepository.save(transferRequestEntity);
 
             final Map<String, String> templateData = buildTransferTemplateDataPayload(ticketEntity, null, ticketEntity.getOwnerEntity());
+            templateData.put("emailTransferee", receiverEmail);
             awsSimpleEmailServiceGateway.sendEmailFromTemplate(ticketEntity.getOwnerEntity().getEmail(),
                     AWSSimpleEmailServiceGateway.TRANSFEROR_PENDING_EMAIL, templateData);
             awsSimpleEmailServiceGateway.sendEmailFromTemplate(receiverEmail,
@@ -675,6 +676,8 @@ public class TicketServiceImpl implements TicketService {
 
         //Send email to both new and old owner.
         final Map<String, String> templateData = buildTransferTemplateDataPayload(ticketEntity, newOwner, ticketEntity.getOwnerEntity());
+        templateData.put("emailTransferee", newOwner.getEmail());
+
         awsSimpleEmailServiceGateway.sendEmailFromTemplate(newOwner.getEmail(),
                 AWSSimpleEmailServiceGateway.TRANSFEREE_COMPLETE_EMAIL, templateData);
         awsSimpleEmailServiceGateway.sendEmailFromTemplate(ticketEntity.getOwnerEntity().getEmail(),
