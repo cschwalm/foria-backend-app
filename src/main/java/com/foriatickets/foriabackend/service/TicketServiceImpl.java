@@ -255,6 +255,7 @@ public class TicketServiceImpl implements TicketService {
         orderRepository.save(orderEntity);
 
         //Send order confirmation email.
+        final VenueEntity venueEntity = eventEntity.getVenueEntity();
         Map<String, String> map = new HashMap<>();
         map.put("eventDate", eventEntity.getEventStartTime().format(DATE_FORMATTER));
         map.put("eventTime", eventEntity.getEventStartTime().format(TIME_FORMATTER));
@@ -262,7 +263,7 @@ public class TicketServiceImpl implements TicketService {
         map.put("eventId", eventEntity.getId().toString());
         map.put("accountFirstName", authenticatedUser.getFirstName());
         map.put("orderNumber", orderId.toString());
-        map.put("grandTotal", orderId.toString());
+        map.put("eventLocation", venueEntity.getContactStreetAddress() + ", " + venueEntity.getContactCity() + ", " + venueEntity.getContactState());
 
         awsSimpleEmailServiceGateway.sendEmailFromTemplate(authenticatedUser.getEmail(), AWSSimpleEmailServiceGateway.TICKET_PURCHASE_EMAIL, map);
 
