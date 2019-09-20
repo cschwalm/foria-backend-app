@@ -262,7 +262,7 @@ public class TicketServiceImpl implements TicketService {
         map.put("eventName", eventEntity.getName());
         map.put("eventId", eventEntity.getId().toString());
         map.put("accountFirstName", authenticatedUser.getFirstName());
-        map.put("orderNumber", orderId.toString());
+        map.put("orderId", orderId.toString());
         map.put("eventLocation", venueEntity.getContactStreetAddress() + ", " + venueEntity.getContactCity() + ", " + venueEntity.getContactState());
 
         awsSimpleEmailServiceGateway.sendEmailFromTemplate(authenticatedUser.getEmail(), AWSSimpleEmailServiceGateway.TICKET_PURCHASE_EMAIL, map);
