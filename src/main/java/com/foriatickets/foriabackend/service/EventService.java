@@ -2,6 +2,7 @@ package com.foriatickets.foriabackend.service;
 
 import org.openapitools.model.Event;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -18,6 +19,13 @@ public interface EventService {
      * @return Event object populated with UUID.
      */
     Event createEvent(Event event);
+
+    /**
+     * Returns a list of events that are currently running sorted by their event start date.
+     *
+     * @return A sorted list of events.
+     */
+    List<Event> getAllActiveEvents();
 
     /**
      * Returns the venue scoped at request.

@@ -20,6 +20,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -87,6 +90,29 @@ public class EventServiceImpl implements EventService {
 
         LOG.info("Created event entry with ID: {}", eventEntity.getId());
         return event;
+    }
+
+    @Override
+    public List<Event> getAllActiveEvents() {
+
+        List<Event> eventList = new ArrayList<>();
+        List<EventEntity> eventEntities = eventRepository.findAllByOrderByEventStartTimeAsc();
+        if (eventEntities == null || eventEntities.isEmpty()) {
+            LOG.info("No events loaded in database.");
+            return eventList;
+        }
+
+        final OffsetDateTime now = OffsetDateTime.now();
+        for (EventEntity eventEntity : eventEntities) {
+            Event event = modelMapper.map(eventEntity, Event.class);
+            populateEventModelWithAddress(event, eventEntity.getVenueEntity());
+            if (now.isBefore(eventEntity.getEventEndTime())) {
+                eventList.add(event);
+            }
+        }
+
+        LOG.debug("Returned {} events.", eventList.size());
+        return eventList;
     }
 
     @Override

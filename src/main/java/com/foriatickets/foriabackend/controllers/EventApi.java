@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
 import javax.validation.Valid;
+import java.util.List;
 import java.util.UUID;
 
 @Controller
@@ -23,6 +24,13 @@ public class EventApi implements org.openapitools.api.EventApi {
 
     public EventApi(BeanFactory beanFactory) {
         this.beanFactory = beanFactory;
+    }
+
+    @RequestMapping(value = "/event", method = RequestMethod.GET)
+    @Override
+    public ResponseEntity<List<Event>> getAllEvents() {
+        EventService eventService = beanFactory.getBean(EventService.class);
+        return new ResponseEntity<>(eventService.getAllActiveEvents(), HttpStatus.OK);
     }
 
     @RequestMapping(value = "/event", method = RequestMethod.POST)
