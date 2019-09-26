@@ -104,26 +104,27 @@ public class EventServiceImpl implements EventService {
 
         final OffsetDateTime now = OffsetDateTime.now();
         for (EventEntity eventEntity : eventEntities) {
-            Event event = modelMapper.map(eventEntity, Event.class);
-            populateEventModelWithAddress(event, eventEntity.getVenueEntity());
-            if (now.isBefore(eventEntity.getEventEndTime())) {
-                eventList.add(event);
+
+            if (now.isAfter(eventEntity.getEventEndTime())) {
+                continue;
             }
+
+            final Event event = populateExtraTicketInfo(eventEntity);
+            eventList.add(event);
         }
 
         LOG.debug("Returned {} events.", eventList.size());
         return eventList;
     }
 
-    @Override
-    public Event getEvent(UUID eventId) {
+    /**
+     * Configures additional field for event that can't be simply mapped from entity.
+     *
+     * @param eventEntity Event to build.
+     * @return Completed data.
+     */
+    private Event populateExtraTicketInfo(EventEntity eventEntity) {
 
-        Optional<EventEntity> eventEntityOptional = eventRepository.findById(eventId);
-        if (!eventEntityOptional.isPresent()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Event ID is invalid.");
-        }
-
-        EventEntity eventEntity = eventEntityOptional.get();
         Event event = modelMapper.map(eventEntity, Event.class);
         populateEventModelWithAddress(event, eventEntity.getVenueEntity());
 
@@ -139,6 +140,18 @@ public class EventServiceImpl implements EventService {
         }
 
         return event;
+    }
+
+    @Override
+    public Event getEvent(UUID eventId) {
+
+        Optional<EventEntity> eventEntityOptional = eventRepository.findById(eventId);
+        if (!eventEntityOptional.isPresent()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Event ID is invalid.");
+        }
+
+        EventEntity eventEntity = eventEntityOptional.get();
+        return populateExtraTicketInfo(eventEntity);
     }
 
     /**
