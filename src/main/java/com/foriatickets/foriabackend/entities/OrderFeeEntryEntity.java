@@ -1,7 +1,6 @@
 package com.foriatickets.foriabackend.entities;
 
 import org.hibernate.annotations.Type;
-import org.openapitools.model.TicketFeeConfig;
 
 import javax.persistence.*;
 import java.io.Serializable;

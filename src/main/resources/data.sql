@@ -35,6 +35,15 @@ insert
 
 /* insert com.foriatickets.foriabackend.entities.TicketTypeConfigEntity */
 insert
+INTO
+    `TICKET_TYPE_CONFIG` (
+    `AUTHORIZED_AMOUNT`, `CURRENCY`, `DESCRIPTION`, `EVENT_ID`, `NAME`, `PRICE`, `ID`
+)
+values
+(100, 'USD', 'Free', '40c6a84f-9505-40b9-a9ea-817074aac2f1', 'Free', 0.00, '9c0f3a04-a4f6-4229-9e8b-2ee9c3ec5fee');
+
+/* insert com.foriatickets.foriabackend.entities.TicketTypeConfigEntity */
+insert
         INTO
             `TICKET_TYPE_CONFIG` (
                 `AUTHORIZED_AMOUNT`, `CURRENCY`, `DESCRIPTION`, `EVENT_ID`, `NAME`, `PRICE`, `ID`

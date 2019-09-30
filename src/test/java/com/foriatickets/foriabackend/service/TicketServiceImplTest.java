@@ -331,6 +331,40 @@ public class TicketServiceImplTest {
     }
 
     @Test
+    public void calculateFeesTest_FreeTicket() {
+
+        BigDecimal subtotal = new BigDecimal("0.00");
+        BigDecimal feeActual = new BigDecimal("0.00");
+        BigDecimal stripeFeeActual = new BigDecimal("0.00");
+        BigDecimal grandTotalActual = new BigDecimal("0.00");
+
+        Set<TicketFeeConfigEntity> feeSet = new HashSet<>();
+
+        TicketFeeConfigEntity ticketFeeConfigEntityFlatMock = mock(TicketFeeConfigEntity.class);
+        when(ticketFeeConfigEntityFlatMock.getMethod()).thenReturn(TicketFeeConfigEntity.FeeMethod.FLAT);
+        when(ticketFeeConfigEntityFlatMock.getName()).thenReturn("FLAT TEST");
+        when(ticketFeeConfigEntityFlatMock.getAmount()).thenReturn(BigDecimal.valueOf(1.50));
+        when(ticketFeeConfigEntityFlatMock.getCurrency()).thenReturn("USD");
+        when(ticketFeeConfigEntityFlatMock.getType()).thenReturn(TicketFeeConfigEntity.FeeType.ISSUER);
+        feeSet.add(ticketFeeConfigEntityFlatMock);
+
+        TicketFeeConfigEntity ticketFeeConfigEntityPercentMock = mock(TicketFeeConfigEntity.class);
+        when(ticketFeeConfigEntityPercentMock.getMethod()).thenReturn(TicketFeeConfigEntity.FeeMethod.PERCENT);
+        when(ticketFeeConfigEntityPercentMock.getName()).thenReturn("PERCENT TEST");
+        when(ticketFeeConfigEntityPercentMock.getAmount()).thenReturn(BigDecimal.valueOf(0.11));
+        when(ticketFeeConfigEntityPercentMock.getCurrency()).thenReturn("USD");
+        when(ticketFeeConfigEntityPercentMock.getType()).thenReturn(TicketFeeConfigEntity.FeeType.ISSUER);
+        feeSet.add(ticketFeeConfigEntityPercentMock);
+
+        TicketServiceImpl.PriceCalculationInfo actual = ticketService.calculateFees(0, subtotal, feeSet);
+
+        assertEquals(subtotal, actual.ticketSubtotal);
+        assertEquals(feeActual, actual.feeSubtotal);
+        assertEquals(stripeFeeActual, actual.paymentFeeSubtotal);
+        assertEquals(grandTotalActual, actual.grandTotal);
+    }
+
+    @Test
     public void obtainTicketsRemainingByType() {
 
         UUID eventId = UUID.randomUUID();

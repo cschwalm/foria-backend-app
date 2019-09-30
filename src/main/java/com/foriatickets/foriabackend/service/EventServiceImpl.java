@@ -134,7 +134,8 @@ public class EventServiceImpl implements EventService {
             ticketTypeConfig.setAmountRemaining(ticketsRemaining);
 
             //Add calculated fee to assist front ends.
-            TicketServiceImpl.PriceCalculationInfo calc = ticketService.calculateFees(1, new BigDecimal(ticketTypeConfig.getPrice()), eventEntity.getTicketFeeConfig());
+            final int numPaidTickets = new BigDecimal(ticketTypeConfig.getPrice()).compareTo(BigDecimal.ZERO) <= 0 ? 0 : 1;
+            TicketServiceImpl.PriceCalculationInfo calc = ticketService.calculateFees(numPaidTickets, new BigDecimal(ticketTypeConfig.getPrice()), eventEntity.getTicketFeeConfig());
             BigDecimal feeSubtotal = calc.feeSubtotal.add(calc.paymentFeeSubtotal);
             ticketTypeConfig.setCalculatedFee(feeSubtotal.toPlainString());
         }

@@ -46,8 +46,8 @@ public class StripeGatewayImpl implements StripeGateway {
     public Customer createStripeCustomer(User user, String paymentToken) {
 
         if (user == null || StringUtils.isEmpty(paymentToken)) {
-            LOG.error("Attempted to create Stripe user with null data!");
-            throw new RuntimeException("Attempted to create Stripe user with null data!");
+            LOG.warn("Attempted to create Stripe user with null data!");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Attempted to create Stripe user with null data!");
         }
 
         final String userId = user.getId().toString();
@@ -83,9 +83,9 @@ public class StripeGatewayImpl implements StripeGateway {
     @Override
     public Charge chargeCustomer(String stripeCustomerId, String stripeToken, UUID orderId, BigDecimal amount, String currencyCode) {
 
-        if (StringUtils.isEmpty(stripeCustomerId) || StringUtils.isEmpty(currencyCode) || amount == null) {
-            LOG.error("Attempted to charge Stripe user with null data!");
-            throw new RuntimeException("Attempted to charge Stripe user with null data!");
+        if (StringUtils.isEmpty(stripeToken) || StringUtils.isEmpty(stripeCustomerId) || StringUtils.isEmpty(currencyCode) || amount == null) {
+            LOG.warn("Attempted to charge Stripe user with null data!");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Checkout request is missing required data.");
         }
 
         if (amount.compareTo(BigDecimal.ZERO) < 0) {
