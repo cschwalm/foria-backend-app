@@ -54,4 +54,9 @@ public class GatewayMockImpl implements GatewayMock {
     public void sendEmailFromTemplate(String toAddress, String templateName, Map<String, String> templateData) {
         LOG.info("SES mock in use. No email sent.");
     }
+
+    @Override
+    public void sendInternalReport(String reportName, byte[] reportDataArr) {
+        LOG.info("SES mock in use. No email sent.");
+    }
 }

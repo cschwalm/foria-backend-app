@@ -1,18 +1,33 @@
 package com.foriatickets.foriabackend.gateway;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sun.org.apache.xml.internal.security.utils.Base64;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.joda.time.DateTime;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
+import software.amazon.awssdk.core.SdkBytes;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.ses.SesAsyncClient;
-import software.amazon.awssdk.services.ses.model.Destination;
-import software.amazon.awssdk.services.ses.model.MessageTag;
-import software.amazon.awssdk.services.ses.model.SendTemplatedEmailRequest;
-import software.amazon.awssdk.services.ses.model.SendTemplatedEmailResponse;
+import software.amazon.awssdk.services.ses.model.*;
 
+import javax.activation.DataHandler;
+import javax.activation.DataSource;
+import javax.mail.Message;
+import javax.mail.Session;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeBodyPart;
+import javax.mail.internet.MimeMessage;
+import javax.mail.internet.MimeMultipart;
+import javax.mail.util.ByteArrayDataSource;
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+import java.nio.ByteBuffer;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 
 @Service
@@ -20,6 +35,10 @@ import java.util.concurrent.CompletableFuture;
 public class AWSSimpleEmailServiceGatewayImpl implements AWSSimpleEmailServiceGateway {
 
     private static final String SOURCE_EMAIL_ADDRESS = "Foria <do-not-reply@foriatickets.com>";
+    private static final String SOURCE_ADMIN_EMAIL_ADDRESS = "Foria Admin <admin@foriatickets.com>";
+
+    private static final String DEST_ADMIN_EMAIL_ADDRESS = "corbin@foriatickets.com";
+    private static final String SNS_CONFIG_SET = "Foria-Main";
 
     private static final Logger LOG = LogManager.getLogger();
     private SesAsyncClient sesAsyncClient;
@@ -62,9 +81,116 @@ public class AWSSimpleEmailServiceGatewayImpl implements AWSSimpleEmailServiceGa
                 .template(templateName)
                 .templateData(jsonTemplateData)
                 .tags(appTag)
+                .configurationSetName(SNS_CONFIG_SET)
                 .build();
 
         CompletableFuture<SendTemplatedEmailResponse> resultFuture = sesAsyncClient.sendTemplatedEmail(sendTemplatedEmailRequest);
         resultFuture.thenAccept(r -> LOG.info("SES Message accepted with messageId: {}", r.messageId()));
+    }
+
+    @Override
+    public void sendInternalReport(String reportName, byte[] reportDataArr) {
+
+        if (reportName == null || reportDataArr == null) {
+            LOG.error("Attempted to send email with null values.");
+            return;
+        }
+
+        final String subjectText = "INTERNAL FORIA REPORT: " + reportName;
+        final String bodyText = "### INTERNAL FORIA REPORT ### - " +
+                reportName +
+                "\r\n" +
+                "Report Generated at: " +
+                ZonedDateTime.now().withZoneSameInstant(ZoneId.of("America/Los_Angeles")).toString() +
+                "\r\n" +
+                "\r\n" +
+                "Report is attached as a CSV that can be opened in Google Sheets / Excel." +
+                "\r\n" +
+                "\r\n" +
+                "Signed," +
+                "\r\n" +
+                "Foria API Server" +
+                "\r\n" +
+                "\r\n" +
+                "CONFIDENTIAL - DO NOT FORWARD" +
+                "\r\n";
+
+        final MessageTag appTag = MessageTag.builder()
+                .name("app")
+                .value("foria")
+                .build();
+
+        // Create a new MimeMessage object.
+        final Session session = Session.getDefaultInstance(new Properties());
+        final MimeMessage message = new MimeMessage(session);
+
+        try {
+
+            // Add subject, from and to lines.
+            message.setSubject(subjectText, "us-ascii");
+            message.setFrom(new InternetAddress(SOURCE_ADMIN_EMAIL_ADDRESS));
+            message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(DEST_ADMIN_EMAIL_ADDRESS));
+            message.setSentDate(DateTime.now().toDate());
+
+            // Create a multipart/alternative child container.
+            MimeMultipart msg_body = new MimeMultipart("alternative");
+
+            // Create a wrapper for the HTML and text parts.
+            MimeBodyPart wrap = new MimeBodyPart();
+
+            // Define the text part.
+            MimeBodyPart textPart = new MimeBodyPart();
+            textPart.setContent(bodyText, "text/plain; charset=us-ascii");
+            msg_body.addBodyPart(textPart);
+
+            // Add the child container to the wrapper object.
+            wrap.setContent(msg_body);
+
+            // Create a multipart/mixed parent container.
+            MimeMultipart msg = new MimeMultipart("mixed");
+
+            // Add the parent container to the message.
+            message.setContent(msg);
+
+            // Add the multipart/alternative part to the message.
+            msg.addBodyPart(wrap);
+
+            // Define the attachment
+            MimeBodyPart att = new MimeBodyPart();
+            DataSource ds = new ByteArrayDataSource(reportDataArr, "text/csv; charset=UTF-8");
+            att.setDataHandler(new DataHandler(ds));
+            att.setFileName(reportName);
+
+            // Add the attachment to the message.
+            msg.addBodyPart(att);
+
+            // Print the raw email content on the console
+            PrintStream out = System.out;
+            message.writeTo(out);
+
+
+            // Send the email.
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            message.writeTo(outputStream);
+            RawMessage rawMessage = RawMessage.builder()
+                    .data(
+                            SdkBytes.fromByteBuffer(ByteBuffer.wrap(outputStream.toByteArray()))
+                    )
+                    .build();
+
+            final SendRawEmailRequest rawEmailRequest = SendRawEmailRequest.builder()
+                    .rawMessage(rawMessage)
+                    .tags(appTag)
+                    .configurationSetName(SNS_CONFIG_SET)
+                    .build();
+
+            SendRawEmailResponse resultFuture = sesAsyncClient.sendRawEmail(rawEmailRequest).get();
+            LOG.info("SES Message accepted with messageId: {}", resultFuture.messageId());
+
+        } catch (Exception ex) {
+            LOG.error("Failed to send internal report with name: {}", reportName);
+            ex.printStackTrace();
+            throw new RuntimeException(ex.getMessage(), ex);
+        }
     }
 }

@@ -720,6 +720,7 @@ public class TicketServiceImpl implements TicketService {
 
         if (newUser != null) {
             map.put("nameTransferee", newUser.getFirstName());
+            map.put("transfereeEmail", oldUser.getEmail());
         }
 
         return map;
