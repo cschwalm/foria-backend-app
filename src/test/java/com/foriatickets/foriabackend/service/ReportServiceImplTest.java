@@ -2,7 +2,6 @@ package com.foriatickets.foriabackend.service;
 
 import com.foriatickets.foriabackend.entities.*;
 import com.foriatickets.foriabackend.gateway.AWSSimpleEmailServiceGateway;
-import com.foriatickets.foriabackend.gateway.AWSSimpleEmailServiceGatewayImpl;
 import com.foriatickets.foriabackend.repositories.OrderRepository;
 import org.junit.Before;
 import org.junit.Test;
@@ -15,13 +14,13 @@ import java.time.OffsetDateTime;
 import java.util.*;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @RunWith(SpringRunner.class)
 public class ReportServiceImplTest {
 
-    private AWSSimpleEmailServiceGateway awsSimpleEmailServiceGateway = new AWSSimpleEmailServiceGatewayImpl();
+    @Mock
+    private AWSSimpleEmailServiceGateway awsSimpleEmailServiceGateway;
 
     @Mock
     private OrderRepository orderRepository;
@@ -32,6 +31,7 @@ public class ReportServiceImplTest {
 
     @Before
     public void setUp() {
+
         mockOrderInfo();
         reportService = new ReportServiceImpl(awsSimpleEmailServiceGateway, orderRepository);
     }
@@ -40,7 +40,24 @@ public class ReportServiceImplTest {
     public void generateAndSendDailyTicketPurchaseReport() {
 
         when(orderRepository.findOrderEntitiesByOrderTimestampAfterAndOrderTimestampBefore(any(), any())).thenReturn(orders);
+        doNothing().when(awsSimpleEmailServiceGateway).sendInternalReport(any(), any());
+
         reportService.generateAndSendDailyTicketPurchaseReport();
+
+        verify(orderRepository).findOrderEntitiesByOrderTimestampAfterAndOrderTimestampBefore(any(), any());
+        verify(awsSimpleEmailServiceGateway).sendInternalReport(any(), any());
+    }
+
+    @Test
+    public void generateAndSendDailyTicketPurchaseReport_noOrders() {
+
+        when(orderRepository.findOrderEntitiesByOrderTimestampAfterAndOrderTimestampBefore(any(), any())).thenReturn(new ArrayList<>());
+        doNothing().when(awsSimpleEmailServiceGateway).sendInternalReport(any(), any());
+
+        reportService.generateAndSendDailyTicketPurchaseReport();
+
+        verify(orderRepository).findOrderEntitiesByOrderTimestampAfterAndOrderTimestampBefore(any(), any());
+        verify(awsSimpleEmailServiceGateway).sendInternalReport(any(), any());
     }
 
     @Test
@@ -71,6 +88,7 @@ public class ReportServiceImplTest {
         UUID eventId = UUID.randomUUID();
 
         when(eventEntityMock.getId()).thenReturn(eventId);
+        when(eventEntityMock.getName()).thenReturn("Test Event Name");
 
         TicketTypeConfigEntity ticketTypeConfigEntityMock = mock(TicketTypeConfigEntity.class);
         when(ticketTypeConfigEntityMock.getAuthorizedAmount()).thenReturn(5);
@@ -79,7 +97,7 @@ public class ReportServiceImplTest {
         when(ticketTypeConfigEntityMock.getPrice()).thenReturn(BigDecimal.valueOf(123L));
         when(ticketTypeConfigEntityMock.getCurrency()).thenReturn("USD");
         when(ticketEntityMock.getTicketTypeConfigEntity()).thenReturn(ticketTypeConfigEntityMock);
-        when(ticketTypeConfigEntityMock.getName()).thenReturn("Test Event");
+        when(ticketTypeConfigEntityMock.getName()).thenReturn("Test Event - Special Char 丏");
 
         TicketFeeConfigEntity ticketFeeConfigEntityPercentMock = mock(TicketFeeConfigEntity.class);
         when(ticketFeeConfigEntityPercentMock.getMethod()).thenReturn(TicketFeeConfigEntity.FeeMethod.PERCENT);

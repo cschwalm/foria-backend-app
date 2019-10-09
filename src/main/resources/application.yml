@@ -21,6 +21,10 @@ server:
     port: 8080
     servlet:
         context-path: /
+
+# Report Scheduling
+dailyticketpurchasereport.cron: "0 0 6 */1 * ?"
+report.email: "info@foriatickets.com"
 ---
 spring:
     profiles: local

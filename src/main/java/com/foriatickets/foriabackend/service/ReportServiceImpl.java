@@ -11,6 +11,7 @@ import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +19,7 @@ import java.io.CharArrayWriter;
 import java.nio.charset.StandardCharsets;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -74,34 +76,38 @@ public class ReportServiceImpl implements ReportService {
         private String eventId;
 
         @CsvBindByPosition(position = 2)
+        @CsvBindByName(column = "Event Name", required = true)
+        private String eventName;
+
+        @CsvBindByPosition(position = 3)
         @CsvBindByName(column = "Venue Id", required = true)
         private String venueId;
 
-        @CsvBindByPosition(position = 3)
+        @CsvBindByPosition(position = 4)
         @CsvBindByName(column = "User Id", required = true)
         private String userId;
 
-        @CsvBindByPosition(position = 4)
+        @CsvBindByPosition(position = 5)
         @CsvBindByName(column = "Order Id", required = true)
         private String orderId;
 
-        @CsvBindByPosition(position = 5)
+        @CsvBindByPosition(position = 6)
         @CsvBindByName(column = "Issue Date", required = true)
         private String issueDateTime;
 
-        @CsvBindByPosition(position = 6)
+        @CsvBindByPosition(position = 7)
         @CsvBindByName(column = "Ticket Type Id", required = true)
         private String ticketConfigId;
 
-        @CsvBindByPosition(position = 7)
+        @CsvBindByPosition(position = 8)
         @CsvBindByName(column = "Ticket Type Name", required = true)
         private String ticketConfigName;
 
-        @CsvBindByPosition(position = 8)
+        @CsvBindByPosition(position = 9)
         @CsvBindByName(column = "Ticket Type Price", required = true)
         private String ticketConfigPrice;
 
-        @CsvBindByPosition(position = 9)
+        @CsvBindByPosition(position = 10)
         @CsvBindByName(column = "Ticket Type Currency", required = true)
         private String ticketConfigCurrency;
 
@@ -120,6 +126,15 @@ public class ReportServiceImpl implements ReportService {
 
         public TicketRow setEventId(String eventId) {
             this.eventId = eventId;
+            return this;
+        }
+
+        public String getEventName() {
+            return eventName;
+        }
+
+        public TicketRow setEventName(String eventName) {
+            this.eventName = eventName;
             return this;
         }
 
@@ -203,6 +218,7 @@ public class ReportServiceImpl implements ReportService {
     private static final Logger LOG = LogManager.getLogger();
 
     private static final String REPORT_NAME = "DailyTicketPurchaseReport.csv";
+    private static DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss");
 
     public ReportServiceImpl(AWSSimpleEmailServiceGateway awsSimpleEmailServiceGateway, OrderRepository orderRepository) {
         this.awsSimpleEmailServiceGateway = awsSimpleEmailServiceGateway;
@@ -210,6 +226,7 @@ public class ReportServiceImpl implements ReportService {
     }
 
     @Override
+    @Scheduled(cron = "${dailyticketpurchasereport.cron}")
     public void generateAndSendDailyTicketPurchaseReport() {
 
         final ZonedDateTime nowInPST = ZonedDateTime.now().withZoneSameInstant(ZoneId.of("America/Los_Angeles"));
@@ -223,6 +240,7 @@ public class ReportServiceImpl implements ReportService {
 
         if (orders == null || orders.isEmpty()) {
             LOG.info("No orders were completed yesterday. Skipping report generation.");
+            awsSimpleEmailServiceGateway.sendInternalReport(REPORT_NAME, null);
             return;
         }
 
@@ -241,14 +259,17 @@ public class ReportServiceImpl implements ReportService {
                 final EventEntity eventEntity = ticketEntity.getEventEntity();
                 final TicketTypeConfigEntity ticketTypeConfig = ticketEntity.getTicketTypeConfigEntity();
 
+                final ZonedDateTime issuedDate = ticketEntity.getIssuedDate().toZonedDateTime().withZoneSameInstant(ZoneId.of("America/Los_Angeles"));
+
                 TicketRow ticketRow = new TicketRow();
                 ticketRow
                         .setTicketId(ticketEntity.getId().toString())
                         .setEventId(eventEntity.getId().toString())
+                        .setEventName(eventEntity.getName())
                         .setVenueId(eventEntity.getVenueEntity().getId().toString())
                         .setUserId(ticketEntity.getPurchaserEntity().getId().toString())
                         .setOrderId(orderEntity.getId().toString())
-                        .setIssueDateTime(ticketEntity.getIssuedDate().toZonedDateTime().withZoneSameInstant(ZoneId.of("America/Los_Angeles")).toString())
+                        .setIssueDateTime(issuedDate.format(DATE_FORMAT))
                         .setTicketConfigId(ticketTypeConfig.getId().toString())
                         .setTicketConfigName(ticketTypeConfig.getName())
                         .setTicketConfigPrice(ticketTypeConfig.getPrice().toPlainString())
