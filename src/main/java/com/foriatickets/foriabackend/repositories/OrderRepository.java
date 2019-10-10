@@ -10,4 +10,6 @@ import java.util.UUID;
 public interface OrderRepository extends CrudRepository<OrderEntity, UUID> {
 
     List<OrderEntity> findOrderEntitiesByOrderTimestampAfterAndOrderTimestampBefore(OffsetDateTime startTime, OffsetDateTime endTime);
+
+    OrderEntity findByChargeReferenceId(String chargeReferenceId);
 }

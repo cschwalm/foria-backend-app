@@ -2,8 +2,8 @@ package com.foriatickets.foriabackend.gateway;
 
 import com.stripe.Stripe;
 import com.stripe.exception.CardException;
-import com.stripe.model.Charge;
-import com.stripe.model.Customer;
+import com.stripe.exception.StripeException;
+import com.stripe.model.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.openapitools.model.User;
@@ -16,14 +16,36 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 @Profile("!mock")
 @Service
 public class StripeGatewayImpl implements StripeGateway {
+
+    /**
+     * Allows for transactions to be packaged with settlement info.
+     */
+    public static class SettlementInfo {
+
+        private Payout stripePayout;
+        private List<BalanceTransaction> balanceTransactions;
+
+        public Payout getStripePayout() {
+            return stripePayout;
+        }
+
+        public void setStripePayout(Payout stripePayout) {
+            this.stripePayout = stripePayout;
+        }
+
+        public List<BalanceTransaction> getBalanceTransactions() {
+            return balanceTransactions;
+        }
+
+        public void setBalanceTransactions(List<BalanceTransaction> balanceTransactions) {
+            this.balanceTransactions = balanceTransactions;
+        }
+    }
 
     private static final String DESCRIPTION = "Tickets purchased via Foria Technologies, Inc.";
     private static final String DESCRIPTOR = "TICKETS";
@@ -125,6 +147,57 @@ public class StripeGatewayImpl implements StripeGateway {
 
         LOG.info("Charged customer with amount: {} {} - stripeId: {} ", amount, currencyCode, stripeCustomerId);
         return charge;
+    }
+
+    @Override
+    public SettlementInfo getSettlementInfo() {
+
+        final SettlementInfo settlementInfo = new SettlementInfo();
+
+        final Map<String, Object> lastPayoutParams = new HashMap<>();
+        lastPayoutParams.put("limit", "1");
+
+        PayoutCollection payoutCollection;
+        try {
+            payoutCollection = Payout.list(lastPayoutParams);
+        } catch (Exception e) {
+            LOG.error("ERROR: Failed to obtain last payout! Error message: {}", e.getMessage());
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "ERROR: Failed to obtain last payout!");
+        }
+
+        final List<Payout> payoutList = payoutCollection.getData();
+        if (payoutList == null || payoutList.isEmpty()) {
+            LOG.error("ERROR: Failed to obtain last payout! Payout not found.");
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "ERROR: Failed to obtain last payout! Payout not found.");
+        }
+
+        final Payout lastPayout = payoutList.get(0);
+        if (!lastPayout.getAutomatic()) {
+            LOG.error("ERROR: Unable to generate report. Last payout is manual.");
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "ERROR: Unable to generate report. Last payout is manual.");
+        }
+
+        settlementInfo.setStripePayout(lastPayout);
+
+        final Map<String, Object> balanceTransactionParams = new HashMap<>();
+        balanceTransactionParams.put("payout", lastPayout.getId());
+        balanceTransactionParams.put("type", "charge");
+
+        BalanceTransactionCollection balanceTransactionCollection;
+        try {
+            balanceTransactionCollection = BalanceTransaction.list(balanceTransactionParams);
+        } catch (StripeException e) {
+            LOG.error("ERROR: Unable to obtain balance transactions for last payout. Error message: {}", e.getMessage());
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "ERROR: Unable to obtain balance transactions for last payout.");
+        }
+
+        List<BalanceTransaction> balanceTransactions = balanceTransactionCollection.getData();
+        if (balanceTransactions != null && !balanceTransactions.isEmpty()) {
+            settlementInfo.setBalanceTransactions(balanceTransactions);
+        }
+
+        LOG.info("Obtained last payout with Id for EPOCH date: {} {}", lastPayout.getId(), lastPayout.getCreated());
+        return settlementInfo;
     }
 
     @Override

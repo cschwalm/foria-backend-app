@@ -41,6 +41,14 @@ public interface StripeGateway {
     Customer createStripeCustomer(User user, String paymentToken);
 
     /**
+     * Obtains the last settlement (pending or completed) and its transaction list.
+     * Exception will be thrown if that last settlement was manual. This should be disabled on the Stripe account.
+     *
+     * @return Metadata plus transaction list.
+     */
+    StripeGatewayImpl.SettlementInfo getSettlementInfo();
+
+    /**
      * Update customer default source to new type.
      * Tokens may only be used once. Use it here and then charge the customer directly.
      *

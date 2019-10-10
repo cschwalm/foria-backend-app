@@ -300,6 +300,12 @@ public class ReportServiceImpl implements ReportService {
 
     @Override
     public void generateAndSendWeeklySettlementReport() {
-        throw new UnsupportedOperationException();
+
+        final ZonedDateTime nowInPST = ZonedDateTime.now().withZoneSameInstant(ZoneId.of("America/Los_Angeles"));
+        final CharArrayWriter writer = new CharArrayWriter();
+        LOG.info("Generating WeeklySettlementReport for: {}", nowInPST);
+
+
+
     }
 }
