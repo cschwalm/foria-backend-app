@@ -2,7 +2,11 @@ package com.foriatickets.foriabackend.service;
 
 import com.foriatickets.foriabackend.entities.*;
 import com.foriatickets.foriabackend.gateway.AWSSimpleEmailServiceGateway;
+import com.foriatickets.foriabackend.gateway.StripeGateway;
+import com.foriatickets.foriabackend.gateway.StripeGatewayImpl;
 import com.foriatickets.foriabackend.repositories.OrderRepository;
+import com.stripe.model.BalanceTransaction;
+import com.stripe.model.Payout;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -25,6 +29,12 @@ public class ReportServiceImplTest {
     @Mock
     private OrderRepository orderRepository;
 
+    @Mock
+    private StripeGateway stripeGateway;
+
+    @Mock
+    private CalculationService calculationService;
+
     private ReportService reportService;
 
     private List<OrderEntity> orders;
@@ -33,35 +43,73 @@ public class ReportServiceImplTest {
     public void setUp() {
 
         mockOrderInfo();
-        reportService = new ReportServiceImpl(awsSimpleEmailServiceGateway, orderRepository);
+        reportService = new ReportServiceImpl(awsSimpleEmailServiceGateway, orderRepository, stripeGateway, calculationService);
     }
 
     @Test
     public void generateAndSendDailyTicketPurchaseReport() {
 
         when(orderRepository.findOrderEntitiesByOrderTimestampAfterAndOrderTimestampBefore(any(), any())).thenReturn(orders);
-        doNothing().when(awsSimpleEmailServiceGateway).sendInternalReport(any(), any());
+        doNothing().when(awsSimpleEmailServiceGateway).sendInternalReport(any(), any(), any());
 
         reportService.generateAndSendDailyTicketPurchaseReport();
 
         verify(orderRepository).findOrderEntitiesByOrderTimestampAfterAndOrderTimestampBefore(any(), any());
-        verify(awsSimpleEmailServiceGateway).sendInternalReport(any(), any());
+        verify(awsSimpleEmailServiceGateway).sendInternalReport(any(), any(), any());
     }
 
     @Test
     public void generateAndSendDailyTicketPurchaseReport_noOrders() {
 
         when(orderRepository.findOrderEntitiesByOrderTimestampAfterAndOrderTimestampBefore(any(), any())).thenReturn(new ArrayList<>());
-        doNothing().when(awsSimpleEmailServiceGateway).sendInternalReport(any(), any());
+        doNothing().when(awsSimpleEmailServiceGateway).sendInternalReport(any(), any(), any());
 
         reportService.generateAndSendDailyTicketPurchaseReport();
 
         verify(orderRepository).findOrderEntitiesByOrderTimestampAfterAndOrderTimestampBefore(any(), any());
-        verify(awsSimpleEmailServiceGateway).sendInternalReport(any(), any());
+        verify(awsSimpleEmailServiceGateway).sendInternalReport(any(), any(), any());
     }
 
     @Test
     public void generateAndSendWeeklySettlementReport() {
+
+        BalanceTransaction balanceTransactionMock = mock(BalanceTransaction.class);
+        when(balanceTransactionMock.getSource()).thenReturn("ch_12345");
+        when(balanceTransactionMock.getNet()).thenReturn(10L);
+        when(balanceTransactionMock.getCurrency()).thenReturn("usd");
+        when(balanceTransactionMock.getType()).thenReturn("charge");
+        List<BalanceTransaction> transactions = new ArrayList<>();
+        transactions.add(balanceTransactionMock);
+
+        Payout payoutMock = mock(Payout.class);
+        when(payoutMock.getCurrency()).thenReturn("usd");
+        when(payoutMock.getAmount()).thenReturn(10L);
+        when(payoutMock.getAutomatic()).thenReturn(true);
+        when(payoutMock.getType()).thenReturn("charge");
+
+        StripeGatewayImpl.SettlementInfo settlementInfo = mock(StripeGatewayImpl.SettlementInfo.class);
+        when(settlementInfo.getBalanceTransactions()).thenReturn(transactions);
+        when(settlementInfo.getStripePayout()).thenReturn(payoutMock);
+
+        CalculationServiceImpl.PriceCalculationInfo priceCalculationInfo = new CalculationServiceImpl.PriceCalculationInfo();
+        priceCalculationInfo.grandTotal = BigDecimal.valueOf(10L);
+        priceCalculationInfo.feeSubtotal = BigDecimal.valueOf(5L);
+        priceCalculationInfo.venueFeeSubtotal = BigDecimal.valueOf(2L);
+        priceCalculationInfo.issuerFeeSubtotal = BigDecimal.valueOf(3L);
+        priceCalculationInfo.paymentFeeSubtotal = BigDecimal.ZERO;
+        priceCalculationInfo.ticketSubtotal = BigDecimal.valueOf(5L);
+        priceCalculationInfo.currencyCode = "USD";
+
+        when(calculationService.calculateFees(anyInt(), any(), any())).thenReturn(priceCalculationInfo);
+
+        when(stripeGateway.getSettlementInfo()).thenReturn(settlementInfo);
+        when(orderRepository.findByChargeReferenceId(any())).thenReturn(orders.get(0));
+        doNothing().when(awsSimpleEmailServiceGateway).sendInternalReport(any(), any(), any());
+
+        reportService.generateAndSendWeeklySettlementReport();
+
+        verify(orderRepository).findByChargeReferenceId(any());
+        verify(awsSimpleEmailServiceGateway).sendInternalReport(any(), any(), any());
     }
 
     private void mockOrderInfo() {

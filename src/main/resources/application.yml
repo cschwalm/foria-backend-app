@@ -24,6 +24,7 @@ server:
 
 # Report Scheduling
 dailyticketpurchasereport.cron: "0 0 6 */1 * ?"
+weeklySettlementReport.cron: "0 0 6 */1 * FRI"
 report.email: "info@foriatickets.com"
 ---
 spring:

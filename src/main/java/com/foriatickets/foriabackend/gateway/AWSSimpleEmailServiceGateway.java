@@ -30,7 +30,8 @@ public interface AWSSimpleEmailServiceGateway {
      * API uses legacy javax mail API to generate RAW email payload and sends it to AWS SES.
      *
      * @param reportName Filename of the report. Should include extension.
+     * @param bodyText Body to go in text part.
      * @param reportDataArr Byte array of data. Must not be empty and encoded as text/csv
      */
-    void sendInternalReport(String reportName, byte[] reportDataArr);
+    void sendInternalReport(String reportName, String bodyText, byte[] reportDataArr);
 }

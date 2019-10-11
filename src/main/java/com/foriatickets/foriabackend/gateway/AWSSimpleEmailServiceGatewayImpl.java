@@ -23,8 +23,6 @@ import javax.mail.internet.MimeMultipart;
 import javax.mail.util.ByteArrayDataSource;
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
@@ -90,33 +88,14 @@ public class AWSSimpleEmailServiceGatewayImpl implements AWSSimpleEmailServiceGa
     }
 
     @Override
-    public void sendInternalReport(String reportName, byte[] reportDataArr) {
+    public void sendInternalReport(String reportName, String bodyText, byte[] reportDataArr) {
 
         if (reportName == null) {
             LOG.error("Attempted to send email with null values.");
             return;
         }
 
-        final String reportText = (reportDataArr != null) ? "Report is attached as a CSV that can be opened in Google Sheets / Excel." : "Nothing to report for today.";
-
         final String subjectText = "INTERNAL FORIA REPORT: " + reportName;
-        final String bodyText = "### INTERNAL FORIA REPORT ### - " +
-                reportName +
-                "\r\n" +
-                "Report Generated at: " +
-                ZonedDateTime.now().withZoneSameInstant(ZoneId.of("America/Los_Angeles")).toString() +
-                "\r\n" +
-                "\r\n" +
-                 reportText +
-                "\r\n" +
-                "\r\n" +
-                "Signed," +
-                "\r\n" +
-                "Foria API Server" +
-                "\r\n" +
-                "\r\n" +
-                "CONFIDENTIAL - DO NOT FORWARD" +
-                "\r\n";
 
         final MessageTag appTag = MessageTag.builder()
                 .name("app")

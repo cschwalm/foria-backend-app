@@ -32,6 +32,9 @@ import static org.mockito.Mockito.when;
 public class EventServiceImplTest {
 
     @Mock
+    private CalculationService calculationService;
+
+    @Mock
     private EventRepository eventRepository;
 
     @Mock
@@ -64,7 +67,7 @@ public class EventServiceImplTest {
         when(venueEntityMock.getName()).thenReturn("Test");
         when(venueEntityMock.getId()).thenReturn(UUID.randomUUID());
 
-        TicketServiceImpl.PriceCalculationInfo priceCalculationInfo = new TicketServiceImpl.PriceCalculationInfo();
+        CalculationServiceImpl.PriceCalculationInfo priceCalculationInfo = new CalculationServiceImpl.PriceCalculationInfo();
         priceCalculationInfo.ticketSubtotal = new BigDecimal("100.00");
         priceCalculationInfo.feeSubtotal = new BigDecimal("50.00");
         priceCalculationInfo.currencyCode = "USD";
@@ -106,7 +109,7 @@ public class EventServiceImplTest {
         when(mockEvent1.getTicketFeeConfig()).thenReturn(ticketFeeConfigEntitySet);
 
         when(ticketService.countTicketsRemaining(any())).thenReturn(5);
-        when(ticketService.calculateFees(eq(1), any(), eq(ticketFeeConfigEntitySet))).thenReturn(priceCalculationInfo);
+        when(calculationService.calculateFees(eq(1), any(), eq(ticketFeeConfigEntitySet))).thenReturn(priceCalculationInfo);
 
         ModelMapper modelMapper = new ModelMapper();
         for (PropertyMap map : BeanConfig.getModelMappers()) {
@@ -114,7 +117,7 @@ public class EventServiceImplTest {
             modelMapper.addMappings(map);
         }
 
-        eventService = new EventServiceImpl(eventRepository, ticketFeeConfigRepository, ticketTypeConfigRepository, venueRepository, modelMapper, ticketService);
+        eventService = new EventServiceImpl(calculationService, eventRepository, ticketFeeConfigRepository, ticketTypeConfigRepository, venueRepository, modelMapper, ticketService);
     }
 
     @Test

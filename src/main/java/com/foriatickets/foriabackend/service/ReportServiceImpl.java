@@ -2,10 +2,14 @@ package com.foriatickets.foriabackend.service;
 
 import com.foriatickets.foriabackend.entities.*;
 import com.foriatickets.foriabackend.gateway.AWSSimpleEmailServiceGateway;
+import com.foriatickets.foriabackend.gateway.StripeGateway;
+import com.foriatickets.foriabackend.gateway.StripeGatewayImpl;
 import com.foriatickets.foriabackend.repositories.OrderRepository;
 import com.opencsv.CSVWriter;
 import com.opencsv.bean.*;
 import com.opencsv.exceptions.CsvRequiredFieldEmptyException;
+import com.stripe.model.BalanceTransaction;
+import com.stripe.model.Payout;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.logging.log4j.LogManager;
@@ -16,11 +20,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.CharArrayWriter;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -215,18 +221,23 @@ public class ReportServiceImpl implements ReportService {
 
     private final OrderRepository orderRepository;
 
+    private final StripeGateway stripeGateway;
+
+    private final CalculationService calculationService;
+
     private static final Logger LOG = LogManager.getLogger();
 
-    private static final String REPORT_NAME = "DailyTicketPurchaseReport.csv";
     private static DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss");
 
-    public ReportServiceImpl(AWSSimpleEmailServiceGateway awsSimpleEmailServiceGateway, OrderRepository orderRepository) {
+    public ReportServiceImpl(AWSSimpleEmailServiceGateway awsSimpleEmailServiceGateway, OrderRepository orderRepository, StripeGateway stripeGateway, CalculationService calculationService) {
         this.awsSimpleEmailServiceGateway = awsSimpleEmailServiceGateway;
         this.orderRepository = orderRepository;
+        this.stripeGateway = stripeGateway;
+        this.calculationService = calculationService;
     }
 
     @Override
-    @Scheduled(cron = "${dailyticketpurchasereport.cron}")
+    @Scheduled(cron = "${dailyticketpurchasereport.cron:-}")
     public void generateAndSendDailyTicketPurchaseReport() {
 
         final ZonedDateTime nowInPST = ZonedDateTime.now().withZoneSameInstant(ZoneId.of("America/Los_Angeles"));
@@ -240,7 +251,8 @@ public class ReportServiceImpl implements ReportService {
 
         if (orders == null || orders.isEmpty()) {
             LOG.info("No orders were completed yesterday. Skipping report generation.");
-            awsSimpleEmailServiceGateway.sendInternalReport(REPORT_NAME, null);
+            final String reportText = "Nothing to report for today.";
+            awsSimpleEmailServiceGateway.sendInternalReport("DailyTicketPurchaseReport",reportText, null);
             return;
         }
 
@@ -294,18 +306,120 @@ public class ReportServiceImpl implements ReportService {
             return;
         }
 
-        awsSimpleEmailServiceGateway.sendInternalReport(REPORT_NAME, writer.toString().getBytes(StandardCharsets.UTF_8));
+        final String bodyText = "### INTERNAL FORIA REPORT ### - " +
+                "DailyTicketPurchaseReport" +
+                "\r\n" +
+                "Report Generated at: " +
+                ZonedDateTime.now().withZoneSameInstant(ZoneId.of("America/Los_Angeles")).toString() +
+                "\r\n" +
+                "\r\n" +
+                "Report is attached as a CSV that can be opened in Google Sheets / Excel." +
+                "\r\n" +
+                "\r\n" +
+                "Signed," +
+                "\r\n" +
+                "Foria API Server" +
+                "\r\n" +
+                "\r\n" +
+                "CONFIDENTIAL - DO NOT FORWARD" +
+                "\r\n";
+
+        awsSimpleEmailServiceGateway.sendInternalReport("DailyTicketPurchaseReport.csv", bodyText, writer.toString().getBytes(StandardCharsets.UTF_8));
         LOG.info("DailyTicketPurchaseReport generated and sent at: {}", DateTime.now());
     }
 
     @Override
+    @Scheduled(cron = "${weeklySettlementReport.cron:-}")
     public void generateAndSendWeeklySettlementReport() {
 
         final ZonedDateTime nowInPST = ZonedDateTime.now().withZoneSameInstant(ZoneId.of("America/Los_Angeles"));
-        final CharArrayWriter writer = new CharArrayWriter();
         LOG.info("Generating WeeklySettlementReport for: {}", nowInPST);
 
+        final StripeGatewayImpl.SettlementInfo settlementInfo;
+        try {
+            settlementInfo = stripeGateway.getSettlementInfo();
+        } catch (Exception ex) {
+            awsSimpleEmailServiceGateway.sendInternalReport("WeeklySettlementReport", "Failed to generate report. Check Logs.", null);
+            LOG.info("WeeklySettlementReport failed to generate and send at: {}", DateTime.now());
+            return;
+        }
 
+        final Payout payout = settlementInfo.getStripePayout();
+        final List<BalanceTransaction> transactions = settlementInfo.getBalanceTransactions();
 
+        final BigDecimal settlementAmount = BigDecimal.valueOf(payout.getAmount()).movePointLeft(2);
+        BigDecimal totalNetAmount = BigDecimal.ZERO;
+        BigDecimal totalExpectedAmount = BigDecimal.ZERO;
+        BigDecimal foriaRevenueAmount = BigDecimal.ZERO;
+        BigDecimal venueRevenueAmount = BigDecimal.ZERO;
+
+        //Check that we have record for every transaction
+        boolean isTransactionMissing = false;
+        for (BalanceTransaction balanceTransaction : transactions) { //Every entry should be an order.
+
+            OrderEntity orderEntity = orderRepository.findByChargeReferenceId(balanceTransaction.getSource());
+            if (orderEntity == null) {
+                isTransactionMissing = true;
+                LOG.warn("Transaction with chargeRefId: {} is not found in order table.", balanceTransaction.getSource());
+                continue;
+            }
+
+            //Setup Fees
+            final Set<OrderFeeEntryEntity> orderFeeEntryEntities = orderEntity.getFees();
+            final Set<TicketFeeConfigEntity> feeSet = new HashSet<>();
+            for (OrderFeeEntryEntity orderFee : orderFeeEntryEntities) {
+                feeSet.add(orderFee.getTicketFeeConfigEntity());
+            }
+
+            //Checking net amount against settlement amount catches ledger mismatch.
+            BigDecimal netAmount = BigDecimal.valueOf(balanceTransaction.getNet()).movePointLeft(2);
+            totalNetAmount = totalNetAmount.add(netAmount);
+
+            BigDecimal ticketSubtotal = BigDecimal.ZERO;
+            int numPaidTickets = 0;
+            for (OrderTicketEntryEntity orderTicketEntryEntity : orderEntity.getTickets()) {
+
+                TicketEntity ticket = orderTicketEntryEntity.getTicketEntity();
+
+                if (!ticket.getTicketTypeConfigEntity().getCurrency().equalsIgnoreCase("USD")) {
+                    LOG.warn("Ticket ID: {} is not in USD. Skipping calculation.", ticket.getId());
+                    continue;
+                }
+
+                //Check ticket to see if it's free to skip FLAT fee apply.
+                if (ticket.getTicketTypeConfigEntity().getPrice().compareTo(BigDecimal.ZERO) > 0) {
+                    numPaidTickets++;
+                    ticketSubtotal = ticketSubtotal.add(ticket.getTicketTypeConfigEntity().getPrice());
+                }
+            }
+
+            CalculationServiceImpl.PriceCalculationInfo pInfo = calculationService.calculateFees(numPaidTickets, ticketSubtotal, feeSet);
+            foriaRevenueAmount = foriaRevenueAmount.add(pInfo.issuerFeeSubtotal);
+            venueRevenueAmount = venueRevenueAmount.add( (pInfo.venueFeeSubtotal.add(pInfo.ticketSubtotal)) );
+        }
+
+        totalExpectedAmount = totalExpectedAmount.add( (foriaRevenueAmount.add(venueRevenueAmount)) );
+
+        final String mailDelimiter = "\r\n";
+        String reportStr = String.join(
+                mailDelimiter,
+                "### INTERNAL FORIA REPORT ### - Weekly Settlement Report",
+                "Report Generated at: " + ZonedDateTime.now().withZoneSameInstant(ZoneId.of("America/Los_Angeles")).toString(),
+                mailDelimiter,
+                (isTransactionMissing) ? "### WARNING ### STRIPE CONTAINS CHARGE TRANSACTION NOT IN FORIA ORDER LIST - MANUAL ADJUSTMENT REQUIRED! ### WARNING ###" : "",
+                "Amount Being Deposited Today (Settlement Amount): " + settlementAmount.toPlainString() + " " + payout.getCurrency(),
+                "Expected Amount For Today (Expected Settlement Amount): " + totalExpectedAmount.toPlainString() + " " + payout.getCurrency(),
+                (settlementAmount.compareTo(totalExpectedAmount) != 0) ? "### WARNING ### AMOUNTS DO NOT MATCH - EITHER A REFUND WAS PROCESSED OR MANUAL LEDGER ENTRY OCCURRED - MANUAL ADJUSTMENT REQUIRED! ### WARNING ###" : "",
+                mailDelimiter,
+                "Foria Revenue Amount (Foria Fees Collected On Tickets - Transfer/Keep this to Foria Operating Account): " + foriaRevenueAmount.toPlainString() + " " + payout.getCurrency(),
+                "Venue Revenue Amount (Venue Ticket Rev plus Venue Fees) - Transfer this to Venue ITF Account): " + venueRevenueAmount.toPlainString() + " " + payout.getCurrency(),
+                mailDelimiter,
+                "Signed,",
+                "Foria API Server",
+                "CONFIDENTIAL - DO NOT FORWARD"
+        );
+
+        awsSimpleEmailServiceGateway.sendInternalReport("Weekly Settlement Report", reportStr, null);
+        LOG.info("DailyTicketPurchaseReport generated and sent at: {}", DateTime.now());
     }
 }

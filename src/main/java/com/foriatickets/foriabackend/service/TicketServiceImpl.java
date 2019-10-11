@@ -24,7 +24,6 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -37,8 +36,6 @@ import static org.springframework.web.context.WebApplicationContext.SCOPE_REQUES
 @Transactional
 public class TicketServiceImpl implements TicketService {
 
-    private static final BigDecimal STRIPE_PERCENT_FEE = BigDecimal.valueOf(0.029);
-    private static final BigDecimal STRIPE_FLAT_FEE = BigDecimal.valueOf(0.30);
     private static final int MAX_TICKETS_PER_ORDER = 10;
 
     private static final String RECEIVED_TICKET_TITLE = "Foria Pass Received";
@@ -47,14 +44,7 @@ public class TicketServiceImpl implements TicketService {
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("MM/dd/yyyy");
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm a");
 
-    static class PriceCalculationInfo {
-
-        BigDecimal ticketSubtotal;
-        BigDecimal feeSubtotal;
-        BigDecimal paymentFeeSubtotal;
-        BigDecimal grandTotal;
-        String currencyCode;
-    }
+    private final CalculationService calculationService;
 
     private final ModelMapper modelMapper;
 
@@ -87,7 +77,9 @@ public class TicketServiceImpl implements TicketService {
     private UserEntity authenticatedUser;
 
     @Autowired
-    public TicketServiceImpl(ModelMapper modelMapper, EventRepository eventRepository, OrderRepository orderRepository, UserRepository userRepository, TicketTypeConfigRepository ticketTypeConfigRepository, TicketRepository ticketRepository, StripeGateway stripeGateway, OrderFeeEntryRepository orderFeeEntryRepository, OrderTicketEntryRepository orderTicketEntryRepository, TransferRequestRepository transferRequestRepository, FCMGateway fcmGateway, AWSSimpleEmailServiceGateway awsSimpleEmailServiceGateway) {
+    public TicketServiceImpl(CalculationService calculationService, ModelMapper modelMapper, EventRepository eventRepository, OrderRepository orderRepository, UserRepository userRepository, TicketTypeConfigRepository ticketTypeConfigRepository, TicketRepository ticketRepository, StripeGateway stripeGateway, OrderFeeEntryRepository orderFeeEntryRepository, OrderTicketEntryRepository orderTicketEntryRepository, TransferRequestRepository transferRequestRepository, FCMGateway fcmGateway, AWSSimpleEmailServiceGateway awsSimpleEmailServiceGateway) {
+
+        this.calculationService = calculationService;
         this.modelMapper = modelMapper;
         this.eventRepository = eventRepository;
         this.orderRepository = orderRepository;
@@ -132,39 +124,6 @@ public class TicketServiceImpl implements TicketService {
     }
 
     @Override
-    public OrderTotal calculateOrderTotal(UUID eventId, List<TicketLineItem> orderConfig) {
-
-        if (orderConfig == null || eventId == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Calculate order total request is missing required data.");
-        }
-
-        //Check that event exists.
-        Optional<EventEntity> eventEntityOptional = eventRepository.findById(eventId);
-        if (!eventEntityOptional.isPresent()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Event ID is invalid.");
-        }
-
-        //Calculate order total.
-        OrderTotal orderTotal = new OrderTotal();
-        PriceCalculationInfo priceCalculationInfo = calculateTotalPrice(eventId, orderConfig);
-
-        BigDecimal subtotal = priceCalculationInfo.ticketSubtotal;
-        BigDecimal fees = priceCalculationInfo.feeSubtotal.add(priceCalculationInfo.paymentFeeSubtotal);
-        BigDecimal total = priceCalculationInfo.grandTotal;
-
-        orderTotal.setSubtotal(subtotal.toPlainString());
-        orderTotal.setFees(fees.toPlainString());
-        orderTotal.setGrandTotal(total.toPlainString());
-        orderTotal.setCurrency(priceCalculationInfo.currencyCode);
-
-        orderTotal.setSubtotalCents(subtotal.movePointRight(subtotal.scale()).stripTrailingZeros().toPlainString());
-        orderTotal.setFeesCents(fees.movePointRight(fees.scale()).stripTrailingZeros().toPlainString());
-        orderTotal.setGrandTotalCents(total.movePointRight(total.scale()).stripTrailingZeros().toPlainString());
-
-        return orderTotal;
-    }
-
-    @Override
     public UUID checkoutOrder(String paymentToken, UUID eventId, List<TicketLineItem> orderConfig) {
 
         if (orderConfig == null || eventId == null) {
@@ -191,7 +150,7 @@ public class TicketServiceImpl implements TicketService {
         final UUID orderId = UUID.randomUUID();
 
         //Calculate order total.
-        PriceCalculationInfo priceCalculationInfo = calculateTotalPrice(eventId, orderConfig);
+        CalculationServiceImpl.PriceCalculationInfo priceCalculationInfo = calculationService.calculateTotalPrice(eventId, orderConfig);
 
         //Create order entry.
         OrderEntity orderEntity = new OrderEntity();
@@ -427,46 +386,6 @@ public class TicketServiceImpl implements TicketService {
         return redemptionResult;
     }
 
-    private PriceCalculationInfo calculateTotalPrice(UUID eventId, List<TicketLineItem> orderConfig) {
-
-        String currencyCode = "USD";
-        BigDecimal ticketSubtotal = BigDecimal.ZERO;
-
-        //Load price config along with fees for event.
-        Optional<EventEntity> eventEntityOptional = eventRepository.findById(eventId);
-        if (!eventEntityOptional.isPresent()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Event ID is invalid.");
-        }
-        EventEntity eventEntity = eventEntityOptional.get();
-        Set<TicketFeeConfigEntity> feeSet = eventEntity.getTicketFeeConfig();
-
-        //Load ticket price configs.
-        //Summate over tickets to calculate sub-total.
-        int numPaidTickets = 0;
-        for (TicketLineItem ticketLineItem : orderConfig) {
-            UUID ticketTypeConfigId = ticketLineItem.getTicketTypeId();
-            Optional<TicketTypeConfigEntity> ticketTypeConfigEntityOptional = ticketTypeConfigRepository.findById(ticketTypeConfigId);
-
-            if (ticketTypeConfigEntityOptional.isPresent()) {
-                TicketTypeConfigEntity ticketTypeConfigEntity = ticketTypeConfigEntityOptional.get();
-
-                final int orderAmount = ticketLineItem.getAmount();
-                BigDecimal amountForType = new BigDecimal(orderAmount);
-                BigDecimal ticketPriceForType = ticketTypeConfigEntity.getPrice().multiply(amountForType);
-                ticketSubtotal = ticketSubtotal.add(ticketPriceForType);
-                currencyCode = ticketTypeConfigEntity.getCurrency();
-
-                if (ticketSubtotal.compareTo(BigDecimal.ZERO) > 0) {
-                    numPaidTickets += orderAmount;
-                }
-            }
-        }
-
-        PriceCalculationInfo priceCalculationInfo = calculateFees(numPaidTickets, ticketSubtotal, feeSet);
-        priceCalculationInfo.currencyCode = currencyCode;
-        return priceCalculationInfo;
-    }
-
     @Override
     public int countTicketsRemaining(UUID ticketTypeConfigId) {
 
@@ -478,69 +397,6 @@ public class TicketServiceImpl implements TicketService {
 
         int ticketsRemaining = obtainTicketsRemainingByType(ticketTypeConfigEntityOptional.get());
         return ticketsRemaining > MAX_TICKETS_PER_ORDER ? MAX_TICKETS_PER_ORDER : ticketsRemaining;
-    }
-
-    public PriceCalculationInfo calculateFees(final int numPaidTickets, final BigDecimal ticketSubtotal, final Set<TicketFeeConfigEntity> feeSet) {
-
-        //Group fees by type.
-        Set<TicketFeeConfigEntity> percentFeeSet = new HashSet<>();
-        Set<TicketFeeConfigEntity> flatFeeSet = new HashSet<>();
-
-        feeSet.forEach(fee -> {
-
-            switch (fee.getMethod()) {
-
-                case FLAT:
-                    flatFeeSet.add(fee);
-                    break;
-
-                case PERCENT:
-                    percentFeeSet.add(fee);
-                    break;
-
-                default:
-                    LOG.warn("Unknown fee method: {} Skipping.", fee.getMethod());
-            }
-        });
-
-        BigDecimal ticketFeeAmount;
-        BigDecimal paymentFeeAmount;
-        BigDecimal grandTotal;
-
-        //Summate percent fees and apply.
-        BigDecimal feePercentToApply = BigDecimal.ZERO;
-        for (TicketFeeConfigEntity feeConfigEntity : percentFeeSet) {
-            feePercentToApply = feePercentToApply.add(feeConfigEntity.getAmount());
-        }
-        ticketFeeAmount = ticketSubtotal.multiply(feePercentToApply);
-
-        //Summate flat fees and apply.
-        BigDecimal feeFlatToApplyPerTicket = BigDecimal.ZERO;
-        for (TicketFeeConfigEntity feeConfigEntity : flatFeeSet) {
-            feeFlatToApplyPerTicket = feeFlatToApplyPerTicket.add(feeConfigEntity.getAmount());
-        }
-        BigDecimal flatFeeAmount = feeFlatToApplyPerTicket.multiply(BigDecimal.valueOf(numPaidTickets));
-        ticketFeeAmount = ticketFeeAmount.add(flatFeeAmount).setScale(2, BigDecimal.ROUND_HALF_UP);
-
-        //Apply payment vendor fee.
-        //charge_amount = (subtotal + 0.30) / (1 - 2.90 / 100)
-        BigDecimal subtotalWithFees = ticketSubtotal.add(ticketFeeAmount);
-        if (subtotalWithFees.compareTo(BigDecimal.ZERO) <= 0) {
-            grandTotal = BigDecimal.ZERO;
-            paymentFeeAmount = BigDecimal.ZERO;
-        } else {
-            grandTotal = (subtotalWithFees.add(STRIPE_FLAT_FEE))
-                    .divide(
-                            (BigDecimal.ONE.subtract(STRIPE_PERCENT_FEE)), BigDecimal.ROUND_HALF_UP);
-            paymentFeeAmount = grandTotal.subtract(subtotalWithFees);
-        }
-
-        PriceCalculationInfo result = new PriceCalculationInfo();
-        result.ticketSubtotal = ticketSubtotal.setScale(2, RoundingMode.FLOOR);
-        result.feeSubtotal = ticketFeeAmount.setScale(2, RoundingMode.FLOOR);
-        result.grandTotal = grandTotal.setScale(2, RoundingMode.FLOOR);
-        result.paymentFeeSubtotal = paymentFeeAmount.setScale(2, RoundingMode.FLOOR);
-        return result;
     }
 
     /**

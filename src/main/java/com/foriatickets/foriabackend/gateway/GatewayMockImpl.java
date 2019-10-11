@@ -88,7 +88,7 @@ public class GatewayMockImpl implements GatewayMock {
     }
 
     @Override
-    public void sendInternalReport(String reportName, byte[] reportDataArr) {
+    public void sendInternalReport(String reportName, String bodyText, byte[] reportDataArr) {
         LOG.info("SES mock in use. No email sent.");
     }
 }

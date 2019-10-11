@@ -1,5 +1,6 @@
 package com.foriatickets.foriabackend.controllers;
 
+import com.foriatickets.foriabackend.service.CalculationService;
 import com.foriatickets.foriabackend.service.TicketService;
 import org.openapitools.model.*;
 import org.springframework.beans.factory.BeanFactory;
@@ -27,8 +28,8 @@ public class TicketApi implements org.openapitools.api.TicketApi {
 
     @Override
     public ResponseEntity<OrderTotal> calculateOrderTotal(@Valid Order order) {
-        TicketService ticketService = beanFactory.getBean(TicketService.class);
-        OrderTotal orderTotal = ticketService.calculateOrderTotal(order.getEventId(), order.getTicketLineItemList());
+        CalculationService calculationService = beanFactory.getBean(CalculationService.class);
+        OrderTotal orderTotal = calculationService.calculateOrderTotal(order.getEventId(), order.getTicketLineItemList());
         return new ResponseEntity<>(orderTotal, HttpStatus.OK);
     }
 

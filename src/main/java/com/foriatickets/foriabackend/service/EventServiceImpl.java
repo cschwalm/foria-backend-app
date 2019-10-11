@@ -35,6 +35,7 @@ public class EventServiceImpl implements EventService {
 
     private static final Logger LOG = LogManager.getLogger();
 
+    private final CalculationService calculationService;
     private ModelMapper modelMapper;
     private EventRepository eventRepository;
     private TicketFeeConfigRepository ticketFeeConfigRepository;
@@ -43,12 +44,14 @@ public class EventServiceImpl implements EventService {
     private TicketService ticketService;
 
     @Autowired
-    public EventServiceImpl(EventRepository eventRepository,
+    public EventServiceImpl(CalculationService calculationService,
+                            EventRepository eventRepository,
                             TicketFeeConfigRepository ticketFeeConfigRepository,
                             TicketTypeConfigRepository ticketTypeConfigRepository,
                             VenueRepository venueRepository, ModelMapper modelMapper,
                             TicketService ticketService) {
 
+        this.calculationService = calculationService;
         this.eventRepository = eventRepository;
         this.ticketFeeConfigRepository = ticketFeeConfigRepository;
         this.ticketTypeConfigRepository = ticketTypeConfigRepository;
@@ -135,7 +138,7 @@ public class EventServiceImpl implements EventService {
 
             //Add calculated fee to assist front ends.
             final int numPaidTickets = new BigDecimal(ticketTypeConfig.getPrice()).compareTo(BigDecimal.ZERO) <= 0 ? 0 : 1;
-            TicketServiceImpl.PriceCalculationInfo calc = ticketService.calculateFees(numPaidTickets, new BigDecimal(ticketTypeConfig.getPrice()), eventEntity.getTicketFeeConfig());
+            CalculationServiceImpl.PriceCalculationInfo calc = calculationService.calculateFees(numPaidTickets, new BigDecimal(ticketTypeConfig.getPrice()), eventEntity.getTicketFeeConfig());
             BigDecimal feeSubtotal = calc.feeSubtotal.add(calc.paymentFeeSubtotal);
             ticketTypeConfig.setCalculatedFee(feeSubtotal.toPlainString());
         }
