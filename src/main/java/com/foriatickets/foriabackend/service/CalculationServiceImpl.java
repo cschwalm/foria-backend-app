@@ -215,7 +215,7 @@ public class CalculationServiceImpl implements CalculationService {
                 BigDecimal ticketPriceForType = ticketTypeConfigEntity.getPrice().multiply(amountForType);
                 ticketSubtotal = ticketSubtotal.add(ticketPriceForType);
                 currencyCode = ticketTypeConfigEntity.getCurrency();
-                numPaidTickets++;
+                numPaidTickets += amountForType.toBigInteger().intValue();
             }
         }
 
