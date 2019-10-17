@@ -49,24 +49,36 @@ public class ReportServiceImplTest {
     @Test
     public void generateAndSendDailyTicketPurchaseReport() {
 
-        when(orderRepository.findOrderEntitiesByOrderTimestampAfterAndOrderTimestampBefore(any(), any())).thenReturn(orders);
+        when(orderRepository.findOrderEntitiesByOrderTimestampAfterAndOrderTimestampBeforeOrderByOrderTimestampAsc(any(), any())).thenReturn(orders);
         doNothing().when(awsSimpleEmailServiceGateway).sendInternalReport(any(), any(), any());
 
         reportService.generateAndSendDailyTicketPurchaseReport();
 
-        verify(orderRepository).findOrderEntitiesByOrderTimestampAfterAndOrderTimestampBefore(any(), any());
+        verify(orderRepository).findOrderEntitiesByOrderTimestampAfterAndOrderTimestampBeforeOrderByOrderTimestampAsc(any(), any());
+        verify(awsSimpleEmailServiceGateway).sendInternalReport(any(), any(), any());
+    }
+
+    @Test
+    public void generateAndSendRollingTicketPurchaseReport() {
+
+        when(orderRepository.findOrderEntitiesByOrderTimestampAfterAndOrderTimestampBeforeOrderByOrderTimestampAsc(any(), any())).thenReturn(orders);
+        doNothing().when(awsSimpleEmailServiceGateway).sendInternalReport(any(), any(), any());
+
+        reportService.generateAndSendRollingTicketPurchaseReport();
+
+        verify(orderRepository).findOrderEntitiesByOrderTimestampAfterAndOrderTimestampBeforeOrderByOrderTimestampAsc(any(), any());
         verify(awsSimpleEmailServiceGateway).sendInternalReport(any(), any(), any());
     }
 
     @Test
     public void generateAndSendDailyTicketPurchaseReport_noOrders() {
 
-        when(orderRepository.findOrderEntitiesByOrderTimestampAfterAndOrderTimestampBefore(any(), any())).thenReturn(new ArrayList<>());
+        when(orderRepository.findOrderEntitiesByOrderTimestampAfterAndOrderTimestampBeforeOrderByOrderTimestampAsc(any(), any())).thenReturn(new ArrayList<>());
         doNothing().when(awsSimpleEmailServiceGateway).sendInternalReport(any(), any(), any());
 
         reportService.generateAndSendDailyTicketPurchaseReport();
 
-        verify(orderRepository).findOrderEntitiesByOrderTimestampAfterAndOrderTimestampBefore(any(), any());
+        verify(orderRepository).findOrderEntitiesByOrderTimestampAfterAndOrderTimestampBeforeOrderByOrderTimestampAsc(any(), any());
         verify(awsSimpleEmailServiceGateway).sendInternalReport(any(), any(), any());
     }
 
@@ -118,6 +130,7 @@ public class ReportServiceImplTest {
         EventEntity eventEntityMock = mock(EventEntity.class);
         VenueEntity venueEntity = mock(VenueEntity.class);
         when(userEntity.getId()).thenReturn(UUID.randomUUID());
+        when(userEntity.getEmail()).thenReturn("test@test.com");
 
         when(venueEntity.getId()).thenReturn(UUID.randomUUID());
         when(eventEntityMock.getVenueEntity()).thenReturn(venueEntity);
@@ -132,6 +145,7 @@ public class ReportServiceImplTest {
         when(ticketEntityMock.getPurchaserEntity()).thenReturn(userEntity);
         when(ticketEntityMock.getEventEntity()).thenReturn(eventEntityMock);
         when(ticketEntityMock.getIssuedDate()).thenReturn(OffsetDateTime.now());
+        when(ticketEntityMock.getStatus()).thenReturn(TicketEntity.Status.ACTIVE);
 
         UUID eventId = UUID.randomUUID();
 

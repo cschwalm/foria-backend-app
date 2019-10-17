@@ -1,5 +1,6 @@
 package com.foriatickets.foriabackend.gateway;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -8,6 +9,17 @@ import java.util.Map;
  * @author Corbin Schwalm
  */
 public interface AWSSimpleEmailServiceGateway {
+
+    /**
+     * Contains required metadata and helper methods to construct CSV reports and
+     * send via email.
+     */
+    class ReportAttachment {
+
+        public byte[] reportDataArray;
+        public String reportFilename;
+        String reportMimeType = "text/csv; charset=UTF-8";
+    }
 
     String TRANSFEREE_PENDING_EMAIL = "transferee_pending_email";
     String TRANSFEROR_PENDING_EMAIL = "transferor_pending_email";
@@ -31,7 +43,7 @@ public interface AWSSimpleEmailServiceGateway {
      *
      * @param reportName Filename of the report. Should include extension.
      * @param bodyText Body to go in text part.
-     * @param reportDataArr Byte array of data. Must not be empty and encoded as text/csv
+     * @param reports Optional list of reports to attach.
      */
-    void sendInternalReport(String reportName, String bodyText, byte[] reportDataArr);
+    void sendInternalReport(String reportName, String bodyText, List<ReportAttachment> reports);
 }

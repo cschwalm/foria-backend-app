@@ -23,6 +23,7 @@ import javax.mail.internet.MimeMultipart;
 import javax.mail.util.ByteArrayDataSource;
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
@@ -88,7 +89,7 @@ public class AWSSimpleEmailServiceGatewayImpl implements AWSSimpleEmailServiceGa
     }
 
     @Override
-    public void sendInternalReport(String reportName, String bodyText, byte[] reportDataArr) {
+    public void sendInternalReport(String reportName, String bodyText, List<ReportAttachment> reports) {
 
         if (reportName == null) {
             LOG.error("Attempted to send email with null values.");
@@ -138,14 +139,17 @@ public class AWSSimpleEmailServiceGatewayImpl implements AWSSimpleEmailServiceGa
             msg.addBodyPart(wrap);
 
             // Define the attachment if exists
-            if (reportDataArr != null) {
-                MimeBodyPart att = new MimeBodyPart();
-                DataSource ds = new ByteArrayDataSource(reportDataArr, "text/csv; charset=UTF-8");
-                att.setDataHandler(new DataHandler(ds));
-                att.setFileName(reportName);
+            if (reports != null && !reports.isEmpty()) {
 
-                // Add the attachment to the message.
-                msg.addBodyPart(att);
+                for (ReportAttachment reportAttachment : reports) {
+                    MimeBodyPart att = new MimeBodyPart();
+                    DataSource ds = new ByteArrayDataSource(reportAttachment.reportDataArray, reportAttachment.reportMimeType);
+                    att.setDataHandler(new DataHandler(ds));
+                    att.setFileName(reportAttachment.reportFilename);
+
+                    // Add the attachment to the message.
+                    msg.addBodyPart(att);
+                }
             }
 
             // Send the email.

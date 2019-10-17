@@ -16,6 +16,11 @@ public interface ReportService {
     void generateAndSendDailyTicketPurchaseReport();
 
     /**
+     * Generates report containing list of ticket sales from now to all time.
+     */
+    void generateAndSendRollingTicketPurchaseReport();
+
+    /**
      * Gathers the list of Stripe transactions hitting bank account
      * and specifies what amount of money to send the venue on a
      * week period.

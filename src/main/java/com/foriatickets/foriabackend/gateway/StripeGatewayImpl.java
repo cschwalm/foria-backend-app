@@ -22,9 +22,12 @@ import java.util.*;
 @Service
 public class StripeGatewayImpl implements StripeGateway {
 
+    private static final int STRIPE_RETURN_AMOUNT = 100;
+
     /**
      * Allows for transactions to be packaged with settlement info.
      */
+    @SuppressWarnings("WeakerAccess")
     public static class SettlementInfo {
 
         private Payout stripePayout;
@@ -182,19 +185,23 @@ public class StripeGatewayImpl implements StripeGateway {
         final Map<String, Object> balanceTransactionParams = new HashMap<>();
         balanceTransactionParams.put("payout", lastPayout.getId());
         balanceTransactionParams.put("type", "charge");
+        balanceTransactionParams.put("limit", STRIPE_RETURN_AMOUNT);
 
-        BalanceTransactionCollection balanceTransactionCollection;
+        final List<BalanceTransaction> balanceTransactions = new ArrayList<>();
         try {
-            balanceTransactionCollection = BalanceTransaction.list(balanceTransactionParams);
+
+            Iterable<BalanceTransaction> balanceTransactionItr = BalanceTransaction.list(balanceTransactionParams).autoPagingIterable();
+
+            for (BalanceTransaction balanceTransaction : balanceTransactionItr) {
+                balanceTransactions.add(balanceTransaction);
+            }
+
         } catch (StripeException e) {
             LOG.error("ERROR: Unable to obtain balance transactions for last payout. Error message: {}", e.getMessage());
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "ERROR: Unable to obtain balance transactions for last payout.");
         }
 
-        List<BalanceTransaction> balanceTransactions = balanceTransactionCollection.getData();
-        if (balanceTransactions != null && !balanceTransactions.isEmpty()) {
-            settlementInfo.setBalanceTransactions(balanceTransactions);
-        }
+        settlementInfo.setBalanceTransactions(balanceTransactions);
 
         LOG.info("Obtained last payout with Id for EPOCH date: {} {}", lastPayout.getId(), lastPayout.getCreated());
         return settlementInfo;
