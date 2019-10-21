@@ -1,6 +1,7 @@
 package com.foriatickets.foriabackend.controllers;
 
 import com.foriatickets.foriabackend.service.VenueService;
+import org.openapitools.model.BaseApiModel;
 import org.openapitools.model.Venue;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.http.HttpStatus;
@@ -40,5 +41,23 @@ public class VenueApi implements org.openapitools.api.VenueApi {
 
         VenueService venueService = beanFactory.getBean(VenueService.class);
         return ResponseEntity.of(venueService.getVenue(venueId));
+    }
+
+    @Override
+    @RequestMapping(value = "/venue/{venue_id}/authorize/{user_id}", method = RequestMethod.POST)
+    public ResponseEntity<BaseApiModel> authorizeUser(@PathVariable("venue_id")UUID venueId, @PathVariable("user_id")UUID userId) {
+
+        VenueService venueService = beanFactory.getBean(VenueService.class);
+        venueService.authorizeUser(venueId, userId);
+        return new ResponseEntity<>(new BaseApiModel(), HttpStatus.OK);
+    }
+
+    @Override
+    @RequestMapping(value = "/venue/{venue_id}/deauthorize/{user_id}", method = RequestMethod.POST)
+    public ResponseEntity<BaseApiModel> deauthorizeUser(@PathVariable("venue_id") UUID venueId, @PathVariable("user_id") UUID userId) {
+
+        VenueService venueService = beanFactory.getBean(VenueService.class);
+        venueService.deauthorizeUser(venueId, userId);
+        return new ResponseEntity<>(new BaseApiModel(), HttpStatus.OK);
     }
 }

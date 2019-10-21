@@ -25,10 +25,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 import static com.foriatickets.foriabackend.entities.TicketEntity.Status.ISSUED;
 import static org.junit.Assert.assertEquals;
@@ -224,14 +221,28 @@ public class TicketServiceImplTest {
         final GoogleAuthenticator gAuth = new GoogleAuthenticator();
         final GoogleAuthenticatorKey googleAuthenticatorKey = gAuth.createCredentials();
 
+        UUID venueId = UUID.randomUUID();
+        EventEntity eventEntity = mock(EventEntity.class);
+        VenueEntity venueEntity = mock(VenueEntity.class);
+
+        when(eventEntity.getVenueEntity()).thenReturn(venueEntity);
+        when(venueEntity.getId()).thenReturn(venueId);
+
         UUID ticketId = UUID.randomUUID();
         TicketEntity ticketEntityMock = mock(TicketEntity.class);
+
+        Set<VenueAccessEntity> venueAccessEntitySet = new HashSet<>();
+        VenueAccessEntity venueAccessEntity = mock(VenueAccessEntity.class);
+        when(venueAccessEntity.getVenueEntity()).thenReturn(venueEntity);
+        venueAccessEntitySet.add(venueAccessEntity);
+        when(authenticatedUser.getVenueAccessEntities()).thenReturn(venueAccessEntitySet);
 
         when(ticketEntityMock.getSecret()).thenReturn(googleAuthenticatorKey.getKey());
         when(ticketEntityMock.getStatus()).thenReturn(TicketEntity.Status.ACTIVE);
         when(ticketEntityMock.getOwnerEntity()).thenReturn(authenticatedUser);
         when(ticketEntityMock.getId()).thenReturn(ticketId);
         when(ticketEntityMock.getPurchaserEntity()).thenReturn(authenticatedUser);
+        when(ticketEntityMock.getEventEntity()).thenReturn(eventEntity);
 
         when(ticketRepository.findById(ticketId)).thenReturn(Optional.of(ticketEntityMock));
         when(ticketRepository.save(any())).thenReturn(ticketEntityMock);
@@ -246,6 +257,20 @@ public class TicketServiceImplTest {
     @Test
     public void redeemTicket_BadOtp() {
 
+        UUID venueId = UUID.randomUUID();
+        EventEntity eventEntity = mock(EventEntity.class);
+        VenueEntity venueEntity = mock(VenueEntity.class);
+
+        when(eventEntity.getVenueEntity()).thenReturn(venueEntity);
+        when(venueEntity.getId()).thenReturn(venueId);
+
+        Set<VenueAccessEntity> venueAccessEntitySet = new HashSet<>();
+        VenueAccessEntity venueAccessEntity = mock(VenueAccessEntity.class);
+        when(venueAccessEntity.getVenueEntity()).thenReturn(venueEntity);
+        venueAccessEntitySet.add(venueAccessEntity);
+        when(authenticatedUser.getVenueAccessEntities()).thenReturn(venueAccessEntitySet);
+
+
         final GoogleAuthenticator gAuth = new GoogleAuthenticator();
         final GoogleAuthenticatorKey googleAuthenticatorKey = gAuth.createCredentials();
 
@@ -257,6 +282,43 @@ public class TicketServiceImplTest {
         when(ticketEntityMock.getOwnerEntity()).thenReturn(authenticatedUser);
         when(ticketEntityMock.getId()).thenReturn(ticketId);
         when(ticketEntityMock.getPurchaserEntity()).thenReturn(authenticatedUser);
+        when(ticketEntityMock.getEventEntity()).thenReturn(eventEntity);
+
+        when(ticketRepository.findById(ticketId)).thenReturn(Optional.of(ticketEntityMock));
+        when(ticketRepository.save(any())).thenReturn(ticketEntityMock);
+
+        RedemptionResult actual = ticketService.redeemTicket(ticketId, "000000");
+        assertEquals(RedemptionResult.StatusEnum.DENY, actual.getStatus());
+        assertNotNull(actual.getTicket());
+
+        verify(ticketRepository, times(0)).save(ticketEntityMock);
+    }
+
+    @Test(expected = ResponseStatusException.class)
+    public void redeemTicket_BadAccess() {
+
+        UUID venueId = UUID.randomUUID();
+        EventEntity eventEntity = mock(EventEntity.class);
+        VenueEntity venueEntity = mock(VenueEntity.class);
+
+        when(eventEntity.getVenueEntity()).thenReturn(venueEntity);
+        when(venueEntity.getId()).thenReturn(venueId);
+
+        Set<VenueAccessEntity> venueAccessEntitySet = new HashSet<>();
+        when(authenticatedUser.getVenueAccessEntities()).thenReturn(venueAccessEntitySet);
+
+        final GoogleAuthenticator gAuth = new GoogleAuthenticator();
+        final GoogleAuthenticatorKey googleAuthenticatorKey = gAuth.createCredentials();
+
+        UUID ticketId = UUID.randomUUID();
+        TicketEntity ticketEntityMock = mock(TicketEntity.class);
+
+        when(ticketEntityMock.getSecret()).thenReturn(googleAuthenticatorKey.getKey());
+        when(ticketEntityMock.getStatus()).thenReturn(TicketEntity.Status.ACTIVE);
+        when(ticketEntityMock.getOwnerEntity()).thenReturn(authenticatedUser);
+        when(ticketEntityMock.getId()).thenReturn(ticketId);
+        when(ticketEntityMock.getPurchaserEntity()).thenReturn(authenticatedUser);
+        when(ticketEntityMock.getEventEntity()).thenReturn(eventEntity);
 
         when(ticketRepository.findById(ticketId)).thenReturn(Optional.of(ticketEntityMock));
         when(ticketRepository.save(any())).thenReturn(ticketEntityMock);

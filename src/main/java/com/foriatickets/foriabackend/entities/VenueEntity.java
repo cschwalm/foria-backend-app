@@ -11,7 +11,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "venue")
-@SuppressWarnings("unused")
+@SuppressWarnings({"unused", "UnusedReturnValue"})
 public class VenueEntity implements Serializable {
 
     private UUID id;
@@ -27,6 +27,7 @@ public class VenueEntity implements Serializable {
     private String contactZip;
     private String contactCountry;
     private Set<EventEntity> events = new HashSet<>();
+    private Set<VenueAccessEntity> venueAccessEntities = new HashSet<>();
 
     @Id
     @GeneratedValue
@@ -159,6 +160,15 @@ public class VenueEntity implements Serializable {
     public VenueEntity setEvents(Set<EventEntity> events) {
         this.events = events;
         return this;
+    }
+
+    @OneToMany(mappedBy = "venueEntity", fetch = FetchType.LAZY)
+    public Set<VenueAccessEntity> getVenueAccessEntities() {
+        return venueAccessEntities;
+    }
+
+    public void setVenueAccessEntities(Set<VenueAccessEntity> venueAccessEntities) {
+        this.venueAccessEntities = venueAccessEntities;
     }
 
     @Override

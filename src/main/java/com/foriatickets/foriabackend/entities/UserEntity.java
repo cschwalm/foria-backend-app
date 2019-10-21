@@ -9,9 +9,9 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
+@SuppressWarnings({"UnusedReturnValue", "unused"})
 @Entity
 @Table(name = "user")
-@SuppressWarnings("unused")
 public class UserEntity implements Serializable {
 
     private UUID id;
@@ -23,6 +23,7 @@ public class UserEntity implements Serializable {
     private Set<DeviceTokenEntity> deviceTokens = new HashSet<>();
     private Set<TicketEntity> tickets = new HashSet<>();
     private Set<TicketEntity> purchasedTickets = new HashSet<>();
+    private Set<VenueAccessEntity> venueAccessEntities = new HashSet<>();
 
     @Id
     @GeneratedValue
@@ -115,6 +116,15 @@ public class UserEntity implements Serializable {
     public UserEntity setPurchasedTickets(Set<TicketEntity> purchasedTickets) {
         this.purchasedTickets = purchasedTickets;
         return this;
+    }
+
+    @OneToMany(mappedBy = "venueEntity", fetch = FetchType.LAZY)
+    public Set<VenueAccessEntity> getVenueAccessEntities() {
+        return venueAccessEntities;
+    }
+
+    public void setVenueAccessEntities(Set<VenueAccessEntity> venueAccessEntities) {
+        this.venueAccessEntities = venueAccessEntities;
     }
 
     @Override

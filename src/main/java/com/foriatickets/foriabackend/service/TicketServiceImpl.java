@@ -370,6 +370,22 @@ public class TicketServiceImpl implements TicketService {
         }
 
         final String ticketSecret = ticketEntity.getSecret();
+
+        //Check scanner permission to redeem.
+        boolean doesHavePermission = false;
+        final String venueId = ticketEntity.getEventEntity().getVenueEntity().getId().toString();
+        Set<VenueAccessEntity> venueAccessEntities = authenticatedUser.getVenueAccessEntities();
+        for (VenueAccessEntity venueAccessEntity : venueAccessEntities) {
+            if (venueAccessEntity.getVenueEntity().getId().toString().equals(venueId)) {
+                doesHavePermission = true;
+            }
+        }
+
+        if (!doesHavePermission) {
+            LOG.info("User ID: {} attempted to scan for Venue ID: {} that they are not a member of.", authenticatedUser.getId(), venueId);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Not authorized to scan this ticket.");
+        }
+
         boolean isValid = gAuth.authorize(ticketSecret, otpCodeInteger);
         redemptionResult.setStatus(isValid ? RedemptionResult.StatusEnum.ALLOW : RedemptionResult.StatusEnum.DENY);
 

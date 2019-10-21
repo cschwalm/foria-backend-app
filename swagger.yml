@@ -480,6 +480,74 @@ paths:
         404:
           description: Venue not found by ID.
           content: {}
+  /venue/{venue_id}/authorize/{user_id}:
+    post:
+      tags:
+        - venue
+      summary: Authorizes user account for venue access.
+      description: Allows user account to preform actions on venue assets.
+      operationId: authorizeUser
+      security:
+        - OAuth2:
+            - write:venue
+      parameters:
+        - name: venue_id
+          in: path
+          description: The venue ID stored in the Foria database.
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: user_id
+          in: path
+          description: The user ID stored in the Foria database.
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseApiModel'
+        404:
+          description: Venue not found or other error.
+  /venue/{venue_id}/deauthorize/{user_id}:
+    post:
+      tags:
+        - venue
+      summary: Deauthorizes user account for venue access.
+      description: Disallows user account to preform actions on venue assets.
+      operationId: deauthorizeUser
+      security:
+        - OAuth2:
+            - write:venue
+      parameters:
+        - name: venue_id
+          in: path
+          description: The venue ID stored in the Foria database.
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: user_id
+          in: path
+          description: The user ID stored in the Foria database.
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseApiModel'
+        404:
+          description: Venue not found or other error.
 components:
   schemas:
     ActivationResult:

@@ -1,6 +1,10 @@
 package com.foriatickets.foriabackend.service;
 
+import com.foriatickets.foriabackend.entities.UserEntity;
+import com.foriatickets.foriabackend.entities.VenueAccessEntity;
 import com.foriatickets.foriabackend.entities.VenueEntity;
+import com.foriatickets.foriabackend.repositories.UserRepository;
+import com.foriatickets.foriabackend.repositories.VenueAccessRepository;
 import com.foriatickets.foriabackend.repositories.VenueRepository;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -8,9 +12,12 @@ import org.modelmapper.ModelMapper;
 import org.openapitools.model.Venue;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.time.OffsetDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -23,15 +30,76 @@ public class VenueServiceImpl implements VenueService {
 
     private static final Logger LOG = LogManager.getLogger();
 
-    private ModelMapper modelMapper;
+    private final ModelMapper modelMapper;
 
-    private VenueRepository venueRepository;
+    private final UserRepository userRepository;
+
+    private final VenueAccessRepository venueAccessRepository;
+
+    private final VenueRepository venueRepository;
 
     @Autowired
-    public VenueServiceImpl(VenueRepository venueRepository, ModelMapper modelMapper) {
+    public VenueServiceImpl(UserRepository userRepository, VenueAccessRepository venueAccessRepository, VenueRepository venueRepository, ModelMapper modelMapper) {
 
         this.modelMapper = modelMapper;
+        this.userRepository = userRepository;
+        this.venueAccessRepository = venueAccessRepository;
         this.venueRepository = venueRepository;
+    }
+
+    @Override
+    public void authorizeUser(UUID venueId, UUID userId) {
+
+        if (userId == null || venueId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "ID set must not be null.");
+        }
+
+        final boolean doesAlreadyExist = venueAccessRepository.existsByVenueEntity_IdAndUserEntity_Id(venueId, userId);
+        if (doesAlreadyExist) {
+            LOG.info("User ID: {} is already authorized for venue ID: {}", userId, venueId);
+            return;
+        }
+
+        final Optional<UserEntity> userEntity = userRepository.findById(userId);
+        final Optional<VenueEntity> venueEntity = venueRepository.findById(venueId);
+
+        if (!userEntity.isPresent() || !venueEntity.isPresent()) {
+            LOG.info("Venue or user not found by ID.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Venue or user not found by ID.");
+        }
+
+        VenueAccessEntity venueAccessEntity = new VenueAccessEntity();
+        venueAccessEntity.setCreatedDate(OffsetDateTime.now());
+        venueAccessEntity.setUserEntity(userEntity.get());
+        venueAccessEntity.setVenueEntity(venueEntity.get());
+
+        venueAccessRepository.save(venueAccessEntity);
+        LOG.info("User ID: {} authorized for Venue ID: {}", userId, venueId);
+    }
+
+    @Override
+    public void deauthorizeUser(UUID venueId, UUID userId) {
+
+        if (userId == null || venueId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "ID set must not be null.");
+        }
+
+        final boolean doesAlreadyExist = venueAccessRepository.existsByVenueEntity_IdAndUserEntity_Id(venueId, userId);
+        if (!doesAlreadyExist) {
+            LOG.info("User ID: {} is not authorized for venue ID: {}", userId, venueId);
+            return;
+        }
+
+        final VenueAccessEntity venueAccessEntity = venueAccessRepository
+                .findByVenueEntity_IdAndUserEntity_Id(venueId, userId);
+
+        if (venueAccessEntity == null) {
+            LOG.info("User ID: {} is not authorized for venue ID: {}", userId, venueId);
+            return;
+        }
+
+        venueAccessRepository.delete(venueAccessEntity);
+        LOG.info("User ID: {} deauthorized for Venue ID: {}", userId, venueId);
     }
 
     @Override
