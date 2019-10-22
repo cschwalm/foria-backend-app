@@ -10,7 +10,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "ticket")
-@SuppressWarnings("unused")
+@SuppressWarnings({"unused", "UnusedReturnValue"})
 public class TicketEntity implements Serializable {
 
     public enum Status {
@@ -44,7 +44,7 @@ public class TicketEntity implements Serializable {
         return this;
     }
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "event_id", nullable = false)
     public EventEntity getEventEntity() {
         return eventEntity;
@@ -55,7 +55,7 @@ public class TicketEntity implements Serializable {
         return this;
     }
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "owner_id", nullable = false)
     public UserEntity getOwnerEntity() {
         return ownerEntity;
@@ -66,7 +66,7 @@ public class TicketEntity implements Serializable {
         return this;
     }
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "purchaser_id", nullable = false)
     public UserEntity getPurchaserEntity() {
         return purchaserEntity;
