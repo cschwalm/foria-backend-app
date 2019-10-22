@@ -274,6 +274,18 @@ public class TicketServiceImpl implements TicketService {
                 continue;
             }
 
+            final EventEntity eventEntity = ticketEntity.getEventEntity();
+
+            if (eventEntity.getStatus() == EventEntity.Status.CANCELED) {
+                LOG.error("Event is CANCELED without ticket ID: {} CANCELED", ticketEntity.getId());
+                continue;
+            }
+
+            if (OffsetDateTime.now().isAfter(eventEntity.getEventEndTime())) {
+                LOG.debug("Skipping ticket ID: {} since event is expired ID: {} is ended.", ticketEntity.getId(), eventEntity.getId());
+                continue;
+            }
+
             Ticket ticket = modelMapper.map(ticketEntity, Ticket.class);
             ticket.setStatus(Ticket.StatusEnum.fromValue(ticketEntity.getStatus().name()));
             ticket.setOwnerId(ticketEntity.getOwnerEntity().getId());
