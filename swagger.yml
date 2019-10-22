@@ -860,6 +860,15 @@ components:
           default: USD
     Event:
       type: object
+      required:
+        - venue_id
+        - name
+        - tag_line
+        - description
+        - image_url
+        - visibility
+        - start_time
+        - end_time
       properties:
         id:
           type: string
@@ -868,7 +877,6 @@ components:
         venue_id:
           type: string
           format: uuid
-          readOnly: true
         name:
           type: string
           example: Test Event
@@ -881,6 +889,13 @@ components:
         image_url:
           type: string
           example: https://foriatickets.com/favicon.ico
+        visibility:
+          type: string
+          default: PUBLIC
+          example: PUBLIC
+          enum:
+            - PUBLIC
+            - PRIVATE
         start_time:
           type: string
           format: date-time

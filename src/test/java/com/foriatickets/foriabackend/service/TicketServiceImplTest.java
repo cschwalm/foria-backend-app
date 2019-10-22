@@ -151,6 +151,10 @@ public class TicketServiceImplTest {
         TicketTypeConfigEntity ticketTypeConfigEntity = mock(TicketTypeConfigEntity.class);
         ArgumentCaptor<TicketEntity> argumentCaptor = ArgumentCaptor.forClass(TicketEntity.class);
 
+        when(eventEntityMock.getStatus()).thenReturn(EventEntity.Status.LIVE);
+        when(eventEntityMock.getVisibility()).thenReturn(EventEntity.Visibility.PUBLIC);
+        when(eventEntityMock.getEventEndTime()).thenReturn(OffsetDateTime.MAX);
+
         Mockito.when(userRepository.findById(purchaserId)).thenReturn(Optional.of(userEntityMock));
         Mockito.when(eventRepository.findById(eventId)).thenReturn(Optional.of(eventEntityMock));
         Mockito.when(ticketTypeConfigRepository.findById(ticketConfigId)).thenReturn(Optional.of(ticketTypeConfigEntity));

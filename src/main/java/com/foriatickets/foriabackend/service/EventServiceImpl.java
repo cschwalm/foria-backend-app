@@ -111,6 +111,14 @@ public class EventServiceImpl implements EventService {
         final OffsetDateTime now = OffsetDateTime.now();
         for (EventEntity eventEntity : eventEntities) {
 
+            if (eventEntity.getStatus() == EventEntity.Status.CANCELED) {
+                continue;
+            }
+
+            if (eventEntity.getVisibility() == EventEntity.Visibility.PRIVATE) {
+                continue;
+            }
+
             if (now.isAfter(eventEntity.getEventEndTime())) {
                 continue;
             }
@@ -158,6 +166,15 @@ public class EventServiceImpl implements EventService {
         }
 
         EventEntity eventEntity = eventEntityOptional.get();
+
+        if (eventEntity.getStatus() == EventEntity.Status.CANCELED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Event is canceled. Please contact venue for more information.");
+        }
+
+        if (OffsetDateTime.now().isAfter(eventEntity.getEventEndTime())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Event has already ended.");
+        }
+
         return populateExtraTicketInfo(eventEntity);
     }
 
@@ -174,6 +191,11 @@ public class EventServiceImpl implements EventService {
         }
 
         EventEntity eventEntity = eventEntityOptional.get();
+
+        if (eventEntity.getStatus() == EventEntity.Status.CANCELED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Event is canceled. Edits are not allowed.");
+        }
+
         LOG.info("Old event: {}", eventEntity);
 
         validateEventInfo(updatedEvent);

@@ -18,11 +18,13 @@ import org.modelmapper.PropertyMap;
 import org.modelmapper.internal.util.Assert;
 import org.openapitools.model.Event;
 import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.*;
 
+import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -81,7 +83,42 @@ public class EventServiceImplTest {
         when(mockEvent1.getEventEndTime()).thenReturn(OffsetDateTime.MAX);
         when(mockEvent1.getDescription()).thenReturn("Test Event");
         when(mockEvent1.getVenueEntity()).thenReturn(venueEntityMock);
+        when(mockEvent1.getStatus()).thenReturn(EventEntity.Status.LIVE);
+        when(mockEvent1.getVisibility()).thenReturn(EventEntity.Visibility.PUBLIC);
         mockEventList.add(mockEvent1);
+
+        EventEntity mockEventPrivate = mock(EventEntity.class);
+        when(mockEventPrivate.getId()).thenReturn(UUID.randomUUID());
+        when(mockEventPrivate.getName()).thenReturn("Test");
+        when(mockEventPrivate.getEventStartTime()).thenReturn(OffsetDateTime.MIN);
+        when(mockEventPrivate.getEventEndTime()).thenReturn(OffsetDateTime.MAX);
+        when(mockEventPrivate.getDescription()).thenReturn("Test Private Event");
+        when(mockEventPrivate.getVenueEntity()).thenReturn(venueEntityMock);
+        when(mockEventPrivate.getStatus()).thenReturn(EventEntity.Status.LIVE);
+        when(mockEventPrivate.getVisibility()).thenReturn(EventEntity.Visibility.PRIVATE);
+        mockEventList.add(mockEventPrivate);
+
+        EventEntity mockEventCanceled = mock(EventEntity.class);
+        when(mockEventCanceled.getId()).thenReturn(UUID.randomUUID());
+        when(mockEventCanceled.getName()).thenReturn("Test");
+        when(mockEventCanceled.getEventStartTime()).thenReturn(OffsetDateTime.MIN);
+        when(mockEventCanceled.getEventEndTime()).thenReturn(OffsetDateTime.MAX);
+        when(mockEventCanceled.getDescription()).thenReturn("Test Private Event");
+        when(mockEventCanceled.getVenueEntity()).thenReturn(venueEntityMock);
+        when(mockEventCanceled.getStatus()).thenReturn(EventEntity.Status.CANCELED);
+        when(mockEventCanceled.getVisibility()).thenReturn(EventEntity.Visibility.PUBLIC);
+        mockEventList.add(mockEventCanceled);
+
+        EventEntity mockEventEnded = mock(EventEntity.class);
+        when(mockEventEnded.getId()).thenReturn(UUID.randomUUID());
+        when(mockEventEnded.getName()).thenReturn("Test");
+        when(mockEventEnded.getEventStartTime()).thenReturn(OffsetDateTime.MIN);
+        when(mockEventEnded.getEventEndTime()).thenReturn(OffsetDateTime.MIN);
+        when(mockEventEnded.getDescription()).thenReturn("Test Private Event");
+        when(mockEventEnded.getVenueEntity()).thenReturn(venueEntityMock);
+        when(mockEventEnded.getStatus()).thenReturn(EventEntity.Status.LIVE);
+        when(mockEventEnded.getVisibility()).thenReturn(EventEntity.Visibility.PUBLIC);
+        mockEventList.add(mockEventEnded);
 
         Set<TicketTypeConfigEntity> ticketTypeConfigEntitySet = new HashSet<>();
         TicketTypeConfigEntity ticketTypeConfigMock = mock(TicketTypeConfigEntity.class);
@@ -127,7 +164,7 @@ public class EventServiceImplTest {
         List<Event> actual = eventService.getAllActiveEvents();
 
         Assert.notNull(actual);
-        Assert.isTrue(mockEventList.size() == actual.size());
+        Assert.isTrue(mockEventList.size() - 3 == actual.size()); //Test private event
     }
 
     @Test
@@ -135,6 +172,38 @@ public class EventServiceImplTest {
 
         final UUID eventId = mockEventList.get(0).getId();
         when(eventRepository.findById(eq(eventId))).thenReturn(Optional.of(mockEventList.get(0)));
+
+        Event actual = eventService.getEvent(eventId);
+        Assert.notNull(actual);
+        assertEquals(EventEntity.Visibility.PUBLIC.name(), actual.getVisibility().name());
+    }
+
+    @Test
+    public void getEvent_Private() {
+
+        final UUID eventId = mockEventList.get(1).getId();
+        when(eventRepository.findById(eq(eventId))).thenReturn(Optional.of(mockEventList.get(1)));
+
+        Event actual = eventService.getEvent(eventId);
+        Assert.notNull(actual);
+        assertEquals(EventEntity.Visibility.PRIVATE.name(), actual.getVisibility().name());
+    }
+
+    @Test(expected = ResponseStatusException.class)
+    public void getEvent_Canceled() {
+
+        final UUID eventId = mockEventList.get(2).getId();
+        when(eventRepository.findById(eq(eventId))).thenReturn(Optional.of(mockEventList.get(2)));
+
+        Event actual = eventService.getEvent(eventId);
+        Assert.notNull(actual);
+    }
+
+    @Test(expected = ResponseStatusException.class)
+    public void getEvent_Expired() {
+
+        final UUID eventId = mockEventList.get(3).getId();
+        when(eventRepository.findById(eq(eventId))).thenReturn(Optional.of(mockEventList.get(3)));
 
         Event actual = eventService.getEvent(eventId);
         Assert.notNull(actual);

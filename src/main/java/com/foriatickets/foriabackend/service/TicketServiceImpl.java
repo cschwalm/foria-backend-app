@@ -311,6 +311,14 @@ public class TicketServiceImpl implements TicketService {
         UserEntity userEntity = userEntityOptional.get();
         TicketTypeConfigEntity ticketTypeConfigEntity = ticketTypeConfigEntityOptional.get();
 
+        if (eventEntity.getStatus() == EventEntity.Status.CANCELED) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Event is cancelled.");
+        }
+
+        if (OffsetDateTime.now().isAfter(eventEntity.getEventEndTime())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Event has already ended.");
+        }
+
         TicketEntity ticketEntity = new TicketEntity();
         ticketEntity.setEventEntity(eventEntity);
         ticketEntity.setOwnerEntity(userEntity);

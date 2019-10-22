@@ -15,12 +15,27 @@ import java.util.UUID;
 @SuppressWarnings({"unused", "UnusedReturnValue"})
 public class EventEntity implements Serializable {
 
+    public enum Status {
+        LIVE,
+        CANCELED
+    }
+
+    /**
+     * PUBLIC events get returned in search results.
+     */
+    public enum Visibility {
+        PRIVATE,
+        PUBLIC
+    }
+
     private UUID id;
     private VenueEntity venueEntity;
     private String name;
     private String tagLine;
     private String imageUrl;
     private String description;
+    private Status status;
+    private Visibility visibility;
     private OffsetDateTime eventStartTime;
     private OffsetDateTime eventEndTime;
     private int authorizedTickets;
@@ -92,6 +107,26 @@ public class EventEntity implements Serializable {
         return this;
     }
 
+    @Column(name = "status", nullable = false)
+    @Enumerated(EnumType.STRING)
+    public Status getStatus() {
+        return status;
+    }
+
+    public void setStatus(Status status) {
+        this.status = status;
+    }
+
+    @Column(name = "visibility", nullable = false)
+    @Enumerated(EnumType.STRING)
+    public Visibility getVisibility() {
+        return visibility;
+    }
+
+    public void setVisibility(Visibility visibility) {
+        this.visibility = visibility;
+    }
+
     @Column(name = "event_start_time", nullable = false)
     public OffsetDateTime getEventStartTime() {
         return eventStartTime;
@@ -155,11 +190,13 @@ public class EventEntity implements Serializable {
     @Override
     public String toString() {
         return "EventEntity{" +
-                "key=" + id +
+                "id=" + id +
                 ", name='" + name + '\'' +
                 ", tagLine='" + tagLine + '\'' +
                 ", imageUrl='" + imageUrl + '\'' +
                 ", description='" + description + '\'' +
+                ", status=" + status +
+                ", visibility=" + visibility +
                 ", eventStartTime=" + eventStartTime +
                 ", eventEndTime=" + eventEndTime +
                 ", authorizedTickets=" + authorizedTickets +
@@ -177,12 +214,14 @@ public class EventEntity implements Serializable {
                 Objects.equals(tagLine, that.tagLine) &&
                 Objects.equals(imageUrl, that.imageUrl) &&
                 Objects.equals(description, that.description) &&
+                status == that.status &&
+                visibility == that.visibility &&
                 Objects.equals(eventStartTime, that.eventStartTime) &&
                 Objects.equals(eventEndTime, that.eventEndTime);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, name, tagLine, imageUrl, description, eventStartTime, eventEndTime, authorizedTickets);
+        return Objects.hash(id, name, tagLine, imageUrl, description, status, visibility, eventStartTime, eventEndTime, authorizedTickets);
     }
 }
