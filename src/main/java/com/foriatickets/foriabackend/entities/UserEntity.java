@@ -88,7 +88,7 @@ public class UserEntity implements Serializable {
         return this;
     }
 
-    @OneToMany(mappedBy = "userEntity", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "userEntity", fetch = FetchType.EAGER)
     public Set<DeviceTokenEntity> getDeviceTokens() {
         return deviceTokens;
     }
@@ -108,7 +108,7 @@ public class UserEntity implements Serializable {
         return this;
     }
 
-    @OneToMany(mappedBy = "purchaserEntity", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "purchaserEntity", fetch = FetchType.EAGER)
     public Set<TicketEntity> getPurchasedTickets() {
         return purchasedTickets;
     }
@@ -118,7 +118,7 @@ public class UserEntity implements Serializable {
         return this;
     }
 
-    @OneToMany(mappedBy = "venueEntity", fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "userEntity", fetch = FetchType.EAGER)
     public Set<VenueAccessEntity> getVenueAccessEntities() {
         return venueAccessEntities;
     }
