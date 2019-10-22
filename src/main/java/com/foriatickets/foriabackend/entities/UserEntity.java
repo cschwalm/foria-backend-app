@@ -118,7 +118,7 @@ public class UserEntity implements Serializable {
         return this;
     }
 
-    @OneToMany(mappedBy = "venueEntity", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "venueEntity", fetch = FetchType.EAGER)
     public Set<VenueAccessEntity> getVenueAccessEntities() {
         return venueAccessEntities;
     }
