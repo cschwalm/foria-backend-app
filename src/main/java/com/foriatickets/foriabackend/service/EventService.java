@@ -33,4 +33,14 @@ public interface EventService {
      * @return Scoped venue.
      */
     Event getEvent(UUID eventId);
+
+    /**
+     * Allows the user to update an event's basic metadata.
+     * Separate endpoints are required for price/fee config.
+     *
+     * @param eventId The existing event to update.
+     * @param updatedEvent New data to use.
+     * @return The updated Event.
+     */
+    Event updateEvent(UUID eventId, Event updatedEvent);
 }

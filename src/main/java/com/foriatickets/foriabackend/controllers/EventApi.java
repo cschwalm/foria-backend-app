@@ -49,4 +49,12 @@ public class EventApi implements org.openapitools.api.EventApi {
         EventService eventService = beanFactory.getBean(EventService.class);
         return new ResponseEntity<>(eventService.getEvent(eventId), HttpStatus.OK);
     }
+
+    @RequestMapping(value = "/event/{event_id}", method = RequestMethod.PUT)
+    @Override
+    public ResponseEntity<Event> updateEvent(@PathVariable("event_id") UUID eventId, @Valid Event event) {
+
+        EventService eventService = beanFactory.getBean(EventService.class);
+        return new ResponseEntity<>(eventService.updateEvent(eventId, event), HttpStatus.OK);
+    }
 }

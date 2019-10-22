@@ -103,6 +103,36 @@ paths:
         404:
           description: Event not found by ID.
           content: {}
+    put:
+      tags:
+        - event
+      summary: Updates basic event metadata.
+      operationId: updateEvent
+      security:
+        - OAuth2:
+            - write:event
+      parameters:
+        - name: event_id
+          in: path
+          description: The event ID stored in the Foria database.
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        description: Updated event object. No price/fee config.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Event'
+        required: true
+      responses:
+        200:
+          description: Event created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
   /ticket/{ticket_id}:
     get:
       tags:

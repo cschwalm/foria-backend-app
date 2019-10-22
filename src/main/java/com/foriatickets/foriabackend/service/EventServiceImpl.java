@@ -17,6 +17,7 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
@@ -66,12 +67,14 @@ public class EventServiceImpl implements EventService {
         EventEntity eventEntity = modelMapper.map(event, EventEntity.class);
 
         if (eventEntity.getVenueEntity() == null || !venueRepository.existsById(event.getVenueId())) {
-            throw new IllegalArgumentException("Venue does not exist with ID.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Venue does not exist with ID.");
         }
 
         if (event.getTicketFeeConfig() == null || event.getTicketTypeConfig() == null) {
-            throw new IllegalArgumentException("Ticket config must be set.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ticket config must be set.");
         }
+
+        validateEventInfo(event);
 
         eventEntity = eventRepository.save(eventEntity);
         event.setId(eventEntity.getId());
@@ -158,6 +161,35 @@ public class EventServiceImpl implements EventService {
         return populateExtraTicketInfo(eventEntity);
     }
 
+    @Override
+    public Event updateEvent(UUID eventId, Event updatedEvent) {
+
+        if (eventId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Event ID is null.");
+        }
+
+        final Optional<EventEntity> eventEntityOptional = eventRepository.findById(eventId);
+        if (!eventEntityOptional.isPresent()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Event ID does not exist.");
+        }
+
+        EventEntity eventEntity = eventEntityOptional.get();
+        LOG.info("Old event: {}", eventEntity);
+
+        validateEventInfo(updatedEvent);
+
+        eventEntity.setName(updatedEvent.getName());
+        eventEntity.setTagLine(updatedEvent.getTagLine());
+        eventEntity.setDescription(updatedEvent.getDescription());
+        eventEntity.setImageUrl(updatedEvent.getImageUrl());
+        eventEntity.setEventStartTime(updatedEvent.getStartTime());
+        eventEntity.setEventEndTime(updatedEvent.getEndTime());
+        eventEntity = eventRepository.save(eventEntity);
+
+        LOG.info("Event ID: {} updated. \n New event: {}", eventEntity.getId(), eventEntity);
+        return getEvent(eventId);
+    }
+
     /**
      * Transforms venue address and name to set inside of an Event API model.
      *
@@ -175,5 +207,35 @@ public class EventServiceImpl implements EventService {
         addr.setCountry(venueEntity.getContactCountry());
 
         event.setAddress(addr);
+    }
+
+    /**
+     * Throws a REST friendly expection if the event data is malformed.
+     * @param event Event to check.
+     */
+    private void validateEventInfo(Event event) {
+
+        //Check start/end time is not less now
+        final OffsetDateTime updatedStartTime = event.getStartTime();
+        final OffsetDateTime updatedEndTime = event.getEndTime();
+        if (updatedStartTime.isAfter(updatedEndTime)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Start time is after end time.");
+        }
+
+        if (event.getEndTime().isBefore(OffsetDateTime.now())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "End time must be after now.");
+        }
+
+        if (StringUtils.isEmpty(event.getName()) || StringUtils.isEmpty(event.getTagLine())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Event name/tagline is empty.");
+        }
+
+        if (StringUtils.isEmpty(event.getDescription())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Event description is empty.");
+        }
+
+        if (StringUtils.isEmpty(event.getImageUrl())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Image URL is empty");
+        }
     }
 }
