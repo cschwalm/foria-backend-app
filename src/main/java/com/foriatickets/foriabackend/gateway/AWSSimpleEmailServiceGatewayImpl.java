@@ -23,6 +23,7 @@ import javax.mail.internet.MimeMultipart;
 import javax.mail.util.ByteArrayDataSource;
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -52,9 +53,13 @@ public class AWSSimpleEmailServiceGatewayImpl implements AWSSimpleEmailServiceGa
 
     public void sendEmailFromTemplate(String toAddress, String templateName, Map<String, String> templateData) {
 
-        if (templateName == null || toAddress == null || templateData == null || templateData.isEmpty()) {
+        if (templateName == null || toAddress == null) {
             LOG.error("Attempted to send email with null values.");
             return;
+        }
+
+        if (templateData == null) {
+            templateData = new HashMap<>();
         }
 
         final ObjectMapper mapper = new ObjectMapper();

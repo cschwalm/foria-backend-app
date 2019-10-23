@@ -2,6 +2,7 @@ package com.foriatickets.foriabackend.service;
 
 import com.foriatickets.foriabackend.config.BeanConfig;
 import com.foriatickets.foriabackend.entities.UserEntity;
+import com.foriatickets.foriabackend.gateway.AWSSimpleEmailServiceGateway;
 import com.foriatickets.foriabackend.repositories.DeviceTokenRepository;
 import com.foriatickets.foriabackend.repositories.UserRepository;
 import org.junit.Assert;
@@ -16,6 +17,7 @@ import org.springframework.beans.factory.BeanFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.UUID;
 
@@ -24,6 +26,11 @@ import static org.mockito.Mockito.*;
 
 @RunWith(SpringRunner.class)
 public class UserCreationServiceImplTest {
+
+    private static final String ACCOUNT_CREATION_FAIL_EMAIL_TEMPLATE = "account_creation_error";
+
+    @Mock
+    private AWSSimpleEmailServiceGateway awsSimpleEmailServiceGateway;
 
     @Mock
     private BeanFactory beanFactory;
@@ -55,7 +62,7 @@ public class UserCreationServiceImplTest {
         doNothing().when(ticketService).checkAndConfirmPendingTicketTransfers(any());
         when(beanFactory.getBean(TicketService.class)).thenReturn(ticketService);
 
-        userCreationService = new UserCreationServiceImpl(beanFactory, deviceTokenRepository, modelMapper, userRepository);
+        userCreationService = new UserCreationServiceImpl(awsSimpleEmailServiceGateway, beanFactory, deviceTokenRepository, modelMapper, userRepository);
     }
 
     @Test
@@ -74,6 +81,7 @@ public class UserCreationServiceImplTest {
         userMock.setLastName("Test");
         userMock.setAuth0Id("auth0|test");
 
+        when(userRepository.findFirstByEmail(eq(userEntityMock.getEmail()))).thenReturn(null);
         when(userRepository.save(any(UserEntity.class))).thenReturn(userEntityMock);
 
         User actual = userCreationService.createUser(userMock);
@@ -82,6 +90,33 @@ public class UserCreationServiceImplTest {
         Assert.assertEquals(userMock.getLastName(), actual.getLastName());
         Assert.assertEquals(userMock.getEmail(), actual.getEmail());
         Assert.assertNotNull(actual.getId());
+    }
+
+    @Test(expected = ResponseStatusException.class)
+    public void createUser_DupEmail() {
+
+        UserEntity userEntityMock = new UserEntity();
+        userEntityMock.setEmail("test@test.com");
+        userEntityMock.setFirstName("Test");
+        userEntityMock.setLastName("Test");
+        userEntityMock.setAuth0Id("auth0|test");
+        userEntityMock.setId(UUID.randomUUID());
+
+        User userMock = new User();
+        userMock.setEmail("test@test.com");
+        userMock.setFirstName("Test");
+        userMock.setLastName("Test");
+        userMock.setAuth0Id("auth0|test");
+
+        when(userRepository.findFirstByEmail(eq(userEntityMock.getEmail()))).thenReturn(userEntityMock);
+        doNothing().when(awsSimpleEmailServiceGateway).sendEmailFromTemplate(any(), any(), any());
+
+        try {
+            userCreationService.createUser(userMock);
+        } catch (Exception ex) {
+            verify(awsSimpleEmailServiceGateway).sendEmailFromTemplate(eq(userEntityMock.getEmail()), eq(ACCOUNT_CREATION_FAIL_EMAIL_TEMPLATE), eq(null));
+            throw ex;
+        }
     }
 
     @Test

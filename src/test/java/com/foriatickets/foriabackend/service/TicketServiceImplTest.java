@@ -358,7 +358,7 @@ public class TicketServiceImplTest {
         List<TransferRequestEntity> list = new ArrayList<>();
         list.add(transferRequestEntityMock);
 
-        when(transferRequestRepository.findAllByReceiverEmail(anyString())).thenReturn(list);
+        when(transferRequestRepository.findAllByReceiverEmailAndStatus(anyString(), eq(TransferRequestEntity.Status.PENDING))).thenReturn(list);
         when(transferRequestRepository.saveAll(list)).thenReturn(list);
 
         ticketService.checkAndConfirmPendingTicketTransfers(userEntityMock);

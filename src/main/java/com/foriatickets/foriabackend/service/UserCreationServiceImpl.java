@@ -2,6 +2,7 @@ package com.foriatickets.foriabackend.service;
 
 import com.foriatickets.foriabackend.entities.DeviceTokenEntity;
 import com.foriatickets.foriabackend.entities.UserEntity;
+import com.foriatickets.foriabackend.gateway.AWSSimpleEmailServiceGateway;
 import com.foriatickets.foriabackend.repositories.DeviceTokenRepository;
 import com.foriatickets.foriabackend.repositories.UserRepository;
 import org.apache.logging.log4j.LogManager;
@@ -22,17 +23,21 @@ import java.time.OffsetDateTime;
 @Transactional
 public class UserCreationServiceImpl implements UserCreationService {
 
+    private static final String ACCOUNT_CREATION_FAIL_EMAIL_TEMPLATE = "account_creation_error";
+
     private static final Logger LOG = LogManager.getLogger();
 
+    private final AWSSimpleEmailServiceGateway awsSimpleEmailServiceGateway;
     private final BeanFactory beanFactory;
     private final DeviceTokenRepository deviceTokenRepository;
     private final ModelMapper modelMapper;
     private final UserRepository userRepository;
 
     @Autowired
-    public UserCreationServiceImpl(BeanFactory beanFactory, DeviceTokenRepository deviceTokenRepository, ModelMapper modelMapper, UserRepository userRepository) {
+    public UserCreationServiceImpl(AWSSimpleEmailServiceGateway awsSimpleEmailServiceGateway, BeanFactory beanFactory, DeviceTokenRepository deviceTokenRepository, ModelMapper modelMapper, UserRepository userRepository) {
 
         assert userRepository != null;
+        this.awsSimpleEmailServiceGateway = awsSimpleEmailServiceGateway;
         this.beanFactory = beanFactory;
         this.deviceTokenRepository = deviceTokenRepository;
         this.modelMapper = modelMapper;
@@ -48,6 +53,14 @@ public class UserCreationServiceImpl implements UserCreationService {
             LOG.warn("Found existing user with UserID: {} - auth0ID: {}", existingUser.getId(), newUser.getAuth0Id());
             newUser.setId(existingUser.getId());
             return newUser;
+        }
+
+        final UserEntity userEntityWithEmail = userRepository.findFirstByEmail(newUser.getEmail());
+        if (userEntityWithEmail != null) {
+
+            LOG.info("Email: {} attempted to signup but account already exists. Sending error email.", newUser.getEmail());
+            awsSimpleEmailServiceGateway.sendEmailFromTemplate(newUser.getEmail(), ACCOUNT_CREATION_FAIL_EMAIL_TEMPLATE, null);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User has already signed up with email: " + newUser.getEmail());
         }
 
         UserEntity userEntity = new UserEntity();

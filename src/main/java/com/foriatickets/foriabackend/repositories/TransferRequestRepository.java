@@ -11,5 +11,5 @@ public interface TransferRequestRepository extends CrudRepository<TransferReques
 
     TransferRequestEntity findFirstByTicketAndStatus(TicketEntity ticketEntity, TransferRequestEntity.Status status);
 
-    List<TransferRequestEntity> findAllByReceiverEmail(String receiverEmail);
+    List<TransferRequestEntity> findAllByReceiverEmailAndStatus(String receiverEmail, TransferRequestEntity.Status status);
 }

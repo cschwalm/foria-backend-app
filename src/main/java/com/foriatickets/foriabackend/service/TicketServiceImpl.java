@@ -626,7 +626,7 @@ public class TicketServiceImpl implements TicketService {
         }
 
         final String receiverEmail = newUser.getEmail();
-        List<TransferRequestEntity> pendingTickets = transferRequestRepository.findAllByReceiverEmail(receiverEmail);
+        List<TransferRequestEntity> pendingTickets = transferRequestRepository.findAllByReceiverEmailAndStatus(receiverEmail, TransferRequestEntity.Status.PENDING);
 
         if (pendingTickets == null || pendingTickets.isEmpty()) {
             LOG.info("No pending tickets to confirm for userId: {}", newUser.getId());
