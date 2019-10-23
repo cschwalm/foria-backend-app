@@ -12,12 +12,18 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "order")
-@SuppressWarnings("unused")
+@SuppressWarnings({"unused", "UnusedReturnValue"})
 public class OrderEntity implements Serializable {
+
+    public enum Status {
+        COMPLETED,
+        CANCELED
+    }
 
     private UUID id;
     private UserEntity purchaser;
     private String chargeReferenceId;
+    private Status status;
     private OffsetDateTime orderTimestamp;
     private BigDecimal total;
     private String currency;
@@ -56,6 +62,16 @@ public class OrderEntity implements Serializable {
     public OrderEntity setChargeReferenceId(String chargeReferenceId) {
         this.chargeReferenceId = chargeReferenceId;
         return this;
+    }
+
+    @Column(name = "status", nullable = false)
+    @Enumerated(value = EnumType.STRING)
+    public Status getStatus() {
+        return status;
+    }
+
+    public void setStatus(Status status) {
+        this.status = status;
     }
 
     @Column(name = "timestamp", nullable = false)
@@ -112,8 +128,8 @@ public class OrderEntity implements Serializable {
     public String toString() {
         return "OrderEntity{" +
                 "id=" + id +
-                ", purchaser=" + purchaser +
                 ", chargeReferenceId='" + chargeReferenceId + '\'' +
+                ", status=" + status +
                 ", orderTimestamp=" + orderTimestamp +
                 ", total=" + total +
                 ", currency='" + currency + '\'' +
@@ -127,6 +143,7 @@ public class OrderEntity implements Serializable {
         OrderEntity that = (OrderEntity) o;
         return Objects.equals(id, that.id) &&
                 Objects.equals(chargeReferenceId, that.chargeReferenceId) &&
+                status == that.status &&
                 Objects.equals(orderTimestamp, that.orderTimestamp) &&
                 Objects.equals(total, that.total) &&
                 Objects.equals(currency, that.currency);
@@ -134,6 +151,6 @@ public class OrderEntity implements Serializable {
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, chargeReferenceId, orderTimestamp, total, currency);
+        return Objects.hash(id, chargeReferenceId, status, orderTimestamp, total, currency);
     }
 }

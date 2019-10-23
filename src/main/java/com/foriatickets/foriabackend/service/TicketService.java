@@ -31,6 +31,14 @@ public interface TicketService {
     void cancelTransferTicket(UUID ticketId);
 
     /**
+     * Cancels and refunds a user's order.
+     *
+     * This method is idempotent.
+     * @param orderId The order to cancel.
+     */
+    void cancelOrder(UUID orderId);
+
+    /**
      * Accepts checkout data from client and completes transaction.
      * Transaction may fail if the token supplied contained invalid card data.
      *

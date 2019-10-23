@@ -234,6 +234,28 @@ public class TicketServiceImpl implements TicketService {
     }
 
     @Override
+    public void cancelOrder(UUID orderId) {
+
+        if (orderId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Order cancel request contains null orderId.");
+        }
+
+        final Optional<OrderEntity> orderEntityOptional = orderRepository.findById(orderId);
+        if (!orderEntityOptional.isPresent()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Order Id not found. Failed to cancel order.");
+        }
+
+        final OrderEntity orderEntity = orderEntityOptional.get();
+        if (orderEntity.getStatus() == OrderEntity.Status.CANCELED) {
+            LOG.info("Order ID: {} is already canceled.", orderEntity.getId());
+            return;
+        }
+
+
+
+    }
+
+    @Override
     public Ticket getTicket(UUID ticketId, boolean doOwnerCheck) {
 
         Optional<TicketEntity> ticketEntityOptional = ticketRepository.findById(ticketId);
