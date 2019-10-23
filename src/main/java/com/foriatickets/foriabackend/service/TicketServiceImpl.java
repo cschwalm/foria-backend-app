@@ -266,6 +266,11 @@ public class TicketServiceImpl implements TicketService {
                         TicketEntity.Status.CANCELED_FRAUD)
         );
 
+        if (authenticatedUser == null) {
+            LOG.warn("User is not in system. Failing ticket load.");
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User is not found.");
+        }
+
         Set<TicketEntity> userTickets = authenticatedUser.getTickets();
         List<Ticket> ticketList = new ArrayList<>();
         for (TicketEntity ticketEntity : userTickets) {
