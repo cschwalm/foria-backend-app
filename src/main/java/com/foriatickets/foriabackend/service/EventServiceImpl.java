@@ -204,6 +204,7 @@ public class EventServiceImpl implements EventService {
         eventEntity.setTagLine(updatedEvent.getTagLine());
         eventEntity.setDescription(updatedEvent.getDescription());
         eventEntity.setImageUrl(updatedEvent.getImageUrl());
+        eventEntity.setVisibility(EventEntity.Visibility.valueOf(updatedEvent.getVisibility().name()));
         eventEntity.setEventStartTime(updatedEvent.getStartTime());
         eventEntity.setEventEndTime(updatedEvent.getEndTime());
         eventEntity = eventRepository.save(eventEntity);
