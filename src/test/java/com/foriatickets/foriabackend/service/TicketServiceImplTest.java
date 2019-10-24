@@ -6,6 +6,7 @@ import com.foriatickets.foriabackend.gateway.AWSSimpleEmailServiceGateway;
 import com.foriatickets.foriabackend.gateway.FCMGateway;
 import com.foriatickets.foriabackend.gateway.StripeGateway;
 import com.foriatickets.foriabackend.repositories.*;
+import com.stripe.model.Refund;
 import com.warrenstrange.googleauth.GoogleAuthenticator;
 import com.warrenstrange.googleauth.GoogleAuthenticatorKey;
 import org.junit.Before;
@@ -24,9 +25,11 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.*;
 
+import static com.foriatickets.foriabackend.entities.TicketEntity.Status.ACTIVE;
 import static com.foriatickets.foriabackend.entities.TicketEntity.Status.ISSUED;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -137,6 +140,123 @@ public class TicketServiceImplTest {
 
         ticketService.activateTicket(ticketId);
         verify(ticketRepository, times(0)).save(ticketEntityMock);
+    }
+
+    @Test
+    public void refundOrder() {
+
+        final UUID orderId = UUID.randomUUID();
+        final BigDecimal refundAmount = BigDecimal.valueOf(123L);
+
+        Set<DeviceTokenEntity> deviceTokenEntities = new HashSet<>();
+        DeviceTokenEntity deviceTokenEntity = mock(DeviceTokenEntity.class);
+        when(deviceTokenEntity.getTokenStatus()).thenReturn(DeviceTokenEntity.TokenStatus.ACTIVE);
+        when(deviceTokenEntity.getDeviceToken()).thenReturn("fake_token");
+
+        DeviceTokenEntity deviceTokenEntity2 = mock(DeviceTokenEntity.class);
+        when(deviceTokenEntity2.getTokenStatus()).thenReturn(DeviceTokenEntity.TokenStatus.DEACTIVATED);
+        when(deviceTokenEntity2.getDeviceToken()).thenReturn("fake_token2");
+        deviceTokenEntities.add(deviceTokenEntity);
+        deviceTokenEntities.add(deviceTokenEntity2);
+
+        UserEntity purchaser = mock(UserEntity.class);
+        when(purchaser.getId()).thenReturn(UUID.randomUUID());
+        when(purchaser.getEmail()).thenReturn("test@test.com");
+        when(purchaser.getDeviceTokens()).thenReturn(deviceTokenEntities);
+
+        UserEntity owner = mock(UserEntity.class);
+        when(owner.getId()).thenReturn(UUID.randomUUID());
+        when(owner.getEmail()).thenReturn("test2@test.com");
+        when(owner.getDeviceTokens()).thenReturn(deviceTokenEntities);
+
+        EventEntity eventEntity = mock(EventEntity.class);
+        when(eventEntity.getId()).thenReturn(UUID.randomUUID());
+        when(eventEntity.getEventEndTime()).thenReturn(OffsetDateTime.MAX.minusYears(1L));
+        when(eventEntity.getName()).thenReturn("Test Event");
+
+        TicketEntity ticketEntity = mock(TicketEntity.class);
+        when(ticketEntity.getId()).thenReturn(UUID.randomUUID());
+        when(ticketEntity.getStatus()).thenReturn(ACTIVE);
+        when(ticketEntity.getIssuedDate()).thenReturn(OffsetDateTime.now());
+        when(ticketEntity.getSecret()).thenReturn("secret");
+        when(ticketEntity.getPurchaserEntity()).thenReturn(purchaser);
+        when(ticketEntity.getOwnerEntity()).thenReturn(purchaser);
+        when(ticketEntity.getEventEntity()).thenReturn(eventEntity);
+
+        TicketEntity ticketEntity2 = mock(TicketEntity.class);
+        when(ticketEntity2.getId()).thenReturn(UUID.randomUUID());
+        when(ticketEntity2.getStatus()).thenReturn(ISSUED);
+        when(ticketEntity2.getIssuedDate()).thenReturn(OffsetDateTime.now());
+        when(ticketEntity2.getSecret()).thenReturn("secret");
+        when(ticketEntity2.getPurchaserEntity()).thenReturn(purchaser);
+        when(ticketEntity2.getOwnerEntity()).thenReturn(owner);
+        when(ticketEntity2.getEventEntity()).thenReturn(eventEntity);
+
+        OrderEntity orderEntity = mock(OrderEntity.class);
+        when(orderEntity.getId()).thenReturn(orderId);
+        when(orderEntity.getCurrency()).thenReturn("USD");
+        when(orderEntity.getTotal()).thenReturn(refundAmount);
+        when(orderEntity.getOrderTimestamp()).thenReturn(OffsetDateTime.now());
+        when(orderEntity.getChargeReferenceId()).thenReturn("fake_stripe_charge");
+        when(orderEntity.getStatus()).thenReturn(OrderEntity.Status.COMPLETED);
+
+        Set<OrderTicketEntryEntity> orderTicketEntryEntities = new HashSet<>();
+        OrderTicketEntryEntity orderTicketEntryEntity = mock(OrderTicketEntryEntity.class);
+        when(orderTicketEntryEntity.getOrderEntity()).thenReturn(orderEntity);
+        when(orderTicketEntryEntity.getId()).thenReturn(UUID.randomUUID());
+        when(orderTicketEntryEntity.getTicketEntity()).thenReturn(ticketEntity);
+
+        OrderTicketEntryEntity orderTicketEntryEntity2 = mock(OrderTicketEntryEntity.class);
+        when(orderTicketEntryEntity2.getOrderEntity()).thenReturn(orderEntity);
+        when(orderTicketEntryEntity2.getId()).thenReturn(UUID.randomUUID());
+        when(orderTicketEntryEntity2.getTicketEntity()).thenReturn(ticketEntity2);
+
+        orderTicketEntryEntities.add(orderTicketEntryEntity);
+        orderTicketEntryEntities.add(orderTicketEntryEntity2);
+        when(orderEntity.getTickets()).thenReturn(orderTicketEntryEntities);
+
+        doNothing().when(awsSimpleEmailServiceGateway).sendEmailFromTemplate(any(), any(), any());
+        doNothing().when(fcmGateway).sendPushNotification(any(), any());
+        when(stripeGateway.refundStripeCharge(any(), any())).thenReturn(mock(Refund.class));
+
+        when(orderRepository.findById(orderId)).thenReturn(Optional.of(orderEntity));
+
+        ticketService.refundOrder(orderId);
+
+        verify(ticketRepository, times(2)).save(any());
+        verify(orderRepository).save(any());
+        verify(awsSimpleEmailServiceGateway, times(2)).sendEmailFromTemplate(any(), any(), any());
+        verify(fcmGateway, times(2)).sendPushNotification(any(), any());
+        verify(stripeGateway).refundStripeCharge(orderEntity.getChargeReferenceId(), orderEntity.getTotal());
+    }
+
+    @Test
+    public void refundOrder_alreadyCanceled() {
+
+        final UUID orderId = UUID.randomUUID();
+        final BigDecimal refundAmount = BigDecimal.valueOf(123L);
+
+        OrderEntity orderEntity = mock(OrderEntity.class);
+        when(orderEntity.getId()).thenReturn(orderId);
+        when(orderEntity.getCurrency()).thenReturn("USD");
+        when(orderEntity.getTotal()).thenReturn(refundAmount);
+        when(orderEntity.getOrderTimestamp()).thenReturn(OffsetDateTime.now());
+        when(orderEntity.getChargeReferenceId()).thenReturn("fake_stripe_charge");
+        when(orderEntity.getStatus()).thenReturn(OrderEntity.Status.CANCELED);
+
+        doNothing().when(awsSimpleEmailServiceGateway).sendEmailFromTemplate(any(), any(), any());
+        doNothing().when(fcmGateway).sendPushNotification(any(), any());
+        when(stripeGateway.refundStripeCharge(any(), any())).thenReturn(mock(Refund.class));
+
+        when(orderRepository.findById(orderId)).thenReturn(Optional.of(orderEntity));
+
+        ticketService.refundOrder(orderId);
+
+        verify(ticketRepository, times(0)).save(any());
+        verify(orderRepository, times(0)).save(any());
+        verify(awsSimpleEmailServiceGateway, times(0)).sendEmailFromTemplate(any(), any(), any());
+        verify(fcmGateway, times(0)).sendPushNotification(any(), any());
+        verify(stripeGateway, times(0)).refundStripeCharge(orderEntity.getChargeReferenceId(), orderEntity.getTotal());
     }
 
     @Test

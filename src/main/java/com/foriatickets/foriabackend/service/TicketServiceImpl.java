@@ -257,7 +257,7 @@ public class TicketServiceImpl implements TicketService {
         orderEntity.setStatus(OrderEntity.Status.CANCELED);
 
         //Cancel each issued ticket and collect owner list.
-        final List<UserEntity> usersImpacted = new ArrayList<>();
+        final Set<UserEntity> usersImpacted = new HashSet<>();
         String eventName = "Unknown Event";
         for (OrderTicketEntryEntity orderTicketEntryEntity : orderEntity.getTickets()) {
 
