@@ -282,8 +282,10 @@ public class TicketServiceImpl implements TicketService {
         LOG.info("Number of tickets cancelled in order: {} - OrderId: {}", orderEntity.getTickets().size(), orderEntity.getId());
         LOG.info("Number of users impacted: {} - OrderId: {}", usersImpacted.size(), orderEntity.getId());
 
-        //Refunds the entire order amount.
-        stripeGateway.refundStripeCharge(orderEntity.getChargeReferenceId(), orderEntity.getTotal());
+        //Refunds the entire order amount if not free.
+        if (!StringUtils.isEmpty(orderEntity.getChargeReferenceId())) {
+            stripeGateway.refundStripeCharge(orderEntity.getChargeReferenceId(), orderEntity.getTotal());
+        }
 
         //Send push notifications and emails to impacted customers.
         for (UserEntity userEntity : usersImpacted) {
