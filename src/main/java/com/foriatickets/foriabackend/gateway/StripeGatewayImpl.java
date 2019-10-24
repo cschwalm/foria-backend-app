@@ -208,6 +208,52 @@ public class StripeGatewayImpl implements StripeGateway {
     }
 
     @Override
+    public Refund refundStripeCharge(String chargeRefId, BigDecimal amountToRefund) {
+
+        if (StringUtils.isEmpty(chargeRefId) || amountToRefund == null) {
+            LOG.warn("Attempted to refund Stripe charge with null data!");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Refund order is missing required parameters.");
+        }
+
+        long refundAmount = amountToRefund.movePointRight(amountToRefund.scale()).stripTrailingZeros().longValue();
+
+        final Charge initialCharge;
+        try {
+            initialCharge = Charge.retrieve(chargeRefId);
+        } catch (StripeException ex) {
+            LOG.error("Failed to lookup Stripe charge. Charge Ref: {} - Error Message: {}", chargeRefId, ex.getMessage());
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage());
+        }
+
+        if (initialCharge.getRefunded()) {
+            LOG.info("Stripe charge: {} has already been fully refunded.", chargeRefId);
+            return initialCharge.getRefunds().getData().get(0);
+        }
+
+        if (initialCharge.getAmountRefunded() > 0L) {
+            LOG.warn("Stripe charge: {} has already been PARTIALLY refunded. Amount: {}", chargeRefId, initialCharge.getAmountRefunded());
+            refundAmount = initialCharge.getAmount() - initialCharge.getAmountRefunded();
+        }
+
+        final Map<String, Object> refundParams = new HashMap<>();
+        refundParams.put("charge", chargeRefId);
+        refundParams.put("amount", String.valueOf(refundAmount));
+        refundParams.put("reason", "requested_by_customer");
+        refundParams.put("metadata", initialCharge.getMetadata());
+
+        Refund refund;
+        try {
+            refund = Refund.create(refundParams);
+        } catch (StripeException ex) {
+            LOG.error("Failed to refund Stripe charge. Charge Ref: {} - Error Message: {}", chargeRefId, ex.getMessage());
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage());
+        }
+
+        LOG.info("Successfully refunded Stripe transaction with refund ID: {}", refund.getId());
+        return refund;
+    }
+
+    @Override
     public void updateCustomerPaymentMethod(String stripeCustomerId, String stripePaymentToken) {
 
         if (StringUtils.isEmpty(stripeCustomerId) || StringUtils.isEmpty(stripePaymentToken)) {

@@ -1,10 +1,7 @@
 package com.foriatickets.foriabackend.gateway;
 
 import com.google.firebase.messaging.Notification;
-import com.stripe.model.BalanceTransaction;
-import com.stripe.model.Charge;
-import com.stripe.model.Customer;
-import com.stripe.model.Payout;
+import com.stripe.model.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.openapitools.model.User;
@@ -42,6 +39,16 @@ public class GatewayMockImpl implements GatewayMock {
         customer.setId("customer_mock_id_" + UUID.randomUUID());
         LOG.info("Stripe mock in use. Customer not created.");
         return customer;
+    }
+
+    @Override
+    public Refund refundStripeCharge(String chargeRefId, BigDecimal amountToRefund) {
+        Refund refund = new Refund();
+        refund.setAmount(123L);
+        refund.setCharge(chargeRefId);
+        refund.setAmount(amountToRefund.longValue());
+
+        return refund;
     }
 
     @Override

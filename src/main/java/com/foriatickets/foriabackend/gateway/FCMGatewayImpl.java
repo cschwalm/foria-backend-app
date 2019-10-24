@@ -1,5 +1,7 @@
 package com.foriatickets.foriabackend.gateway;
 
+import com.foriatickets.foriabackend.entities.DeviceTokenEntity;
+import com.foriatickets.foriabackend.repositories.DeviceTokenRepository;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
@@ -12,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -20,14 +23,18 @@ import java.util.Optional;
 
 @Service
 @Profile("!mock")
+@Transactional
 public class FCMGatewayImpl implements FCMGateway {
 
     private static final Logger LOG = LogManager.getLogger();
+    private final DeviceTokenRepository deviceTokenRepository;
 
     public FCMGatewayImpl(@Autowired AWSSecretsManagerGateway awsSecretsManagerGateway,
                           @Value("${fcmKey}") String fcmKeyName,
-                          @Value("${fcmDatabaseUrl}") String fcmDatabaseUrl) throws IOException {
+                          @Value("${fcmDatabaseUrl}") String fcmDatabaseUrl,
+                          @Autowired DeviceTokenRepository deviceTokenRepository) throws IOException {
 
+        this.deviceTokenRepository = deviceTokenRepository;
         final Optional<String> fcmKey = awsSecretsManagerGateway.getSecretRaw(fcmKeyName);
         if (!fcmKey.isPresent()) {
             LOG.error("Failed to load FCM key with friendlyName: {}", fcmKeyName);
@@ -61,7 +68,14 @@ public class FCMGatewayImpl implements FCMGateway {
         try {
             response = FirebaseMessaging.getInstance().send(message);
         } catch (Exception ex) {
-            LOG.error("Failed to send push notification to token: {} - Msg: {}", token, ex.getMessage());
+
+            final DeviceTokenEntity deviceTokenEntity = deviceTokenRepository.findByDeviceToken(token);
+            if (deviceTokenEntity != null) {
+                deviceTokenEntity.setTokenStatus(DeviceTokenEntity.TokenStatus.DEACTIVATED);
+                deviceTokenRepository.save(deviceTokenEntity);
+            }
+
+            LOG.info("Failed to send push notification to token: {} - Token deactivated. Msg: {}", token, ex.getMessage());
             return;
         }
 

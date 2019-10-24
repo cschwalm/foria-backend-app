@@ -336,6 +336,42 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BaseApiModel'
+  /ticket/{order_id}/refund:
+    delete:
+      tags:
+        - ticket
+      summary: Refunds the entire order. This cannot be undone.
+      operationId: refundOrder
+      security:
+        - OAuth2:
+            - write:venue
+      parameters:
+        - name: order_id
+          in: path
+          description: The order ID to refund in full.
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseApiModel'
+        400:
+          description: Order is in a invalid state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseApiModel'
+        404:
+          description: Order ID is not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseApiModel'
   /ticket/{ticket_id}/transfer:
     post:
       tags:

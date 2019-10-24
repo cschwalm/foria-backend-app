@@ -2,6 +2,7 @@ package com.foriatickets.foriabackend.gateway;
 
 import com.stripe.model.Charge;
 import com.stripe.model.Customer;
+import com.stripe.model.Refund;
 import org.openapitools.model.User;
 
 import java.math.BigDecimal;
@@ -47,6 +48,16 @@ public interface StripeGateway {
      * @return Metadata plus transaction list.
      */
     StripeGatewayImpl.SettlementInfo getSettlementInfo();
+
+    /**
+     * Refunds the Stripe charge. Allows for partial or full refunds only.
+     * Checks to see if the charge has already been refunded.
+     *
+     * @param chargeRefId The charge to refund.
+     * @param amountToRefund Amount to refund.
+     * @return The refund object.
+     */
+    Refund refundStripeCharge(String chargeRefId, BigDecimal amountToRefund);
 
     /**
      * Update customer default source to new type.

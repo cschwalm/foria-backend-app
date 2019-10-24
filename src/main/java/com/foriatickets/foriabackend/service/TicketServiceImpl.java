@@ -40,6 +40,9 @@ public class TicketServiceImpl implements TicketService {
 
     private static final String RECEIVED_TICKET_TITLE = "Foria Pass Received";
     private static final String RECEIVED_TICKET_BODY = "You received a pass for {{eventName}} from {{previousName}}.";
+    private static final String REFUND_TITLE = "Foria Order Refunded";
+    private static final String REFUND_BODY = "Your {{eventName}} order has been canceled and refunded.";
+    private static final String REFUND_EMAIL = "refund_order_email";
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("MM/dd/yyyy");
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm a");
@@ -234,7 +237,7 @@ public class TicketServiceImpl implements TicketService {
     }
 
     @Override
-    public void cancelOrder(UUID orderId) {
+    public void refundOrder(UUID orderId) {
 
         if (orderId == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Order cancel request contains null orderId.");
@@ -251,8 +254,56 @@ public class TicketServiceImpl implements TicketService {
             return;
         }
 
+        orderEntity.setStatus(OrderEntity.Status.CANCELED);
 
+        //Cancel each issued ticket and collect owner list.
+        final List<UserEntity> usersImpacted = new ArrayList<>();
+        String eventName = "Unknown Event";
+        for (OrderTicketEntryEntity orderTicketEntryEntity : orderEntity.getTickets()) {
 
+            final TicketEntity ticketEntity = orderTicketEntryEntity.getTicketEntity();
+            if (OffsetDateTime.now().isAfter(ticketEntity.getEventEntity().getEventEndTime().plusDays(7L))) {
+                LOG.error("Attempted to refund order ID: {} after event has already ended.", orderEntity.getId());
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Attempted to refund order after event has ended.");
+            }
+
+            ticketEntity.setStatus(TicketEntity.Status.CANCELED);
+            ticketRepository.save(ticketEntity);
+
+            usersImpacted.add(ticketEntity.getPurchaserEntity());
+            eventName = ticketEntity.getEventEntity().getName();
+
+            //Add both owner and purchaser to notify.
+            if (!ticketEntity.getPurchaserEntity().getId().equals(ticketEntity.getOwnerEntity().getId())) {
+                usersImpacted.add(ticketEntity.getOwnerEntity());
+            }
+        }
+
+        LOG.info("Number of tickets cancelled in order: {} - OrderId: {}", orderEntity.getTickets().size(), orderEntity.getId());
+        LOG.info("Number of users impacted: {} - OrderId: {}", usersImpacted.size(), orderEntity.getId());
+
+        //Refunds the entire order amount.
+        stripeGateway.refundStripeCharge(orderEntity.getChargeReferenceId(), orderEntity.getTotal());
+
+        //Send push notifications and emails to impacted customers.
+        for (UserEntity userEntity : usersImpacted) {
+
+            Map<String, String> templateData = new HashMap<>();
+            templateData.put("eventName", eventName);
+            awsSimpleEmailServiceGateway.sendEmailFromTemplate(userEntity.getEmail(), REFUND_EMAIL, templateData);
+            for (DeviceTokenEntity deviceTokenEntity : userEntity.getDeviceTokens()) {
+
+                if (deviceTokenEntity.getTokenStatus() != DeviceTokenEntity.TokenStatus.ACTIVE) {
+                    continue;
+                }
+
+                Notification notification = new Notification(REFUND_TITLE, REFUND_BODY.replace("{{eventName}}", eventName));
+                fcmGateway.sendPushNotification(deviceTokenEntity.getDeviceToken(), notification);
+            }
+        }
+
+        orderRepository.save(orderEntity);
+        LOG.info("Order ID: {} has been successfully refunded.", orderEntity.getId());
     }
 
     @Override
@@ -593,6 +644,10 @@ public class TicketServiceImpl implements TicketService {
 
         //Send push to all of users logged in devices.
         for (DeviceTokenEntity token : newOwner.getDeviceTokens()) {
+
+            if (token.getTokenStatus() != DeviceTokenEntity.TokenStatus.ACTIVE) {
+                continue;
+            }
 
             final String eventName = ticketEntity.getEventEntity().getName();
             final String message = RECEIVED_TICKET_BODY

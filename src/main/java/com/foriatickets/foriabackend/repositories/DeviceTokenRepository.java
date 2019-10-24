@@ -8,4 +8,5 @@ import java.util.UUID;
 public interface DeviceTokenRepository extends CrudRepository<DeviceTokenEntity, UUID> {
 
     boolean existsByDeviceToken(String deviceToken);
+    DeviceTokenEntity findByDeviceToken(String deviceToken);
 }

@@ -89,6 +89,15 @@ public class TicketApi implements org.openapitools.api.TicketApi {
     }
 
     @Override
+    @RequestMapping(value = "/ticket/{order_id}/refund", method = RequestMethod.DELETE)
+    public ResponseEntity<BaseApiModel> refundOrder(@PathVariable("order_id") UUID orderId) {
+
+        TicketService ticketService = beanFactory.getBean(TicketService.class);
+        ticketService.refundOrder(orderId);
+        return new ResponseEntity<>(new BaseApiModel(), HttpStatus.OK);
+    }
+
+    @Override
     @RequestMapping(value = "/ticket/{ticket_id}/transfer", method = RequestMethod.POST)
     public ResponseEntity<Ticket> transferTicket(@PathVariable("ticket_id") UUID ticketId, @Valid @RequestBody TransferRequest transferRequest) {
 

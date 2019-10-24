@@ -36,7 +36,7 @@ public interface TicketService {
      * This method is idempotent.
      * @param orderId The order to cancel.
      */
-    void cancelOrder(UUID orderId);
+    void refundOrder(UUID orderId);
 
     /**
      * Accepts checkout data from client and completes transaction.
