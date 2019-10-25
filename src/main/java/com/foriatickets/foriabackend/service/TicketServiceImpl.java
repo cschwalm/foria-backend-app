@@ -159,6 +159,7 @@ public class TicketServiceImpl implements TicketService {
         OrderEntity orderEntity = new OrderEntity();
         orderEntity.setId(orderId);
         orderEntity.setPurchaser(authenticatedUser);
+        orderEntity.setStatus(OrderEntity.Status.COMPLETED);
         orderEntity.setOrderTimestamp(OffsetDateTime.now());
         orderEntity.setTotal(priceCalculationInfo.grandTotal);
         orderEntity.setCurrency(priceCalculationInfo.currencyCode);

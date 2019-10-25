@@ -76,6 +76,7 @@ public class EventServiceImpl implements EventService {
 
         validateEventInfo(event);
 
+        eventEntity.setStatus(EventEntity.Status.LIVE);
         eventEntity = eventRepository.save(eventEntity);
         event.setId(eventEntity.getId());
         populateEventModelWithAddress(event, eventEntity.getVenueEntity());
