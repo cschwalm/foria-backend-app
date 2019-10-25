@@ -1,14 +1,10 @@
 package com.foriatickets.foriabackend.service;
 
 import com.foriatickets.foriabackend.config.BeanConfig;
-import com.foriatickets.foriabackend.entities.EventEntity;
-import com.foriatickets.foriabackend.entities.TicketFeeConfigEntity;
-import com.foriatickets.foriabackend.entities.TicketTypeConfigEntity;
-import com.foriatickets.foriabackend.entities.VenueEntity;
-import com.foriatickets.foriabackend.repositories.EventRepository;
-import com.foriatickets.foriabackend.repositories.TicketFeeConfigRepository;
-import com.foriatickets.foriabackend.repositories.TicketTypeConfigRepository;
-import com.foriatickets.foriabackend.repositories.VenueRepository;
+import com.foriatickets.foriabackend.entities.*;
+import com.foriatickets.foriabackend.gateway.AWSSimpleEmailServiceGateway;
+import com.foriatickets.foriabackend.gateway.FCMGateway;
+import com.foriatickets.foriabackend.repositories.*;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -24,11 +20,12 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.*;
 
+import static com.foriatickets.foriabackend.entities.TicketEntity.Status.ACTIVE;
+import static com.foriatickets.foriabackend.entities.TicketEntity.Status.ISSUED;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @RunWith(SpringRunner.class)
 public class EventServiceImplTest {
@@ -50,6 +47,15 @@ public class EventServiceImplTest {
 
     @Mock
     private TicketService ticketService;
+
+    @Mock
+    private AWSSimpleEmailServiceGateway awsSimpleEmailServiceGateway;
+
+    @Mock
+    private FCMGateway fcmGateway;
+
+    @Mock
+    private OrderTicketEntryRepository orderTicketEntryRepository;
 
     private EventService eventService;
 
@@ -154,7 +160,7 @@ public class EventServiceImplTest {
             modelMapper.addMappings(map);
         }
 
-        eventService = new EventServiceImpl(calculationService, eventRepository, ticketFeeConfigRepository, ticketTypeConfigRepository, venueRepository, modelMapper, ticketService);
+        eventService = new EventServiceImpl(calculationService, eventRepository, ticketFeeConfigRepository, ticketTypeConfigRepository, venueRepository, modelMapper, ticketService, orderTicketEntryRepository, awsSimpleEmailServiceGateway, fcmGateway);
     }
 
     @Test
@@ -207,5 +213,96 @@ public class EventServiceImplTest {
 
         Event actual = eventService.getEvent(eventId);
         Assert.notNull(actual);
+    }
+
+    @Test
+    public void cancelEvent() {
+
+        final UUID eventId = UUID.randomUUID();
+
+        Set<DeviceTokenEntity> deviceTokenEntities = new HashSet<>();
+        DeviceTokenEntity deviceTokenEntity = mock(DeviceTokenEntity.class);
+        when(deviceTokenEntity.getTokenStatus()).thenReturn(DeviceTokenEntity.TokenStatus.ACTIVE);
+        when(deviceTokenEntity.getDeviceToken()).thenReturn("fake_token");
+
+        DeviceTokenEntity deviceTokenEntity2 = mock(DeviceTokenEntity.class);
+        when(deviceTokenEntity2.getTokenStatus()).thenReturn(DeviceTokenEntity.TokenStatus.DEACTIVATED);
+        when(deviceTokenEntity2.getDeviceToken()).thenReturn("fake_token2");
+        deviceTokenEntities.add(deviceTokenEntity);
+        deviceTokenEntities.add(deviceTokenEntity2);
+
+        UserEntity purchaser = mock(UserEntity.class);
+        when(purchaser.getId()).thenReturn(UUID.randomUUID());
+        when(purchaser.getEmail()).thenReturn("test@test.com");
+        when(purchaser.getDeviceTokens()).thenReturn(deviceTokenEntities);
+
+        UserEntity owner = mock(UserEntity.class);
+        when(owner.getId()).thenReturn(UUID.randomUUID());
+        when(owner.getEmail()).thenReturn("test2@test.com");
+        when(owner.getDeviceTokens()).thenReturn(deviceTokenEntities);
+
+        EventEntity eventEntity = mock(EventEntity.class);
+        when(eventEntity.getId()).thenReturn(UUID.randomUUID());
+        when(eventEntity.getEventEndTime()).thenReturn(OffsetDateTime.MAX.minusYears(1L));
+        when(eventEntity.getName()).thenReturn("Test Event");
+
+        TicketEntity ticketEntity = mock(TicketEntity.class);
+        when(ticketEntity.getId()).thenReturn(UUID.randomUUID());
+        when(ticketEntity.getStatus()).thenReturn(ACTIVE);
+        when(ticketEntity.getIssuedDate()).thenReturn(OffsetDateTime.now());
+        when(ticketEntity.getSecret()).thenReturn("secret");
+        when(ticketEntity.getPurchaserEntity()).thenReturn(purchaser);
+        when(ticketEntity.getOwnerEntity()).thenReturn(owner);
+        when(ticketEntity.getEventEntity()).thenReturn(eventEntity);
+
+        TicketEntity ticketEntity2 = mock(TicketEntity.class);
+        when(ticketEntity2.getId()).thenReturn(UUID.randomUUID());
+        when(ticketEntity2.getStatus()).thenReturn(ISSUED);
+        when(ticketEntity2.getIssuedDate()).thenReturn(OffsetDateTime.now());
+        when(ticketEntity2.getSecret()).thenReturn("secret");
+        when(ticketEntity2.getPurchaserEntity()).thenReturn(purchaser);
+        when(ticketEntity2.getOwnerEntity()).thenReturn(owner);
+        when(ticketEntity2.getEventEntity()).thenReturn(eventEntity);
+
+        Set<TicketEntity> ticketSet = new HashSet<>();
+        ticketSet.add(ticketEntity);
+        ticketSet.add(ticketEntity2);
+        when(eventEntity.getTickets()).thenReturn(ticketSet);
+        when(eventRepository.findById(eq(eventId))).thenReturn(Optional.of(eventEntity));
+
+        OrderEntity orderEntity = mock(OrderEntity.class);
+        when(orderEntity.getId()).thenReturn(UUID.randomUUID());
+        when(orderEntity.getCurrency()).thenReturn("USD");
+        when(orderEntity.getTotal()).thenReturn(BigDecimal.ZERO);
+        when(orderEntity.getOrderTimestamp()).thenReturn(OffsetDateTime.now());
+        when(orderEntity.getChargeReferenceId()).thenReturn(null);
+        when(orderEntity.getStatus()).thenReturn(OrderEntity.Status.COMPLETED);
+
+        Set<OrderTicketEntryEntity> orderTicketEntryEntities = new HashSet<>();
+        OrderTicketEntryEntity orderTicketEntryEntity = mock(OrderTicketEntryEntity.class);
+        when(orderTicketEntryEntity.getOrderEntity()).thenReturn(orderEntity);
+        when(orderTicketEntryEntity.getId()).thenReturn(UUID.randomUUID());
+        when(orderTicketEntryEntity.getTicketEntity()).thenReturn(ticketEntity);
+
+        OrderTicketEntryEntity orderTicketEntryEntity2 = mock(OrderTicketEntryEntity.class);
+        when(orderTicketEntryEntity2.getOrderEntity()).thenReturn(orderEntity);
+        when(orderTicketEntryEntity2.getId()).thenReturn(UUID.randomUUID());
+        when(orderTicketEntryEntity2.getTicketEntity()).thenReturn(ticketEntity2);
+
+        orderTicketEntryEntities.add(orderTicketEntryEntity);
+        orderTicketEntryEntities.add(orderTicketEntryEntity2);
+        when(orderEntity.getTickets()).thenReturn(orderTicketEntryEntities);
+
+        when(orderTicketEntryRepository.findByTicketEntity(ticketEntity)).thenReturn(orderTicketEntryEntity);
+        when(orderTicketEntryRepository.findByTicketEntity(ticketEntity2)).thenReturn(orderTicketEntryEntity2);
+        doNothing().when(ticketService).refundOrder(any());
+        doNothing().when(awsSimpleEmailServiceGateway).sendEmailFromTemplate(any(), any(), any());
+        doNothing().when(fcmGateway).sendPushNotification(any(), any());
+
+        eventService.cancelEvent(eventId, "This is a test.");
+
+        verify(eventRepository).save(any());
+        verify(awsSimpleEmailServiceGateway, times(1)).sendEmailFromTemplate(any(), any(), any());
+        verify(fcmGateway, times(1)).sendPushNotification(any(), any());
     }
 }

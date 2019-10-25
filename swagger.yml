@@ -133,6 +133,41 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Event'
+  /event/{event_id}/cancel:
+    put:
+      tags:
+        - event
+      summary: CANCELS an event and REFUNDS ALL customers.
+      description: Irrevocably CANCELS an event. This takes down the listing, CANCELS ALL orders, CANCELS ALL tickets, REFUNDS ALL customers, and notifies users the event is CANCELED by push and email. Use with extreme caution.
+      operationId: cancelEvent
+      security:
+        - OAuth2:
+            - write:event_cancel
+      parameters:
+        - name: event_id
+          in: path
+          description: The event ID stored in the Foria database.
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        description: Config options for cancel.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancelEvent'
+        required: true
+      responses:
+        200:
+          description: OK - Event Canceled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseApiModel'
+        404:
+          description: Event not found by ID.
+          content: {}
   /ticket/{ticket_id}:
     get:
       tags:
@@ -646,6 +681,11 @@ components:
           minLength: 3
           type: string
           example: USA
+    CancelEvent:
+      type: object
+      properties:
+        reason:
+          type: string
     DeviceToken:
       type: object
       properties:
@@ -987,6 +1027,7 @@ components:
           tokenUrl: https://auth.foriatickets.com/oauth/token
           scopes:
             write:event: Allows POST access to event endpoints.
+            write:event_cancel: Special permission to cancel events.
             write:venue: Allows POST access to venue endpoints.
             write:redeem: Allows tickets to be scanned.
             write:register: Allows user to be created in Foria system.

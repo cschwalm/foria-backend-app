@@ -1,13 +1,10 @@
 package com.foriatickets.foriabackend.service;
 
-import com.foriatickets.foriabackend.entities.EventEntity;
-import com.foriatickets.foriabackend.entities.TicketFeeConfigEntity;
-import com.foriatickets.foriabackend.entities.TicketTypeConfigEntity;
-import com.foriatickets.foriabackend.entities.VenueEntity;
-import com.foriatickets.foriabackend.repositories.EventRepository;
-import com.foriatickets.foriabackend.repositories.TicketFeeConfigRepository;
-import com.foriatickets.foriabackend.repositories.TicketTypeConfigRepository;
-import com.foriatickets.foriabackend.repositories.VenueRepository;
+import com.foriatickets.foriabackend.entities.*;
+import com.foriatickets.foriabackend.gateway.AWSSimpleEmailServiceGateway;
+import com.foriatickets.foriabackend.gateway.FCMGateway;
+import com.foriatickets.foriabackend.repositories.*;
+import com.google.firebase.messaging.Notification;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.modelmapper.ModelMapper;
@@ -22,10 +19,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 import static org.springframework.web.context.WebApplicationContext.SCOPE_REQUEST;
 
@@ -34,15 +28,22 @@ import static org.springframework.web.context.WebApplicationContext.SCOPE_REQUES
 @Transactional
 public class EventServiceImpl implements EventService {
 
+    private static final String CANCEL_TITLE = "Foria Event Canceled";
+    private static final String CANCEL_BODY = "{{eventName}} has been canceled! Please check your email for more info.";
+    private static final String CANCEL_EMAIL = "event_canceled_email";
+
     private static final Logger LOG = LogManager.getLogger();
 
     private final CalculationService calculationService;
-    private ModelMapper modelMapper;
-    private EventRepository eventRepository;
-    private TicketFeeConfigRepository ticketFeeConfigRepository;
-    private TicketTypeConfigRepository ticketTypeConfigRepository;
-    private VenueRepository venueRepository;
-    private TicketService ticketService;
+    private final ModelMapper modelMapper;
+    private final EventRepository eventRepository;
+    private final TicketFeeConfigRepository ticketFeeConfigRepository;
+    private final TicketTypeConfigRepository ticketTypeConfigRepository;
+    private final VenueRepository venueRepository;
+    private final TicketService ticketService;
+    private final OrderTicketEntryRepository orderTicketEntryRepository;
+    private final AWSSimpleEmailServiceGateway awsSimpleEmailServiceGateway;
+    private final FCMGateway fcmGateway;
 
     @Autowired
     public EventServiceImpl(CalculationService calculationService,
@@ -50,7 +51,10 @@ public class EventServiceImpl implements EventService {
                             TicketFeeConfigRepository ticketFeeConfigRepository,
                             TicketTypeConfigRepository ticketTypeConfigRepository,
                             VenueRepository venueRepository, ModelMapper modelMapper,
-                            TicketService ticketService) {
+                            TicketService ticketService,
+                            OrderTicketEntryRepository orderTicketEntryRepository,
+                            AWSSimpleEmailServiceGateway awsSimpleEmailServiceGateway,
+                            FCMGateway fcmGateway) {
 
         this.calculationService = calculationService;
         this.eventRepository = eventRepository;
@@ -59,6 +63,76 @@ public class EventServiceImpl implements EventService {
         this.venueRepository = venueRepository;
         this.modelMapper = modelMapper;
         this.ticketService = ticketService;
+        this.orderTicketEntryRepository = orderTicketEntryRepository;
+        this.awsSimpleEmailServiceGateway = awsSimpleEmailServiceGateway;
+        this.fcmGateway = fcmGateway;
+    }
+
+    @Override
+    public void cancelEvent(UUID eventId, String reason) {
+
+        if (eventId == null || StringUtils.isEmpty(reason)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Event ID is null or reason is empty.");
+        }
+
+        final Optional<EventEntity> eventEntityOptional = eventRepository.findById(eventId);
+        if (!eventEntityOptional.isPresent()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Event ID does not exist.");
+        }
+
+        final EventEntity eventEntity = eventEntityOptional.get();
+        final String eventName = eventEntity.getName();
+
+        if (eventEntity.getStatus() == EventEntity.Status.CANCELED) {
+            LOG.info("Event ID: {} is already canceled.", eventId);
+            return;
+        }
+
+        if (OffsetDateTime.now().isAfter(eventEntity.getEventEndTime())) {
+            LOG.warn("Event ID: {} is already ended. Failed to cancel event.", eventId);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Event has already ended. Failed to cancel.");
+        }
+
+        //Obtain all orders for event and cancel each.
+        final Set<UserEntity> usersImpacted = new HashSet<>();
+        final Set<OrderEntity> orderEntityList = new HashSet<>();
+        for (TicketEntity ticketEntity : eventEntity.getTickets()) {
+            final OrderEntity orderEntity = orderTicketEntryRepository.findByTicketEntity(ticketEntity).getOrderEntity();
+            orderEntityList.add(orderEntity);
+            usersImpacted.add(ticketEntity.getOwnerEntity());
+        }
+
+        LOG.info("Number of orders to cancel for ending Event Id: {} is: {}", eventId, orderEntityList.size());
+        for (OrderEntity orderEntity : orderEntityList) {
+            try {
+                ticketService.refundOrder(orderEntity.getId());
+            } catch (Exception ex) {
+                LOG.error("FAILED to cancel order ID: {} while canceling event Id: {}. " + "Manual process is required.", orderEntity.getId(), eventId);
+            }
+        }
+
+        //Send push notifications and emails to impacted customers.
+        for (UserEntity userEntity : usersImpacted) {
+
+            Map<String, String> templateData = new HashMap<>();
+            templateData.put("eventName", eventName);
+            templateData.put("cancelationReason", reason);
+
+            awsSimpleEmailServiceGateway.sendEmailFromTemplate(userEntity.getEmail(), CANCEL_EMAIL, templateData);
+            for (DeviceTokenEntity deviceTokenEntity : userEntity.getDeviceTokens()) {
+
+                if (deviceTokenEntity.getTokenStatus() != DeviceTokenEntity.TokenStatus.ACTIVE) {
+                    continue;
+                }
+
+                Notification notification = new Notification(CANCEL_TITLE, CANCEL_BODY.replace("{{eventName}}", eventName));
+                fcmGateway.sendPushNotification(deviceTokenEntity.getDeviceToken(), notification);
+            }
+        }
+
+        eventEntity.setStatus(EventEntity.Status.CANCELED);
+        eventRepository.save(eventEntity);
+        LOG.info("Event ID: {} has been successfully canceled.", eventId);
     }
 
     @Override

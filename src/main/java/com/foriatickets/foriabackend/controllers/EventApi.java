@@ -1,6 +1,8 @@
 package com.foriatickets.foriabackend.controllers;
 
 import com.foriatickets.foriabackend.service.EventService;
+import org.openapitools.model.BaseApiModel;
+import org.openapitools.model.CancelEvent;
 import org.openapitools.model.Event;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.http.HttpStatus;
@@ -56,5 +58,14 @@ public class EventApi implements org.openapitools.api.EventApi {
 
         EventService eventService = beanFactory.getBean(EventService.class);
         return new ResponseEntity<>(eventService.updateEvent(eventId, event), HttpStatus.OK);
+    }
+
+    @RequestMapping(value = "/event/{event_id}/cancel", method = RequestMethod.PUT)
+    @Override
+    public ResponseEntity<BaseApiModel> cancelEvent(@PathVariable("event_id") UUID eventId, @Valid @RequestBody CancelEvent cancelEvent) {
+
+        EventService eventService = beanFactory.getBean(EventService.class);
+        eventService.cancelEvent(eventId, cancelEvent.getReason());
+        return new ResponseEntity<>(new BaseApiModel(), HttpStatus.OK);
     }
 }

@@ -13,6 +13,15 @@ import java.util.UUID;
 public interface EventService {
 
     /**
+     * Irrevocably CANCELS an event. This takes down the listing, CANCELS ALL orders, CANCELS ALL tickets,
+     * REFUNDS ALL customers, and notifies users the event is CANCELED by push and email. Use with extreme caution.
+     *
+     * @param eventID The event to cancel.
+     * @param reason The reason to show to user.
+     */
+    void cancelEvent(UUID eventID, String reason);
+
+    /**
      * Create an event.
      *
      * @param event Event to created.
