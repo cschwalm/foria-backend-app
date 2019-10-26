@@ -72,7 +72,7 @@ public class GatewayMockImpl implements GatewayMock {
         balanceTransactionList.add(balanceTransaction);
 
         StripeGatewayImpl.SettlementInfo settlementInfo = new StripeGatewayImpl.SettlementInfo();
-        settlementInfo.setBalanceTransactions(balanceTransactionList);
+        settlementInfo.setChargeTransactions(balanceTransactionList);
         settlementInfo.setStripePayout(payout);
 
         LOG.info("Stripe mock in use. Mock payout returned.");

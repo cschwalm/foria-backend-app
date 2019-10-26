@@ -7,6 +7,7 @@ import com.foriatickets.foriabackend.gateway.StripeGateway;
 import com.foriatickets.foriabackend.repositories.*;
 import com.google.firebase.messaging.Notification;
 import com.stripe.model.Charge;
+import com.stripe.model.Refund;
 import com.warrenstrange.googleauth.GoogleAuthenticator;
 import org.apache.commons.lang3.Validate;
 import org.apache.logging.log4j.LogManager;
@@ -283,9 +284,11 @@ public class TicketServiceImpl implements TicketService {
         LOG.info("Number of tickets cancelled in order: {} - OrderId: {}", orderEntity.getTickets().size(), orderEntity.getId());
         LOG.info("Number of users impacted: {} - OrderId: {}", usersImpacted.size(), orderEntity.getId());
 
+        Refund refund;
         //Refunds the entire order amount if not free.
         if (!StringUtils.isEmpty(orderEntity.getChargeReferenceId())) {
-            stripeGateway.refundStripeCharge(orderEntity.getChargeReferenceId(), orderEntity.getTotal());
+            refund = stripeGateway.refundStripeCharge(orderEntity.getChargeReferenceId(), orderEntity.getTotal());
+            orderEntity.setRefundReferenceId(refund.getId());
         }
 
         //Send push notifications and emails to impacted customers.

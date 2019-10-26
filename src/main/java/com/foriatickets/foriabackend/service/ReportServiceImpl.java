@@ -23,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.CharArrayWriter;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -104,6 +105,7 @@ public class ReportServiceImpl implements ReportService {
         generateAndSendTicketReport(start.minusYears(10), start);
     }
 
+    @SuppressWarnings("Duplicates")
     @Override
     @Scheduled(cron = "${weeklySettlementReport.cron:-}")
     public void generateAndSendWeeklySettlementReport() {
@@ -121,19 +123,88 @@ public class ReportServiceImpl implements ReportService {
         }
 
         final Payout payout = settlementInfo.getStripePayout();
-        final List<BalanceTransaction> transactions = settlementInfo.getBalanceTransactions();
+        final List<BalanceTransaction> charges = settlementInfo.getChargeTransactions();
+        final List<BalanceTransaction> refunds = settlementInfo.getRefundTransactions();
 
         final BigDecimal settlementAmount = BigDecimal.valueOf(payout.getAmount()).movePointLeft(2);
-        BigDecimal totalNetAmount = BigDecimal.ZERO;
         BigDecimal totalExpectedAmount = BigDecimal.ZERO;
         BigDecimal foriaRevenueAmount = BigDecimal.ZERO;
         BigDecimal venueRevenueAmount = BigDecimal.ZERO;
 
+        int numCharges = 0;
+        int numRefunds = 0;
+
         final List<OrderReportRow> orderReportRows = new ArrayList<>();
+        final List<OrderReportRow> refundReportRows = new ArrayList<>();
+
+        boolean isTransactionMissing = false;
+        for (BalanceTransaction refund : refunds) {
+
+            OrderEntity orderEntity = orderRepository.findByRefundReferenceId(refund.getSource());
+
+            if (orderEntity == null) {
+                isTransactionMissing = true;
+                LOG.warn("Transaction with refundRefId: {} is not found in order table.", refund.getSource());
+                continue;
+            }
+
+            numRefunds++;
+
+            if (orderEntity.getStatus() != OrderEntity.Status.CANCELED) {
+                LOG.error("Stripe transaction marked as REFUND but order is not canceled. Order ID: {} - Refund ID: {}", orderEntity.getId(), refund.getSource());
+            }
+
+            //Setup Fees
+            final Set<OrderFeeEntryEntity> orderFeeEntryEntities = orderEntity.getFees();
+            final Set<TicketFeeConfigEntity> feeSet = new HashSet<>();
+            for (OrderFeeEntryEntity orderFee : orderFeeEntryEntities) {
+                feeSet.add(orderFee.getTicketFeeConfigEntity());
+            }
+
+            //Subtract confirmed refunds from settlement total.
+            final BigDecimal refundAmount = BigDecimal.valueOf(refund.getAmount()).movePointLeft(2);
+
+            BigDecimal ticketSubtotal = BigDecimal.ZERO;
+            int numPaidTickets = 0;
+            for (OrderTicketEntryEntity orderTicketEntryEntity : orderEntity.getTickets()) {
+
+                TicketEntity ticket = orderTicketEntryEntity.getTicketEntity();
+
+                if (!ticket.getTicketTypeConfigEntity().getCurrency().equalsIgnoreCase("USD")) {
+                    LOG.warn("Ticket ID: {} is not in USD. Skipping calculation.", ticket.getId());
+                    continue;
+                }
+
+                //Check ticket to see if it's free to skip FLAT fee apply.
+                if (ticket.getTicketTypeConfigEntity().getPrice().compareTo(BigDecimal.ZERO) > 0) {
+                    numPaidTickets++;
+                    ticketSubtotal = ticketSubtotal.add(ticket.getTicketTypeConfigEntity().getPrice());
+                }
+            }
+
+            CalculationServiceImpl.PriceCalculationInfo pInfo = calculationService.calculateFees(numPaidTickets, ticketSubtotal, feeSet);
+            foriaRevenueAmount = foriaRevenueAmount.add(pInfo.issuerFeeSubtotal.negate());
+            venueRevenueAmount = venueRevenueAmount.add( (pInfo.venueFeeSubtotal.add(pInfo.ticketSubtotal).add(pInfo.paymentFeeSubtotal)).negate() );
+
+            //Build refund report entry.
+            final OrderReportRow refundReportRow = new OrderReportRow();
+            refundReportRow.setOrderId(orderEntity.getId().toString());
+            refundReportRow.setUserId(orderEntity.getPurchaser().getId().toString());
+            refundReportRow.setUserEmail(orderEntity.getPurchaser().getEmail());
+            refundReportRow.setOrderStatus(orderEntity.getStatus().name());
+            refundReportRow.setOrderDateTime(orderEntity.getOrderTimestamp().format(DATE_FORMAT));
+            refundReportRow.setChargeAmount(refundAmount.toPlainString());
+            refundReportRow.setPaymentFeeAmount(BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP).toPlainString());
+            refundReportRow.setNetAmount(refundAmount.toPlainString());
+            refundReportRow.setTicketSubtotal(ticketSubtotal.negate().toPlainString());
+            refundReportRow.setIssuerFeeAmount(pInfo.issuerFeeSubtotal.negate().toPlainString());
+            refundReportRow.setVenueFeeAmount( (pInfo.venueFeeSubtotal.add(pInfo.paymentFeeSubtotal) ).negate().toPlainString());
+            refundReportRow.setCurrency(orderEntity.getCurrency());
+            refundReportRows.add(refundReportRow);
+        }
 
         //Check that we have record for every transaction
-        boolean isTransactionMissing = false;
-        for (BalanceTransaction balanceTransaction : transactions) { //Every entry should be an order.
+        for (BalanceTransaction balanceTransaction : charges) {
 
             OrderEntity orderEntity = orderRepository.findByChargeReferenceId(balanceTransaction.getSource());
             if (orderEntity == null) {
@@ -141,6 +212,8 @@ public class ReportServiceImpl implements ReportService {
                 LOG.warn("Transaction with chargeRefId: {} is not found in order table.", balanceTransaction.getSource());
                 continue;
             }
+
+            numCharges++;
 
             //Setup Fees
             final Set<OrderFeeEntryEntity> orderFeeEntryEntities = orderEntity.getFees();
@@ -153,7 +226,6 @@ public class ReportServiceImpl implements ReportService {
             final BigDecimal chargeAmount = BigDecimal.valueOf(balanceTransaction.getAmount()).movePointLeft(2);
             final BigDecimal paymentFeeAmount = BigDecimal.valueOf(balanceTransaction.getFee()).movePointLeft(2);
             final BigDecimal netAmount = BigDecimal.valueOf(balanceTransaction.getNet()).movePointLeft(2);
-            totalNetAmount = totalNetAmount.add(netAmount);
 
             BigDecimal ticketSubtotal = BigDecimal.ZERO;
             int numPaidTickets = 0;
@@ -182,6 +254,7 @@ public class ReportServiceImpl implements ReportService {
             orderReportRow.setOrderId(orderEntity.getId().toString());
             orderReportRow.setUserId(orderEntity.getPurchaser().getId().toString());
             orderReportRow.setUserEmail(orderEntity.getPurchaser().getEmail());
+            orderReportRow.setOrderStatus(orderEntity.getStatus().name());
             orderReportRow.setOrderDateTime(orderEntity.getOrderTimestamp().format(DATE_FORMAT));
             orderReportRow.setChargeAmount(chargeAmount.toPlainString());
             orderReportRow.setPaymentFeeAmount(paymentFeeAmount.toPlainString());
@@ -204,11 +277,13 @@ public class ReportServiceImpl implements ReportService {
                 "Report Generated at: " + ZonedDateTime.now().withZoneSameInstant(ZoneId.of("America/Los_Angeles")).toString(),
                 mailDelimiter,
                 "Settlement Date: " + settlementDate.toString(),
-                "Stripe Payout Id: " + payout.getId() + mailDelimiter,
+                "Stripe Payout Id: " + payout.getId(),
+                "Number of Charges: " + numCharges,
+                "Number of Refunds: " + numRefunds + mailDelimiter,
                 (isTransactionMissing) ? mailDelimiter + "### WARNING ### STRIPE CONTAINS CHARGE TRANSACTION NOT IN FORIA ORDER LIST - MANUAL ADJUSTMENT REQUIRED! ### WARNING ###" : "",
                 "Amount Being Deposited Today (Settlement Amount): " + settlementAmount.toPlainString() + " " + payout.getCurrency(),
                 "Expected Amount For Today (Expected Settlement Amount): " + totalExpectedAmount.toPlainString() + " " + payout.getCurrency(),
-                (settlementAmount.compareTo(totalExpectedAmount) != 0) ? "### WARNING ### AMOUNTS DO NOT MATCH - EITHER A REFUND WAS PROCESSED OR MANUAL LEDGER ENTRY OCCURRED - MANUAL ADJUSTMENT REQUIRED! ### WARNING ###" : "",
+                (settlementAmount.compareTo(totalExpectedAmount) != 0) ? "### WARNING ### AMOUNTS DO NOT MATCH - EITHER A CHARGE BACK OCCURRED OR MANUAL LEDGER ENTRY OCCURRED - MANUAL ADJUSTMENT REQUIRED! ### WARNING ###" : "",
                 mailDelimiter,
                 "Foria Revenue Amount (Foria Fees Collected On Tickets - Transfer/Keep this to Foria Operating Account): " + foriaRevenueAmount.toPlainString() + " " + payout.getCurrency(),
                 "Venue Revenue Amount (Venue Ticket Rev plus Venue Fees) - Transfer this to Venue ITF Account): " + venueRevenueAmount.toPlainString() + " " + payout.getCurrency(),
@@ -227,9 +302,19 @@ public class ReportServiceImpl implements ReportService {
                 .withMappingStrategy(mappingStrategy)
                 .build();
 
+        final CharArrayWriter refundWriter = new CharArrayWriter();
+        StatefulBeanToCsv<OrderReportRow> sbcRefund = new StatefulBeanToCsvBuilder<OrderReportRow>(refundWriter)
+                .withSeparator(CSVWriter.DEFAULT_SEPARATOR)
+                .withMappingStrategy(mappingStrategy)
+                .build();
+
         try {
             sbc.write(orderReportRows);
             writer.close();
+
+            sbcRefund.write(refundReportRows);
+            refundWriter.close();
+
         } catch (Exception ex) {
             LOG.error("Failed to generate OrderReport. Error: {}" + ex.getMessage());
             ex.printStackTrace();
@@ -241,6 +326,13 @@ public class ReportServiceImpl implements ReportService {
         reportAttachment.reportDataArray = writer.toString().getBytes(StandardCharsets.UTF_8);
         reportAttachment.reportFilename = "OrderReport.csv";
         reportAttachmentList.add(reportAttachment);
+
+        if (!refundReportRows.isEmpty()) {
+            final AWSSimpleEmailServiceGateway.ReportAttachment refundAttachment = new AWSSimpleEmailServiceGateway.ReportAttachment();
+            refundAttachment.reportDataArray = refundWriter.toString().getBytes(StandardCharsets.UTF_8);
+            refundAttachment.reportFilename = "RefundReport.csv";
+            reportAttachmentList.add(refundAttachment);
+        }
 
         awsSimpleEmailServiceGateway.sendInternalReport("Weekly Settlement Report", reportStr, reportAttachmentList);
         LOG.info("Weekly Settlement Report generated and sent at: {}", DateTime.now());

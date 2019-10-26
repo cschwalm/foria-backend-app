@@ -24,34 +24,38 @@ public class OrderReportRow {
     private String userEmail;
 
     @CsvBindByPosition(position = 3)
+    @CsvBindByName(column = "Order Status", required = true)
+    private String orderStatus;
+
+    @CsvBindByPosition(position = 4)
     @CsvBindByName(column = "Order Date", required = true)
     private String orderDateTime;
 
-    @CsvBindByPosition(position = 4)
+    @CsvBindByPosition(position = 5)
     @CsvBindByName(column = "Charge Amount", required = true)
     private String chargeAmount;
 
-    @CsvBindByPosition(position = 5)
+    @CsvBindByPosition(position = 6)
     @CsvBindByName(column = "Payment Fee Amount", required = true)
     private String paymentFeeAmount;
 
-    @CsvBindByPosition(position = 6)
+    @CsvBindByPosition(position = 7)
     @CsvBindByName(column = "Net Amount", required = true)
     private String netAmount;
 
-    @CsvBindByPosition(position = 7)
+    @CsvBindByPosition(position = 8)
     @CsvBindByName(column = "Ticket Subtotal", required = true)
     private String ticketSubtotal;
 
-    @CsvBindByPosition(position = 8)
+    @CsvBindByPosition(position = 9)
     @CsvBindByName(column = "Issuer Fee Subtotal", required = true)
     private String issuerFeeAmount;
 
-    @CsvBindByPosition(position = 9)
+    @CsvBindByPosition(position = 10)
     @CsvBindByName(column = "Venue Fee Subtotal", required = true)
     private String venueFeeAmount;
 
-    @CsvBindByPosition(position = 10)
+    @CsvBindByPosition(position = 11)
     @CsvBindByName(column = "Currency", required = true)
     private String currency;
 
@@ -77,6 +81,14 @@ public class OrderReportRow {
 
     public void setUserEmail(String userEmail) {
         this.userEmail = userEmail;
+    }
+
+    public String getOrderStatus() {
+        return orderStatus;
+    }
+
+    public void setOrderStatus(String orderStatus) {
+        this.orderStatus = orderStatus;
     }
 
     public String getOrderDateTime() {

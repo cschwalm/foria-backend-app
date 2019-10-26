@@ -31,7 +31,8 @@ public class StripeGatewayImpl implements StripeGateway {
     public static class SettlementInfo {
 
         private Payout stripePayout;
-        private List<BalanceTransaction> balanceTransactions;
+        private List<BalanceTransaction> chargeTransactions;
+        private List<BalanceTransaction> refundTransactions;
 
         public Payout getStripePayout() {
             return stripePayout;
@@ -41,12 +42,20 @@ public class StripeGatewayImpl implements StripeGateway {
             this.stripePayout = stripePayout;
         }
 
-        public List<BalanceTransaction> getBalanceTransactions() {
-            return balanceTransactions;
+        public List<BalanceTransaction> getChargeTransactions() {
+            return chargeTransactions;
         }
 
-        public void setBalanceTransactions(List<BalanceTransaction> balanceTransactions) {
-            this.balanceTransactions = balanceTransactions;
+        public void setChargeTransactions(List<BalanceTransaction> chargeTransactions) {
+            this.chargeTransactions = chargeTransactions;
+        }
+
+        public List<BalanceTransaction> getRefundTransactions() {
+            return refundTransactions;
+        }
+
+        public void setRefundTransactions(List<BalanceTransaction> refundTransactions) {
+            this.refundTransactions = refundTransactions;
         }
     }
 
@@ -187,13 +196,25 @@ public class StripeGatewayImpl implements StripeGateway {
         balanceTransactionParams.put("type", "charge");
         balanceTransactionParams.put("limit", STRIPE_RETURN_AMOUNT);
 
-        final List<BalanceTransaction> balanceTransactions = new ArrayList<>();
+        final Map<String, Object> refundTransactionParams = new HashMap<>();
+        refundTransactionParams.put("payout", lastPayout.getId());
+        refundTransactionParams.put("type", "refund");
+        refundTransactionParams.put("limit", STRIPE_RETURN_AMOUNT);
+
+        final List<BalanceTransaction> chargeTransactions = new ArrayList<>();
+        final List<BalanceTransaction> refundTransactions = new ArrayList<>();
         try {
 
             Iterable<BalanceTransaction> balanceTransactionItr = BalanceTransaction.list(balanceTransactionParams).autoPagingIterable();
 
             for (BalanceTransaction balanceTransaction : balanceTransactionItr) {
-                balanceTransactions.add(balanceTransaction);
+                chargeTransactions.add(balanceTransaction);
+            }
+
+            Iterable<BalanceTransaction> balanceTransactionRefundsItr = BalanceTransaction.list(refundTransactionParams).autoPagingIterable();
+
+            for (BalanceTransaction refundBalanceTransaction : balanceTransactionRefundsItr) {
+                refundTransactions.add(refundBalanceTransaction);
             }
 
         } catch (StripeException e) {
@@ -201,7 +222,8 @@ public class StripeGatewayImpl implements StripeGateway {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "ERROR: Unable to obtain balance transactions for last payout.");
         }
 
-        settlementInfo.setBalanceTransactions(balanceTransactions);
+        settlementInfo.setChargeTransactions(chargeTransactions);
+        settlementInfo.setRefundTransactions(refundTransactions);
 
         LOG.info("Obtained last payout with Id for EPOCH date: {} {}", lastPayout.getId(), lastPayout.getCreated());
         return settlementInfo;

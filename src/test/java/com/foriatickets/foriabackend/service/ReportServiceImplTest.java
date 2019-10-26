@@ -100,7 +100,7 @@ public class ReportServiceImplTest {
         when(payoutMock.getType()).thenReturn("charge");
 
         StripeGatewayImpl.SettlementInfo settlementInfo = mock(StripeGatewayImpl.SettlementInfo.class);
-        when(settlementInfo.getBalanceTransactions()).thenReturn(transactions);
+        when(settlementInfo.getChargeTransactions()).thenReturn(transactions);
         when(settlementInfo.getStripePayout()).thenReturn(payoutMock);
 
         CalculationServiceImpl.PriceCalculationInfo priceCalculationInfo = new CalculationServiceImpl.PriceCalculationInfo();
@@ -193,6 +193,7 @@ public class ReportServiceImplTest {
         when(orderEntity1.getChargeReferenceId()).thenReturn("charge_123456");
         when(orderEntity1.getCurrency()).thenReturn("USD");
         when(orderEntity1.getTotal()).thenReturn(BigDecimal.TEN);
+        when(orderEntity1.getStatus()).thenReturn(OrderEntity.Status.COMPLETED);
         when(orderEntity1.getOrderTimestamp()).thenReturn(OffsetDateTime.now());
         when(orderEntity1.getFees()).thenReturn(fees);
         when(orderEntity1.getPurchaser()).thenReturn(userEntity);

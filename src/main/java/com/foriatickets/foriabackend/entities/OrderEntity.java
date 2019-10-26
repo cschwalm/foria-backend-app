@@ -23,6 +23,7 @@ public class OrderEntity implements Serializable {
     private UUID id;
     private UserEntity purchaser;
     private String chargeReferenceId;
+    private String refundReferenceId;
     private Status status;
     private OffsetDateTime orderTimestamp;
     private BigDecimal total;
@@ -61,6 +62,16 @@ public class OrderEntity implements Serializable {
 
     public OrderEntity setChargeReferenceId(String chargeReferenceId) {
         this.chargeReferenceId = chargeReferenceId;
+        return this;
+    }
+
+    @Column(name = "refund_ref_id", unique = true)
+    public String getRefundReferenceId() {
+        return refundReferenceId;
+    }
+
+    public OrderEntity setRefundReferenceId(String refundReferenceId) {
+        this.refundReferenceId = refundReferenceId;
         return this;
     }
 
@@ -129,6 +140,7 @@ public class OrderEntity implements Serializable {
         return "OrderEntity{" +
                 "id=" + id +
                 ", chargeReferenceId='" + chargeReferenceId + '\'' +
+                ", refundReferenceId='" + refundReferenceId + '\'' +
                 ", status=" + status +
                 ", orderTimestamp=" + orderTimestamp +
                 ", total=" + total +
@@ -143,6 +155,7 @@ public class OrderEntity implements Serializable {
         OrderEntity that = (OrderEntity) o;
         return Objects.equals(id, that.id) &&
                 Objects.equals(chargeReferenceId, that.chargeReferenceId) &&
+                Objects.equals(refundReferenceId, that.refundReferenceId) &&
                 status == that.status &&
                 Objects.equals(orderTimestamp, that.orderTimestamp) &&
                 Objects.equals(total, that.total) &&
@@ -151,6 +164,6 @@ public class OrderEntity implements Serializable {
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, chargeReferenceId, status, orderTimestamp, total, currency);
+        return Objects.hash(id, chargeReferenceId, refundReferenceId, status, orderTimestamp, total, currency);
     }
 }
