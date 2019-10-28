@@ -105,6 +105,10 @@ public class VenueServiceImpl implements VenueService {
     @Override
     public Venue createVenue(Venue venue) {
 
+        if (venue.getId() != null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Venue ID must not be set when creating a venue.");
+        }
+
         VenueEntity venueEntity = modelMapper.map(venue, VenueEntity.class);
 
         venueEntity = venueRepository.save(venueEntity);

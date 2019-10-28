@@ -144,6 +144,10 @@ public class EventServiceImpl implements EventService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Venue does not exist with ID.");
         }
 
+        if (event.getId() != null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Event ID must not be set when creating an event.");
+        }
+
         if (event.getTicketFeeConfig() == null || event.getTicketTypeConfig() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ticket config must be set.");
         }

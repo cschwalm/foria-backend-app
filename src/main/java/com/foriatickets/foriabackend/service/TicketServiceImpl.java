@@ -150,21 +150,20 @@ public class TicketServiceImpl implements TicketService {
         EventEntity eventEntity = eventEntityOptional.get();
         Set<TicketFeeConfigEntity> ticketFeeConfigEntitySet = eventEntity.getTicketFeeConfig();
 
-        //Generate unique order ID.
-        final UUID orderId = UUID.randomUUID();
-
         //Calculate order total.
         CalculationServiceImpl.PriceCalculationInfo priceCalculationInfo = calculationService.calculateTotalPrice(eventId, orderConfig);
 
         //Create order entry.
         OrderEntity orderEntity = new OrderEntity();
-        orderEntity.setId(orderId);
         orderEntity.setPurchaser(authenticatedUser);
         orderEntity.setStatus(OrderEntity.Status.COMPLETED);
         orderEntity.setOrderTimestamp(OffsetDateTime.now());
         orderEntity.setTotal(priceCalculationInfo.grandTotal);
         orderEntity.setCurrency(priceCalculationInfo.currencyCode);
         orderEntity = orderRepository.save(orderEntity);
+
+        //Generate unique order ID.
+        final UUID orderId = orderEntity.getId();
 
         //Validate ticket config IDs are valid and issue tickets.
         for (TicketLineItem ticketLineItem : orderConfig) {
