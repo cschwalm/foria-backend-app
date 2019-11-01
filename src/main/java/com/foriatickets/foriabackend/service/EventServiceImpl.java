@@ -28,6 +28,25 @@ import static org.springframework.web.context.WebApplicationContext.SCOPE_REQUES
 @Transactional
 public class EventServiceImpl implements EventService {
 
+    private static Comparator<TicketTypeConfig> ticketTypeConfigComparator = (tt1, tt2) -> {
+
+        if (tt1 == null || tt2 == null) {
+            throw new NullPointerException();
+        }
+
+        if (tt1.equals(tt2)) {
+            return 0;
+        }
+
+        final int priceCompare = tt1.getPrice().compareTo(tt2.getPrice());
+
+        if (priceCompare == 0) {
+            return tt1.getName().compareTo(tt2.getName());
+        }
+
+        return priceCompare;
+    };
+
     private static final String CANCEL_TITLE = "Foria Event Canceled";
     private static final String CANCEL_BODY = "{{eventName}} has been canceled! Please check your email for more info.";
     private static final String CANCEL_EMAIL = "event_canceled_email";
@@ -187,6 +206,7 @@ public class EventServiceImpl implements EventService {
             return eventList;
         }
 
+        Collections.sort(eventEntities);
         final OffsetDateTime now = OffsetDateTime.now();
         for (EventEntity eventEntity : eventEntities) {
 
@@ -221,6 +241,7 @@ public class EventServiceImpl implements EventService {
         Event event = modelMapper.map(eventEntity, Event.class);
         populateEventModelWithAddress(event, eventEntity.getVenueEntity());
 
+        event.getTicketTypeConfig().sort(ticketTypeConfigComparator);
         for (TicketTypeConfig ticketTypeConfig : event.getTicketTypeConfig()) {
 
             int ticketsRemaining = ticketService.countTicketsRemaining(ticketTypeConfig.getId());

@@ -2,6 +2,7 @@ package com.foriatickets.foriabackend.entities;
 
 import org.hibernate.annotations.Type;
 
+import javax.annotation.Nullable;
 import javax.persistence.*;
 import java.io.Serializable;
 import java.time.OffsetDateTime;
@@ -13,7 +14,7 @@ import java.util.UUID;
 @Entity
 @Table(name = "event")
 @SuppressWarnings({"unused", "UnusedReturnValue"})
-public class EventEntity implements Serializable {
+public class EventEntity implements Serializable, Comparable<EventEntity> {
 
     public enum Status {
         LIVE,
@@ -223,5 +224,25 @@ public class EventEntity implements Serializable {
     @Override
     public int hashCode() {
         return Objects.hash(id, name, tagLine, imageUrl, description, status, visibility, eventStartTime, eventEndTime, authorizedTickets);
+    }
+
+    @Override
+    public int compareTo(@Nullable EventEntity other) {
+
+        if (other == null) {
+            throw new NullPointerException();
+        }
+
+        if (this.equals(other)) {
+            return 0;
+        }
+
+        final int startDateCompare = this.getEventStartTime().compareTo(other.getEventStartTime());
+
+        if (startDateCompare == 0) {
+            return this.getName().compareTo(other.getName());
+        }
+
+        return startDateCompare;
     }
 }
