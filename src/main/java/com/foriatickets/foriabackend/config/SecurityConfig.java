@@ -31,7 +31,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     @Value(value = "${auth0.issuer}")
     private String issuer;
 
-    private static final String[] ALLOWED_CORS_ORIGINS = { "http://localhost", "https://events.foriatickets.com", "https://foria.ngrok.io", "https://events-test.foriatickets.com" };
+    private static final String[] ALLOWED_CORS_ORIGINS = { "http://localhost:3000", "https://events.foriatickets.com", "https://foria.ngrok.io", "https://events-test.foriatickets.com" };
 
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
