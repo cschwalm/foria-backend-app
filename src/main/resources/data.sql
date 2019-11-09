@@ -68,3 +68,12 @@ INTO
 )
 VALUES
 ('9f4bc13d-3bc3-4c41-84ed-c92193bac935', 'auth0|5d6e29e4f820bf0eca4740e1', 'corbin@foriatickets.com', 'Corbin', 'Schwalm', null);
+
+/* insert com.foriatickets.foriabackend.entities.UserEntity */
+INSERT
+INTO
+    `VENUE_ACCESS` (
+    "ID", "USER_ID", "VENUE_ID", "CREATED_D"
+)
+VALUES
+('9f4bc13d-3bc3-4c41-84ed-c92193bac111', '3f4bc13d-3bc3-4c41-84ed-c92193bac935', '2b2c8c0f-5b17-429a-a5f6-44dd47935e9a', '2019-01-01 00:00:00');

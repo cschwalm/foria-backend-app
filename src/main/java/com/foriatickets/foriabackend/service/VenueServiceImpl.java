@@ -1,5 +1,6 @@
 package com.foriatickets.foriabackend.service;
 
+import com.foriatickets.foriabackend.entities.EventEntity;
 import com.foriatickets.foriabackend.entities.UserEntity;
 import com.foriatickets.foriabackend.entities.VenueAccessEntity;
 import com.foriatickets.foriabackend.entities.VenueEntity;
@@ -9,15 +10,19 @@ import com.foriatickets.foriabackend.repositories.VenueRepository;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.modelmapper.ModelMapper;
+import org.openapitools.model.Event;
 import org.openapitools.model.Venue;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -29,6 +34,8 @@ import static org.springframework.web.context.WebApplicationContext.SCOPE_REQUES
 public class VenueServiceImpl implements VenueService {
 
     private static final Logger LOG = LogManager.getLogger();
+
+    private final UserEntity authenticatedUser;
 
     private final ModelMapper modelMapper;
 
@@ -45,6 +52,14 @@ public class VenueServiceImpl implements VenueService {
         this.userRepository = userRepository;
         this.venueAccessRepository = venueAccessRepository;
         this.venueRepository = venueRepository;
+
+        //Load user from Auth0 token.
+        String auth0Id = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+
+        authenticatedUser = userRepository.findByAuth0Id(auth0Id);
+        if (authenticatedUser == null && !auth0Id.equalsIgnoreCase("anonymousUser") && !auth0Id.equalsIgnoreCase("auth0")) {
+            LOG.warn("Attempted to create venue service with non-mapped auth0Id: {}", auth0Id);
+        }
     }
 
     @Override
@@ -119,6 +134,21 @@ public class VenueServiceImpl implements VenueService {
     }
 
     @Override
+    public List<Venue> getAllVenues() {
+
+        List<Venue> venueList = new ArrayList<>();
+
+        for (VenueAccessEntity venueAccessEntity : authenticatedUser.getVenueAccessEntities()) {
+
+            Optional<Venue> venue = getVenue(venueAccessEntity.getVenueEntity().getId());
+            venue.ifPresent(venueList::add);
+        }
+
+        LOG.info("Obtained {} venues for userID: {}", venueList.size(), authenticatedUser.getId());
+        return venueList;
+    }
+
+    @Override
     public Optional<Venue> getVenue(UUID venueId) {
 
         Optional<VenueEntity> venueEntityOptional = this.venueRepository.findById(venueId);
@@ -128,6 +158,17 @@ public class VenueServiceImpl implements VenueService {
         }
 
         VenueEntity venueEntity = venueEntityOptional.get();
-        return Optional.of(modelMapper.map(venueEntity, Venue.class));
+        Venue venue = modelMapper.map(venueEntity, Venue.class);
+
+        List<Event> eventList = new ArrayList<>();
+        venue.setEvents(eventList);
+        for (EventEntity eventEntity : venueEntity.getEvents()) {
+
+            Event event = modelMapper.map(eventEntity, Event.class);
+            EventServiceImpl.populateEventModelWithAddress(event, venueEntity);
+            eventList.add(event);
+        }
+
+        return Optional.of(venue);
     }
 }

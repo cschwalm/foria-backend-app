@@ -4,7 +4,6 @@ import com.foriatickets.foriabackend.gateway.AWSSecretsManagerGateway;
 import com.zaxxer.hikari.HikariDataSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
@@ -35,6 +34,9 @@ public class SpringDbConfig {
     @Value("${db.secret:#{null}}")
     private String DB_SECRET;
 
+    @Value("${datasource.hikari.maximum-pool-size:10}")
+    private int MAX_CONNECTION_POOL_SIZE;
+
     @Bean(name="dataSource")
     public DataSource dataSource(@Autowired AWSSecretsManagerGateway awsSecretsManagerGateway) {
 
@@ -54,6 +56,7 @@ public class SpringDbConfig {
         }
 
         ds.setConnectionTestQuery("SELECT 1");
+        ds.setMaximumPoolSize(MAX_CONNECTION_POOL_SIZE);
         return ds;
     }
 }

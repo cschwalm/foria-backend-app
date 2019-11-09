@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
 import javax.validation.Valid;
+import java.util.List;
 import java.util.UUID;
 
 @Controller
@@ -24,6 +25,14 @@ public class VenueApi implements org.openapitools.api.VenueApi {
 
     public VenueApi(BeanFactory beanFactory) {
         this.beanFactory = beanFactory;
+    }
+
+    @Override
+    @RequestMapping(value = "/venue", method = RequestMethod.GET)
+    public ResponseEntity<List<Venue>> getAllVenues() {
+        VenueService venueService = beanFactory.getBean(VenueService.class);
+        List<Venue> venueList = venueService.getAllVenues();
+        return new ResponseEntity<>(venueList, HttpStatus.OK);
     }
 
     @Override

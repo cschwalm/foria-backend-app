@@ -319,7 +319,7 @@ public class EventServiceImpl implements EventService {
      * @param event Model to set.
      * @param venueEntity Venue info.
      */
-    private void populateEventModelWithAddress(final Event event, final VenueEntity venueEntity) {
+    static void populateEventModelWithAddress(final Event event, final VenueEntity venueEntity) {
 
         EventAddress addr = new EventAddress();
         addr.setVenueName(venueEntity.getName());

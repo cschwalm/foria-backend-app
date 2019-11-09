@@ -87,7 +87,7 @@ public class ReportServiceImpl implements ReportService {
     }
 
     @Override
-    @Scheduled(cron = "${dailyticketpurchasereport.cron:-}")
+    @Scheduled(cron = "${daily-ticket-purchase-report-cron:-}")
     public void generateAndSendDailyTicketPurchaseReport() {
 
         final ZonedDateTime nowInPST = ZonedDateTime.now().withZoneSameInstant(ZoneId.of("America/Los_Angeles"));
@@ -98,7 +98,7 @@ public class ReportServiceImpl implements ReportService {
     }
 
     @Override
-    @Scheduled(cron = "${rollingticketpurchasereport.cron:-}")
+    @Scheduled(cron = "${rolling-ticket-purchase-report-cron:-}")
     public void generateAndSendRollingTicketPurchaseReport() {
 
         final ZonedDateTime start = ZonedDateTime.now().withZoneSameInstant(ZoneId.of("America/Los_Angeles"));
@@ -107,7 +107,7 @@ public class ReportServiceImpl implements ReportService {
 
     @SuppressWarnings("Duplicates")
     @Override
-    @Scheduled(cron = "${weeklySettlementReport.cron:-}")
+    @Scheduled(cron = "${weekly-settlement-report-cron:-}")
     public void generateAndSendWeeklySettlementReport() {
 
         final ZonedDateTime nowInPST = ZonedDateTime.now().withZoneSameInstant(ZoneId.of("America/Los_Angeles"));

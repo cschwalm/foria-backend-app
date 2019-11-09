@@ -1,6 +1,7 @@
 package com.foriatickets.foriabackend.controllers;
 
 import com.foriatickets.foriabackend.service.EventService;
+import org.openapitools.model.Attendee;
 import org.openapitools.model.BaseApiModel;
 import org.openapitools.model.CancelEvent;
 import org.openapitools.model.Event;
@@ -58,6 +59,12 @@ public class EventApi implements org.openapitools.api.EventApi {
 
         EventService eventService = beanFactory.getBean(EventService.class);
         return new ResponseEntity<>(eventService.updateEvent(eventId, event), HttpStatus.OK);
+    }
+
+    @Override
+    @RequestMapping(value = "/event/{event_id}/attendees", method = RequestMethod.GET)
+    public ResponseEntity<List<Attendee>> getAttendeesForEvent(@PathVariable("event_id") UUID eventId) {
+        return null; //TODO stub
     }
 
     @RequestMapping(value = "/event/{event_id}/cancel", method = RequestMethod.PUT)

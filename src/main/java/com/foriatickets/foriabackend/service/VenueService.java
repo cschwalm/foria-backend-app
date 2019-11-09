@@ -2,6 +2,7 @@ package com.foriatickets.foriabackend.service;
 
 import org.openapitools.model.Venue;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -38,6 +39,13 @@ public interface VenueService {
      * @return Venue object populated with UUID.
      */
     Venue createVenue(Venue venue);
+
+    /**
+     * Returns metadata for each venue the user has access to along with event info.
+     *
+     * @return List of venues.
+     */
+    List<Venue> getAllVenues();
 
     /**
      * Returns the venue scoped at request.
