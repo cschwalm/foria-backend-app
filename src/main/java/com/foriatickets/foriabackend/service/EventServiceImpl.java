@@ -230,6 +230,43 @@ public class EventServiceImpl implements EventService {
         return eventList;
     }
 
+    @Override
+    public List<Attendee> getAttendees(UUID eventId) {
+
+        if (eventId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Event ID is null");
+        }
+
+        final Optional<EventEntity> eventEntityOptional = eventRepository.findById(eventId);
+        if (!eventEntityOptional.isPresent()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Event ID does not exist.");
+        }
+
+        List<Attendee> attendeeList = new ArrayList<>();
+        final EventEntity eventEntity = eventEntityOptional.get();
+        final Set<TicketEntity> ticketSet = eventEntity.getTickets();
+
+        for (TicketEntity ticketEntity : ticketSet) {
+
+            if (ticketEntity.getStatus() == TicketEntity.Status.CANCELED || ticketEntity.getStatus() == TicketEntity.Status.CANCELED_FRAUD) {
+                continue;
+            }
+
+            final UserEntity ownerEntity = ticketEntity.getOwnerEntity();
+
+            Attendee attendee = new Attendee();
+            attendee.setTicketId(ticketEntity.getId());
+            attendee.setTicket(modelMapper.map(ticketEntity, Ticket.class));
+            attendee.setUserId(ownerEntity.getId());
+            attendee.setFirstName(ownerEntity.getFirstName());
+            attendee.setLastName(ownerEntity.getLastName());
+            attendeeList.add(attendee);
+        }
+
+        LOG.info("Attendee list queried for eventID: {}", eventId);
+        return attendeeList;
+    }
+
     /**
      * Configures additional field for event that can't be simply mapped from entity.
      *

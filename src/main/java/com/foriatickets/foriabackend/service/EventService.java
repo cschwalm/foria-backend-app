@@ -1,5 +1,6 @@
 package com.foriatickets.foriabackend.service;
 
+import org.openapitools.model.Attendee;
 import org.openapitools.model.Event;
 
 import java.util.List;
@@ -35,6 +36,14 @@ public interface EventService {
      * @return A sorted list of events.
      */
     List<Event> getAllActiveEvents();
+
+    /**
+     * Obtains all ticket metadata that has been issued for the event.
+     *
+     * @param eventId Event to search.
+     * @return A list of ticket owners that have not been canceled.
+     */
+    List<Attendee> getAttendees(UUID eventId);
 
     /**
      * Returns the venue scoped at request.

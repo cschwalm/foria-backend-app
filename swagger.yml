@@ -732,7 +732,7 @@ components:
           type: string
           format: uuid
         ticket:
-          $ref: '#/components/schemas/TicketTypeConfig'
+          $ref: '#/components/schemas/Ticket'
         user_id:
           type: string
           format: uuid

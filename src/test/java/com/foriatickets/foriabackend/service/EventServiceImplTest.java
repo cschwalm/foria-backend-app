@@ -12,6 +12,7 @@ import org.mockito.Mock;
 import org.modelmapper.ModelMapper;
 import org.modelmapper.PropertyMap;
 import org.modelmapper.internal.util.Assert;
+import org.openapitools.model.Attendee;
 import org.openapitools.model.Event;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.web.server.ResponseStatusException;
@@ -20,8 +21,7 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.*;
 
-import static com.foriatickets.foriabackend.entities.TicketEntity.Status.ACTIVE;
-import static com.foriatickets.foriabackend.entities.TicketEntity.Status.ISSUED;
+import static com.foriatickets.foriabackend.entities.TicketEntity.Status.*;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -304,5 +304,54 @@ public class EventServiceImplTest {
         verify(eventRepository).save(any());
         verify(awsSimpleEmailServiceGateway, times(1)).sendEmailFromTemplate(any(), any(), any());
         verify(fcmGateway, times(1)).sendPushNotification(any(), any());
+    }
+
+    @Test
+    public void getAttendeeList() {
+
+        final UUID eventId = UUID.randomUUID();
+
+        UserEntity owner = mock(UserEntity.class);
+        when(owner.getId()).thenReturn(UUID.randomUUID());
+        when(owner.getEmail()).thenReturn("test2@test.com");
+
+        EventEntity eventEntity = mock(EventEntity.class);
+        when(eventEntity.getId()).thenReturn(UUID.randomUUID());
+        when(eventEntity.getEventEndTime()).thenReturn(OffsetDateTime.MAX.minusYears(1L));
+        when(eventEntity.getName()).thenReturn("Test Event");
+
+        TicketEntity ticketEntity = mock(TicketEntity.class);
+        when(ticketEntity.getId()).thenReturn(UUID.randomUUID());
+        when(ticketEntity.getStatus()).thenReturn(ACTIVE);
+        when(ticketEntity.getIssuedDate()).thenReturn(OffsetDateTime.now());
+        when(ticketEntity.getSecret()).thenReturn("secret");
+        when(ticketEntity.getOwnerEntity()).thenReturn(owner);
+        when(ticketEntity.getEventEntity()).thenReturn(eventEntity);
+
+        TicketEntity ticketEntity2 = mock(TicketEntity.class);
+        when(ticketEntity2.getId()).thenReturn(UUID.randomUUID());
+        when(ticketEntity2.getStatus()).thenReturn(ISSUED);
+        when(ticketEntity2.getIssuedDate()).thenReturn(OffsetDateTime.now());
+        when(ticketEntity2.getSecret()).thenReturn("secret");
+        when(ticketEntity2.getOwnerEntity()).thenReturn(owner);
+        when(ticketEntity2.getEventEntity()).thenReturn(eventEntity);
+
+        TicketEntity ticketEntity3 = mock(TicketEntity.class);
+        when(ticketEntity3.getId()).thenReturn(UUID.randomUUID());
+        when(ticketEntity3.getStatus()).thenReturn(CANCELED);
+        when(ticketEntity3.getIssuedDate()).thenReturn(OffsetDateTime.now());
+        when(ticketEntity3.getSecret()).thenReturn("secret");
+        when(ticketEntity3.getOwnerEntity()).thenReturn(owner);
+        when(ticketEntity3.getEventEntity()).thenReturn(eventEntity);
+
+        Set<TicketEntity> ticketSet = new HashSet<>();
+        ticketSet.add(ticketEntity);
+        ticketSet.add(ticketEntity2);
+        ticketSet.add(ticketEntity3);
+        when(eventEntity.getTickets()).thenReturn(ticketSet);
+        when(eventRepository.findById(eq(eventId))).thenReturn(Optional.of(eventEntity));
+
+        List<Attendee> actual = eventService.getAttendees(eventId);
+        assertEquals(2, actual.size());
     }
 }

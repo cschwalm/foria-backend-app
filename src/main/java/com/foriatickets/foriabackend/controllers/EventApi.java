@@ -64,7 +64,8 @@ public class EventApi implements org.openapitools.api.EventApi {
     @Override
     @RequestMapping(value = "/event/{event_id}/attendees", method = RequestMethod.GET)
     public ResponseEntity<List<Attendee>> getAttendeesForEvent(@PathVariable("event_id") UUID eventId) {
-        return null; //TODO stub
+        EventService eventService = beanFactory.getBean(EventService.class);
+        return new ResponseEntity<>(eventService.getAttendees(eventId), HttpStatus.OK);
     }
 
     @RequestMapping(value = "/event/{event_id}/cancel", method = RequestMethod.PUT)
