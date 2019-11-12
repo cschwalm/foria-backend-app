@@ -12,6 +12,7 @@ import org.openapitools.model.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -64,6 +65,8 @@ public class EventServiceImpl implements EventService {
     private final AWSSimpleEmailServiceGateway awsSimpleEmailServiceGateway;
     private final FCMGateway fcmGateway;
 
+    private final UserEntity authenticatedUser;
+
     @Autowired
     public EventServiceImpl(CalculationService calculationService,
                             EventRepository eventRepository,
@@ -73,7 +76,8 @@ public class EventServiceImpl implements EventService {
                             TicketService ticketService,
                             OrderTicketEntryRepository orderTicketEntryRepository,
                             AWSSimpleEmailServiceGateway awsSimpleEmailServiceGateway,
-                            FCMGateway fcmGateway) {
+                            FCMGateway fcmGateway,
+                            UserRepository userRepository) {
 
         this.calculationService = calculationService;
         this.eventRepository = eventRepository;
@@ -85,6 +89,14 @@ public class EventServiceImpl implements EventService {
         this.orderTicketEntryRepository = orderTicketEntryRepository;
         this.awsSimpleEmailServiceGateway = awsSimpleEmailServiceGateway;
         this.fcmGateway = fcmGateway;
+
+        //Load user from Auth0 token.
+        String auth0Id = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+
+        authenticatedUser = userRepository.findByAuth0Id(auth0Id);
+        if (authenticatedUser == null && !auth0Id.equalsIgnoreCase("anonymousUser") && !auth0Id.equalsIgnoreCase("auth0")) {
+            LOG.warn("Attempted to create venue service with non-mapped auth0Id: {}", auth0Id);
+        }
     }
 
     @Override
@@ -242,10 +254,15 @@ public class EventServiceImpl implements EventService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Event ID does not exist.");
         }
 
-        List<Attendee> attendeeList = new ArrayList<>();
         final EventEntity eventEntity = eventEntityOptional.get();
-        final Set<TicketEntity> ticketSet = eventEntity.getTickets();
+        if (!VenueService.checkVenueAuthorization(eventEntity.getVenueEntity().getId(), authenticatedUser.getVenueAccessEntities())) {
+            LOG.warn("User ID: {} attempted to obtain attendees for eventId: {} that they are not authorized.", authenticatedUser.getId(), eventEntity.getId());
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authenticated user does not have access to venue.");
+        }
 
+        List<Attendee> attendeeList = new ArrayList<>();
+
+        final Set<TicketEntity> ticketSet = eventEntity.getTickets();
         for (TicketEntity ticketEntity : ticketSet) {
 
             if (ticketEntity.getStatus() == TicketEntity.Status.CANCELED || ticketEntity.getStatus() == TicketEntity.Status.CANCELED_FRAUD) {

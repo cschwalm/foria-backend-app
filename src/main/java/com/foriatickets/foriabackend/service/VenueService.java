@@ -1,9 +1,11 @@
 package com.foriatickets.foriabackend.service;
 
+import com.foriatickets.foriabackend.entities.VenueAccessEntity;
 import org.openapitools.model.Venue;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -53,4 +55,28 @@ public interface VenueService {
      * @return Scoped venue.
      */
     Optional<Venue> getVenue(UUID venueId);
+
+    /**
+     * Helper method to determine if a user has permission to access a venue.
+     *
+     * @param venueId The venue ID to check.
+     * @param venueAccessEntities List loaded form user permissions.
+     * @return True if access is granted; false otherwise.
+     */
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
+    static boolean checkVenueAuthorization(UUID venueId, Set<VenueAccessEntity> venueAccessEntities) {
+
+        if (venueId == null || venueAccessEntities == null) {
+            return false;
+        }
+
+        boolean isAuthorized = false;
+        for (VenueAccessEntity venueAccessEntity : venueAccessEntities) {
+            if (venueAccessEntity.getVenueEntity().getId().toString().equals(venueId.toString())) {
+                isAuthorized = true;
+            }
+        }
+
+        return isAuthorized;
+    }
 }

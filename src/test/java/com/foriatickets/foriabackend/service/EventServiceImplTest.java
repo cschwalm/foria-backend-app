@@ -14,6 +14,8 @@ import org.modelmapper.PropertyMap;
 import org.modelmapper.internal.util.Assert;
 import org.openapitools.model.Attendee;
 import org.openapitools.model.Event;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -55,18 +57,23 @@ public class EventServiceImplTest {
     private FCMGateway fcmGateway;
 
     @Mock
+    private UserRepository userRepository;
+
+    @Mock
     private OrderTicketEntryRepository orderTicketEntryRepository;
 
     private EventService eventService;
 
     private List<EventEntity> mockEventList;
 
+    private VenueEntity venueEntityMock;
+
     @Before
     public void setUp() {
 
         mockEventList = new ArrayList<>();
 
-        VenueEntity venueEntityMock = mock(VenueEntity.class);
+        venueEntityMock = mock(VenueEntity.class);
         when(venueEntityMock.getContactStreetAddress()).thenReturn("12345 Maple Ln");
         when(venueEntityMock.getContactCity()).thenReturn("Test City");
         when(venueEntityMock.getContactState()).thenReturn("MO");
@@ -160,7 +167,22 @@ public class EventServiceImplTest {
             modelMapper.addMappings(map);
         }
 
-        eventService = new EventServiceImpl(calculationService, eventRepository, ticketFeeConfigRepository, ticketTypeConfigRepository, venueRepository, modelMapper, ticketService, orderTicketEntryRepository, awsSimpleEmailServiceGateway, fcmGateway);
+        UUID userId = UUID.randomUUID();
+        UserEntity authenticatedUser = mock(UserEntity.class);
+        when(authenticatedUser.getId()).thenReturn(userId);
+        Set<VenueAccessEntity> venueAccessEntitySet = new HashSet<>();
+        VenueAccessEntity venueAccessEntity = mock(VenueAccessEntity.class);
+        when(venueAccessEntity.getVenueEntity()).thenReturn(venueEntityMock);
+        when(venueAccessEntity.getUserEntity()).thenReturn(authenticatedUser);
+        venueAccessEntitySet.add(venueAccessEntity);
+        when(authenticatedUser.getVenueAccessEntities()).thenReturn(venueAccessEntitySet);
+
+        Authentication authentication = mock(Authentication.class);
+        when(authentication.getPrincipal()).thenReturn("test");
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        when(userRepository.findByAuth0Id(eq("test"))).thenReturn(authenticatedUser);
+
+        eventService = new EventServiceImpl(calculationService, eventRepository, ticketFeeConfigRepository, ticketTypeConfigRepository, venueRepository, modelMapper, ticketService, orderTicketEntryRepository, awsSimpleEmailServiceGateway, fcmGateway, userRepository);
     }
 
     @Test
@@ -319,6 +341,7 @@ public class EventServiceImplTest {
         when(eventEntity.getId()).thenReturn(UUID.randomUUID());
         when(eventEntity.getEventEndTime()).thenReturn(OffsetDateTime.MAX.minusYears(1L));
         when(eventEntity.getName()).thenReturn("Test Event");
+        when(eventEntity.getVenueEntity()).thenReturn(venueEntityMock);
 
         TicketEntity ticketEntity = mock(TicketEntity.class);
         when(ticketEntity.getId()).thenReturn(UUID.randomUUID());

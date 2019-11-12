@@ -475,16 +475,8 @@ public class TicketServiceImpl implements TicketService {
         final String ticketSecret = ticketEntity.getSecret();
 
         //Check scanner permission to redeem.
-        boolean doesHavePermission = false;
-        final String venueId = ticketEntity.getEventEntity().getVenueEntity().getId().toString();
-        Set<VenueAccessEntity> venueAccessEntities = authenticatedUser.getVenueAccessEntities();
-        for (VenueAccessEntity venueAccessEntity : venueAccessEntities) {
-            if (venueAccessEntity.getVenueEntity().getId().toString().equals(venueId)) {
-                doesHavePermission = true;
-            }
-        }
-
-        if (!doesHavePermission) {
+        final UUID venueId = ticketEntity.getEventEntity().getVenueEntity().getId();
+        if (!VenueService.checkVenueAuthorization(ticketEntity.getEventEntity().getVenueEntity().getId(), authenticatedUser.getVenueAccessEntities())) {
             LOG.info("User ID: {} attempted to scan for Venue ID: {} that they are not a member of.", authenticatedUser.getId(), venueId);
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Not authorized to scan this ticket.");
         }
