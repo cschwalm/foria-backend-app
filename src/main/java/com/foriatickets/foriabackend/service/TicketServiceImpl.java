@@ -430,6 +430,30 @@ public class TicketServiceImpl implements TicketService {
     }
 
     @Override
+    public Ticket manualRedeemTicket(UUID ticketId) {
+
+        TicketEntity ticketEntity = verifyTicketValidity(ticketId, TicketEntity.Status.ACTIVE, TicketEntity.Status.ISSUED, TicketEntity.Status.REDEEMED);
+
+        if (ticketEntity.getStatus() == TicketEntity.Status.REDEEMED) {
+            LOG.info("TicketId: {} is already redeemed.", ticketId);
+            return getTicket(ticketId, false);
+        }
+
+        //Check scanner permission to redeem.
+        final UUID venueId = ticketEntity.getEventEntity().getVenueEntity().getId();
+        if (!VenueService.checkVenueAuthorization(ticketEntity.getEventEntity().getVenueEntity().getId(), authenticatedUser.getVenueAccessEntities())) {
+            LOG.warn("User ID: {} attempted to scan for Venue ID: {} that they are not a member of.", authenticatedUser.getId(), venueId);
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authorized to scan this ticket.");
+        }
+
+        ticketEntity.setStatus(TicketEntity.Status.REDEEMED);
+        ticketRepository.save(ticketEntity);
+
+        LOG.info("Manually redeemed ticket ID: {} by userID: {}", ticketId, authenticatedUser.getId());
+        return getTicket(ticketId, false);
+    }
+
+    @Override
     public ActivationResult reactivateTicket(UUID ticketId) {
 
         TicketEntity ticketEntity = verifyTicketValidity(ticketId, TicketEntity.Status.ACTIVE, TicketEntity.Status.TRANSFER_PENDING);
@@ -461,7 +485,6 @@ public class TicketServiceImpl implements TicketService {
         }
 
         RedemptionResult redemptionResult = new RedemptionResult();
-        redemptionResult.setTicket(getTicket(ticketId, false));
 
         TicketEntity ticketEntity;
         try {
@@ -494,6 +517,7 @@ public class TicketServiceImpl implements TicketService {
             LOG.warn("Failed to redeem ticket ID: {} for userID: {}", ticketId, authenticatedUser.getId());
         }
 
+        redemptionResult.setTicket(getTicket(ticketId, false));
         return redemptionResult;
     }
 
@@ -550,7 +574,7 @@ public class TicketServiceImpl implements TicketService {
         TicketEntity ticketEntity = ticketEntityOptional.get();
 
         if (expectedStatusList != null && !expectedStatusList.contains(ticketEntity.getStatus())) {
-            LOG.warn("User ID: {} attempted to activate/reactivate ticket not having {} status. Ticket ID: {}", authenticatedUser.getId(), expectedStatusList, ticketEntity.getId());
+            LOG.warn("User ID: {} attempted to activate/reactivate/redeem ticket not having {} status. Ticket ID: {}", authenticatedUser.getId(), expectedStatusList, ticketEntity.getId());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ticket is not in " + expectedStatusList + " status.");
         }
 

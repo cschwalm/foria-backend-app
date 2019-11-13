@@ -71,6 +71,15 @@ public class TicketApi implements org.openapitools.api.TicketApi {
     }
 
     @Override
+    @RequestMapping(value = "/ticket/{ticket_id}/manualRedeem", method = RequestMethod.POST)
+    public ResponseEntity<Ticket> manualRedeemTicket(@PathVariable("ticket_id") UUID ticketId) {
+
+        TicketService ticketService = beanFactory.getBean(TicketService.class);
+        Ticket ticket = ticketService.manualRedeemTicket(ticketId);
+        return new ResponseEntity<>(ticket, HttpStatus.OK);
+    }
+
+    @Override
     @RequestMapping(value = "/ticket/{ticket_id}/reactivate", method = RequestMethod.POST)
     public ResponseEntity<ActivationResult> reactivateTicket(@PathVariable("ticket_id") UUID ticketId) {
 

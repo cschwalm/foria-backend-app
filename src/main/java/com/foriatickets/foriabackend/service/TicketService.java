@@ -91,6 +91,14 @@ public interface TicketService {
     TicketEntity issueTicket(UUID purchaserId, UUID eventId, UUID ticketTypeId);
 
     /**
+     * Manually redeems a ticket either from manual checkin or offline scan.
+     *
+     * @param ticketId Ticket ID to redeem.
+     * @return The updated ticket model.
+     */
+    Ticket manualRedeemTicket(UUID ticketId);
+
+    /**
      * Allows user to allow ticket to be displayed on a new device.
      * This preforms verification checks, generates and saves a new ticket secret, and returns.
      *

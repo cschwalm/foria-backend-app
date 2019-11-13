@@ -366,6 +366,39 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BaseApiModel'
+  /ticket/{ticket_id}/manualRedeem:
+    post:
+      tags:
+        - ticket
+      summary: Manually redeems the ticket.
+      operationId: manualRedeemTicket
+      parameters:
+        - name: ticket_id
+          in: path
+          description: The ticket ID stored in the Foria database.
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticket'
+        400:
+          description: Not able to redeem ticket. Invalid status.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseApiModel'
+        404:
+          description: Ticket not found by ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseApiModel'
   /ticket/redeem:
     post:
       tags:

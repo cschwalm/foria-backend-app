@@ -20,6 +20,7 @@ import org.modelmapper.PropertyMap;
 import org.modelmapper.internal.util.Assert;
 import org.openapitools.model.ActivationResult;
 import org.openapitools.model.RedemptionResult;
+import org.openapitools.model.Ticket;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -29,8 +30,7 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.util.*;
 
-import static com.foriatickets.foriabackend.entities.TicketEntity.Status.ACTIVE;
-import static com.foriatickets.foriabackend.entities.TicketEntity.Status.ISSUED;
+import static com.foriatickets.foriabackend.entities.TicketEntity.Status.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
@@ -425,6 +425,42 @@ public class TicketServiceImplTest {
 
         verify(ticketRepository, atLeastOnce()).save(ticketEntityMock);
         verify(ticketEntityMock).setSecret(anyString());
+    }
+
+    @Test
+    public void manualRedeemTicket() {
+
+        UUID venueId = UUID.randomUUID();
+        EventEntity eventEntity = mock(EventEntity.class);
+        VenueEntity venueEntity = mock(VenueEntity.class);
+
+        when(eventEntity.getVenueEntity()).thenReturn(venueEntity);
+        when(venueEntity.getId()).thenReturn(venueId);
+
+        UUID ticketId = UUID.randomUUID();
+        TicketEntity ticketEntityMock = mock(TicketEntity.class);
+
+        Set<VenueAccessEntity> venueAccessEntitySet = new HashSet<>();
+        VenueAccessEntity venueAccessEntity = mock(VenueAccessEntity.class);
+        when(venueAccessEntity.getVenueEntity()).thenReturn(venueEntity);
+        venueAccessEntitySet.add(venueAccessEntity);
+        when(authenticatedUser.getVenueAccessEntities()).thenReturn(venueAccessEntitySet);
+
+        when(ticketEntityMock.getStatus()).thenReturn(TicketEntity.Status.ACTIVE);
+        when(ticketEntityMock.getOwnerEntity()).thenReturn(authenticatedUser);
+        when(ticketEntityMock.getId()).thenReturn(ticketId);
+        when(ticketEntityMock.getPurchaserEntity()).thenReturn(authenticatedUser);
+        when(ticketEntityMock.getEventEntity()).thenReturn(eventEntity);
+        when(ticketEntityMock.getSecret()).thenReturn("SECRET");
+
+        when(ticketRepository.findById(ticketId)).thenReturn(Optional.of(ticketEntityMock));
+        when(ticketRepository.save(any())).thenReturn(ticketEntityMock);
+
+        Ticket actual = ticketService.manualRedeemTicket(ticketId);
+        assertNotNull(actual);
+
+        verify(ticketEntityMock).setStatus(REDEEMED);
+        verify(ticketRepository, atLeastOnce()).save(ticketEntityMock);
     }
 
     @Test

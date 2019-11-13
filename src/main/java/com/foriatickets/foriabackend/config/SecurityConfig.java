@@ -65,6 +65,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                     .antMatchers(HttpMethod.POST, "/v1/venue").hasAuthority("write:venue")
                     .antMatchers(HttpMethod.POST, "/v1/venue/*/authorize/**").hasAuthority("write:venue")
                     .antMatchers(HttpMethod.POST, "/v1/venue/*/deauthorize/**").hasAuthority("write:venue")
+                    .antMatchers(HttpMethod.POST, "/v1/ticket/*/manualRedeem").hasAuthority("write:venue_redeem")
                     .antMatchers(HttpMethod.POST, "/v1/ticket/redeem").hasAuthority("write:venue_redeem")
                     .antMatchers(HttpMethod.DELETE, "/v1/ticket/*/refund").hasAuthority("write:venue")
                     .anyRequest().fullyAuthenticated()

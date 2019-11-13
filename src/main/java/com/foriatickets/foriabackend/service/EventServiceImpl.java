@@ -249,6 +249,10 @@ public class EventServiceImpl implements EventService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Event ID is null");
         }
 
+        if (authenticatedUser == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Venue account is not authenticated / null.");
+        }
+
         final Optional<EventEntity> eventEntityOptional = eventRepository.findById(eventId);
         if (!eventEntityOptional.isPresent()) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Event ID does not exist.");
