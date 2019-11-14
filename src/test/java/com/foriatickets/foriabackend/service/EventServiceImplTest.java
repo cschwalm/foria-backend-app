@@ -142,7 +142,20 @@ public class EventServiceImplTest {
         when(ticketTypeConfigMock.getId()).thenReturn(UUID.randomUUID());
         when(ticketTypeConfigMock.getName()).thenReturn("Test Type");
         when(ticketTypeConfigMock.getDescription()).thenReturn("Test Type Desc");
+        when(ticketTypeConfigMock.getStatus()).thenReturn(TicketTypeConfigEntity.Status.ACTIVE);
+
+        TicketTypeConfigEntity ticketTypeConfigMockInactive = mock(TicketTypeConfigEntity.class);
+        when(ticketTypeConfigMockInactive.getEventEntity()).thenReturn(mockEvent1);
+        when(ticketTypeConfigMockInactive.getCurrency()).thenReturn("USD");
+        when(ticketTypeConfigMockInactive.getPrice()).thenReturn(new BigDecimal("1333300.00"));
+        when(ticketTypeConfigMockInactive.getAuthorizedAmount()).thenReturn(100);
+        when(ticketTypeConfigMockInactive.getId()).thenReturn(UUID.randomUUID());
+        when(ticketTypeConfigMockInactive.getName()).thenReturn("Test Type Inactive");
+        when(ticketTypeConfigMockInactive.getDescription()).thenReturn("Test Type Desc");
+        when(ticketTypeConfigMockInactive.getStatus()).thenReturn(TicketTypeConfigEntity.Status.INACTIVE);
+
         ticketTypeConfigEntitySet.add(ticketTypeConfigMock);
+        ticketTypeConfigEntitySet.add(ticketTypeConfigMockInactive);
         when(mockEvent1.getTicketTypeConfigEntity()).thenReturn(ticketTypeConfigEntitySet);
 
         Set<TicketFeeConfigEntity> ticketFeeConfigEntitySet = new HashSet<>();
@@ -204,6 +217,8 @@ public class EventServiceImplTest {
         Event actual = eventService.getEvent(eventId);
         Assert.notNull(actual);
         assertEquals(EventEntity.Visibility.PUBLIC.name(), actual.getVisibility().name());
+
+        assertEquals(1, actual.getTicketTypeConfig().size());
     }
 
     @Test

@@ -13,10 +13,16 @@ import java.util.UUID;
 @SuppressWarnings("unused")
 public class TicketTypeConfigEntity implements Serializable {
 
+    public enum Status {
+        ACTIVE,
+        INACTIVE
+    }
+
     private UUID id;
     private EventEntity eventEntity;
     private String name;
     private String description;
+    private Status status;
     private int authorizedAmount;
     private BigDecimal price;
     private String currency;
@@ -65,6 +71,16 @@ public class TicketTypeConfigEntity implements Serializable {
         return this;
     }
 
+    @Column(name = "status", nullable = false)
+    @Enumerated(EnumType.STRING)
+    public Status getStatus() {
+        return status;
+    }
+
+    public void setStatus(Status status) {
+        this.status = status;
+    }
+
     @Column(name = "authorized_amount", nullable = false)
     public int getAuthorizedAmount() {
         return authorizedAmount;
@@ -101,6 +117,7 @@ public class TicketTypeConfigEntity implements Serializable {
                 "id=" + id +
                 ", name='" + name + '\'' +
                 ", description='" + description + '\'' +
+                ", status='" + status + '\'' +
                 ", authorizedAmount=" + authorizedAmount +
                 ", price=" + price +
                 ", currency='" + currency + '\'' +
@@ -116,12 +133,13 @@ public class TicketTypeConfigEntity implements Serializable {
                 Objects.equals(id, that.id) &&
                 Objects.equals(name, that.name) &&
                 Objects.equals(description, that.description) &&
+                Objects.equals(status, that.status) &&
                 Objects.equals(price, that.price) &&
                 Objects.equals(currency, that.currency);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, name, description, authorizedAmount, price, currency);
+        return Objects.hash(id, name, description, status, authorizedAmount, price, currency);
     }
 }

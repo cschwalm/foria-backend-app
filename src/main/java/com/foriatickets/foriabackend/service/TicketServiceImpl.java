@@ -192,6 +192,11 @@ public class TicketServiceImpl implements TicketService {
         }
 
         for (TicketFeeConfigEntity ticketFeeConfigEntity : ticketFeeConfigEntitySet) {
+
+            if (ticketFeeConfigEntity.getStatus() != TicketFeeConfigEntity.Status.ACTIVE) {
+                continue;
+            }
+
             OrderFeeEntryEntity orderFeeEntryEntity = new OrderFeeEntryEntity();
             orderFeeEntryEntity.setOrderEntity(orderEntity);
             orderFeeEntryEntity.setTicketFeeConfigEntity(ticketFeeConfigEntity);
@@ -412,6 +417,10 @@ public class TicketServiceImpl implements TicketService {
 
         if (OffsetDateTime.now().isAfter(eventEntity.getEventEndTime())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Event has already ended.");
+        }
+
+        if (ticketTypeConfigEntity.getStatus() != TicketTypeConfigEntity.Status.ACTIVE) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ticket type is disabled.");
         }
 
         TicketEntity ticketEntity = new TicketEntity();

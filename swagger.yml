@@ -198,6 +198,154 @@ paths:
         404:
           description: Event not found by ID.
           content: {}
+  /event/{event_id}/ticketTypeConfig:
+    post:
+      tags:
+        - event
+      summary: Creates a new price tier for an event.
+      description: Creates a new price tier for an existing event.
+      operationId: createTicketTypeConfig
+      security:
+        - OAuth2:
+            - write:event
+      parameters:
+        - name: event_id
+          in: path
+          description: The event ID stored in the Foria database.
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        description: New price tier.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TicketTypeConfig'
+        required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TicketTypeConfig'
+        404:
+          description: Event not found by ID.
+          content: {}
+  /event/{event_id}/ticketTypeConfig/{ticket_type_config_id}:
+    delete:
+      tags:
+        - event
+      summary: Removes a price tier.
+      description: Removes price tier for future purchases. Existing events are not impacted
+      operationId: removeTicketTypeConfig
+      security:
+        - OAuth2:
+            - write:event
+      parameters:
+        - name: event_id
+          in: path
+          description: The event ID stored in the Foria database.
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: ticket_type_config_id
+          in: path
+          description: The ticket_type_config_id ID stored in the Foria database.
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TicketTypeConfig'
+        404:
+          description: Event not found by ID.
+          content: {}
+  /event/{event_id}/ticketFeeConfig:
+    post:
+      tags:
+        - event
+      summary: Creates a new fee entry for the event.
+      description: All fees are additive ontop of other active fees.
+      operationId: createTicketFeeConfig
+      security:
+        - OAuth2:
+            - write:event
+      parameters:
+        - name: event_id
+          in: path
+          description: The event ID stored in the Foria database.
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        description: New fee config.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TicketFeeConfig'
+        required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TicketFeeConfig'
+        404:
+          description: Event not found by ID.
+          content: {}
+  /event/{event_id}/ticketFeeConfig/{ticket_fee_config_id}:
+    delete:
+      tags:
+        - event
+      summary: Removes a fee config.
+      description: Prevents the fee from being applied to future ticket orders.
+      operationId: removeTicketFeeConfig
+      security:
+        - OAuth2:
+            - write:event
+      parameters:
+        - name: event_id
+          in: path
+          description: The event ID stored in the Foria database.
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: ticket_fee_config_id
+          in: path
+          description: The ticket_fee_config_id ID stored in the Foria database.
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TicketFeeConfig'
+        404:
+          description: Event not found by ID.
+          content: {}
   /ticket/{ticket_id}:
     get:
       tags:

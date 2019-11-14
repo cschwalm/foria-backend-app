@@ -1,10 +1,7 @@
 package com.foriatickets.foriabackend.controllers;
 
 import com.foriatickets.foriabackend.service.EventService;
-import org.openapitools.model.Attendee;
-import org.openapitools.model.BaseApiModel;
-import org.openapitools.model.CancelEvent;
-import org.openapitools.model.Event;
+import org.openapitools.model.*;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -75,5 +72,29 @@ public class EventApi implements org.openapitools.api.EventApi {
         EventService eventService = beanFactory.getBean(EventService.class);
         eventService.cancelEvent(eventId, cancelEvent.getReason());
         return new ResponseEntity<>(new BaseApiModel(), HttpStatus.OK);
+    }
+
+    @RequestMapping(value = "/event/{event_id}/ticketFeeConfig", method = RequestMethod.POST)
+    @Override
+    public ResponseEntity<List<TicketFeeConfig>> createTicketFeeConfig(@PathVariable("event_id") UUID eventId, @Valid TicketFeeConfig ticketFeeConfig) {
+        return null;
+    }
+
+    @RequestMapping(value = "/event/{event_id}/ticketTypeConfig", method = RequestMethod.POST)
+    @Override
+    public ResponseEntity<List<TicketTypeConfig>> createTicketTypeConfig(@PathVariable("event_id") UUID eventId, @Valid TicketTypeConfig ticketTypeConfig) {
+        return null;
+    }
+
+    @RequestMapping(value = "/event/{event_id}/ticketFeeConfig/{ticket_fee_config_id}", method = RequestMethod.DELETE)
+    @Override
+    public ResponseEntity<List<TicketFeeConfig>> removeTicketFeeConfig(@PathVariable("event_id") UUID eventId, @PathVariable("ticket_fee_config_id") UUID ticketFeeConfigId) {
+        return null;
+    }
+
+    @RequestMapping(value = "/event/{event_id}/ticketTypeConfig/{ticket_type_config_id}", method = RequestMethod.DELETE)
+    @Override
+    public ResponseEntity<List<TicketTypeConfig>> removeTicketTypeConfig(@PathVariable("event_id") UUID eventId, @PathVariable("ticket_type_config_id") UUID ticketTypeConfigId) {
+        return null;
     }
 }

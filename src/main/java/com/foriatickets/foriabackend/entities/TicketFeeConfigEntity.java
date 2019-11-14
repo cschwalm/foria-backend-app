@@ -23,10 +23,16 @@ public class TicketFeeConfigEntity implements Serializable {
         VENUE
     }
 
+    public enum Status {
+        ACTIVE,
+        INACTIVE
+    }
+
     private UUID id;
     private EventEntity eventEntity;
     private String name;
     private String description;
+    private Status status;
     private FeeMethod method;
     private FeeType type;
     private BigDecimal amount;
@@ -74,6 +80,16 @@ public class TicketFeeConfigEntity implements Serializable {
     public TicketFeeConfigEntity setDescription(String description) {
         this.description = description;
         return this;
+    }
+
+    @Column(name = "status", nullable = false)
+    @Enumerated(EnumType.STRING)
+    public Status getStatus() {
+        return status;
+    }
+
+    public void setStatus(Status status) {
+        this.status = status;
     }
 
     @Column(name = "method", nullable = false)
@@ -124,6 +140,7 @@ public class TicketFeeConfigEntity implements Serializable {
                 "id=" + id +
                 ", name='" + name + '\'' +
                 ", description='" + description + '\'' +
+                ", status='" + status + '\'' +
                 ", method=" + method +
                 ", type=" + type +
                 ", amount=" + amount +
@@ -139,6 +156,7 @@ public class TicketFeeConfigEntity implements Serializable {
         return Objects.equals(id, that.id) &&
                 Objects.equals(name, that.name) &&
                 Objects.equals(description, that.description) &&
+                Objects.equals(status, that.status) &&
                 method == that.method &&
                 type == that.type &&
                 Objects.equals(amount, that.amount) &&
@@ -147,6 +165,6 @@ public class TicketFeeConfigEntity implements Serializable {
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, name, description, method, type, amount, currency);
+        return Objects.hash(id, name, description, status, method, type, amount, currency);
     }
 }

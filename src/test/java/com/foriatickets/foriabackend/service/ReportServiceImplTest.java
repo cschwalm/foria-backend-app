@@ -158,12 +158,14 @@ public class ReportServiceImplTest {
         when(ticketTypeConfigEntityMock.getId()).thenReturn(eventId);
         when(ticketTypeConfigEntityMock.getPrice()).thenReturn(BigDecimal.valueOf(123L));
         when(ticketTypeConfigEntityMock.getCurrency()).thenReturn("USD");
+        when(ticketTypeConfigEntityMock.getStatus()).thenReturn(TicketTypeConfigEntity.Status.ACTIVE);
         when(ticketEntityMock.getTicketTypeConfigEntity()).thenReturn(ticketTypeConfigEntityMock);
         when(ticketTypeConfigEntityMock.getName()).thenReturn("Test Event - Special Char 丏");
 
         TicketFeeConfigEntity ticketFeeConfigEntityPercentMock = mock(TicketFeeConfigEntity.class);
         when(ticketFeeConfigEntityPercentMock.getMethod()).thenReturn(TicketFeeConfigEntity.FeeMethod.PERCENT);
         when(ticketFeeConfigEntityPercentMock.getName()).thenReturn("PERCENT TEST");
+        when(ticketFeeConfigEntityPercentMock.getStatus()).thenReturn(TicketFeeConfigEntity.Status.ACTIVE);
         when(ticketFeeConfigEntityPercentMock.getAmount()).thenReturn(BigDecimal.valueOf(0.11));
         when(ticketFeeConfigEntityPercentMock.getCurrency()).thenReturn("USD");
         when(ticketFeeConfigEntityPercentMock.getType()).thenReturn(TicketFeeConfigEntity.FeeType.ISSUER);

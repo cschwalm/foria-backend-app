@@ -85,6 +85,10 @@ public class CalculationServiceImpl implements CalculationService {
 
         for (TicketFeeConfigEntity feeConfigEntity : percentFeeSet) {
 
+            if (feeConfigEntity.getStatus() != TicketFeeConfigEntity.Status.ACTIVE) {
+                continue;
+            }
+
             if (feeConfigEntity.getType() == TicketFeeConfigEntity.FeeType.ISSUER) {
                 feePercentIssuerToApply = feePercentIssuerToApply.add(feeConfigEntity.getAmount());
             } else if (feeConfigEntity.getType() == TicketFeeConfigEntity.FeeType.VENUE) {
@@ -104,6 +108,10 @@ public class CalculationServiceImpl implements CalculationService {
         BigDecimal feeFlatVenueToApplyPerTicket = BigDecimal.ZERO;
 
         for (TicketFeeConfigEntity feeConfigEntity : flatFeeSet) {
+
+            if (feeConfigEntity.getStatus() != TicketFeeConfigEntity.Status.ACTIVE) {
+                continue;
+            }
 
             feeFlatToApplyPerTicket = feeFlatToApplyPerTicket.add(feeConfigEntity.getAmount());
 
@@ -204,6 +212,11 @@ public class CalculationServiceImpl implements CalculationService {
 
             if (ticketTypeConfigEntityOptional.isPresent()) {
                 TicketTypeConfigEntity ticketTypeConfigEntity = ticketTypeConfigEntityOptional.get();
+
+                if (ticketTypeConfigEntity.getStatus() != TicketTypeConfigEntity.Status.ACTIVE) {
+                    LOG.error("User attempted to purchase a ticket that was deactivated: {}.", ticketTypeConfigEntity.getId());
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ticket type is disabled.");
+                }
 
                 //Skip free tickets.
                 if (ticketTypeConfigEntity.getPrice().compareTo(BigDecimal.ZERO) <= 0) {

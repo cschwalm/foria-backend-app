@@ -193,6 +193,7 @@ public class EventServiceImpl implements EventService {
         for (TicketFeeConfig ticketFeeConfig : event.getTicketFeeConfig()) {
             TicketFeeConfigEntity ticketFeeConfigEntity = modelMapper.map(ticketFeeConfig, TicketFeeConfigEntity.class);
             ticketFeeConfigEntity.setEventEntity(eventEntity);
+            ticketFeeConfigEntity.setStatus(TicketFeeConfigEntity.Status.ACTIVE);
             ticketFeeConfigEntity = ticketFeeConfigRepository.save(ticketFeeConfigEntity);
             ticketFeeConfig.setId(ticketFeeConfigEntity.getId());
         }
@@ -200,6 +201,7 @@ public class EventServiceImpl implements EventService {
         for (TicketTypeConfig ticketTypeConfig : event.getTicketTypeConfig()) {
             TicketTypeConfigEntity ticketTypeConfigEntity = modelMapper.map(ticketTypeConfig, TicketTypeConfigEntity.class);
             ticketTypeConfigEntity.setEventEntity(eventEntity);
+            ticketTypeConfigEntity.setStatus(TicketTypeConfigEntity.Status.ACTIVE);
             ticketTypeConfigEntity = ticketTypeConfigRepository.save(ticketTypeConfigEntity);
             ticketTypeConfig.setId(ticketTypeConfigEntity.getId());
         }
@@ -295,6 +297,17 @@ public class EventServiceImpl implements EventService {
      * @return Completed data.
      */
     private Event populateExtraTicketInfo(EventEntity eventEntity) {
+
+        //Remove non-active price tiers.
+        eventEntity.getTicketTypeConfigEntity().removeIf(ticketTypeConfigEntity -> {
+
+            if (ticketTypeConfigEntity.getStatus() != TicketTypeConfigEntity.Status.ACTIVE) {
+                LOG.debug("Skipping ticket typeID: {} because it is INACTIVE.", ticketTypeConfigEntity.getId());
+                return true;
+            }
+
+            return false;
+        });
 
         Event event = modelMapper.map(eventEntity, Event.class);
         populateEventModelWithAddress(event, eventEntity.getVenueEntity());

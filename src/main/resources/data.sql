@@ -19,19 +19,19 @@ insert
 insert
         into
             `TICKET_FEE_CONFIG` (
-                `PRICE`, `CURRENCY`, `DESCRIPTION`, `EVENT_ID`, `METHOD`, `NAME`, `TYPE`, `ID`
+                `PRICE`, `CURRENCY`, `DESCRIPTION`, `STATUS`, `EVENT_ID`, `METHOD`, `NAME`, `TYPE`, `ID`
             )
         values
-            (10.00, 'USD', 'Test Flat', '40c6a84f-9505-40b9-a9ea-817074aac2f1', 'FLAT', 'Flat 10 Test', 'ISSUER', 'a7760a43-54ec-407a-8bee-7709dfb67bf6');
+            (10.00, 'USD', 'Test Flat', 'ACTIVE', '40c6a84f-9505-40b9-a9ea-817074aac2f1', 'FLAT', 'Flat 10 Test', 'ISSUER', 'a7760a43-54ec-407a-8bee-7709dfb67bf6');
 
 /* insert com.foriatickets.foriabackend.entities.TicketFeeConfigEntity*/
 insert
         INTO
             `TICKET_FEE_CONFIG` (
-                `PRICE`, `CURRENCY`, `DESCRIPTION`, `EVENT_ID`, `METHOD`, `NAME`, `TYPE`, `ID`
+                `PRICE`, `CURRENCY`, `DESCRIPTION`, `STATUS`, `EVENT_ID`, `METHOD`, `NAME`, `TYPE`, `ID`
             )
         values
-            (0.01, 'USD', 'Test Percent', '40c6a84f-9505-40b9-a9ea-817074aac2f1', 'PERCENT', 'Percent 0.01 Test', 'ISSUER', 'f966ba1d-32b5-4507-ab9d-d9b867c6c843');
+            (0.01, 'USD', 'Test Percent', 'ACTIVE', '40c6a84f-9505-40b9-a9ea-817074aac2f1', 'PERCENT', 'Percent 0.01 Test', 'ISSUER', 'f966ba1d-32b5-4507-ab9d-d9b867c6c843');
 
 /* insert com.foriatickets.foriabackend.entities.TicketTypeConfigEntity */
 insert
