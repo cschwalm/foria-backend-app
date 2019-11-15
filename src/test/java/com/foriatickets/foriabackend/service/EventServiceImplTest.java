@@ -8,12 +8,15 @@ import com.foriatickets.foriabackend.repositories.*;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.modelmapper.ModelMapper;
 import org.modelmapper.PropertyMap;
 import org.modelmapper.internal.util.Assert;
 import org.openapitools.model.Attendee;
 import org.openapitools.model.Event;
+import org.openapitools.model.TicketFeeConfig;
+import org.openapitools.model.TicketTypeConfig;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -25,6 +28,7 @@ import java.util.*;
 
 import static com.foriatickets.foriabackend.entities.TicketEntity.Status.*;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -164,11 +168,25 @@ public class EventServiceImplTest {
         when(ticketFeeConfigEntity.getCurrency()).thenReturn("USD");
         when(ticketFeeConfigEntity.getType()).thenReturn(TicketFeeConfigEntity.FeeType.ISSUER);
         when(ticketFeeConfigEntity.getMethod()).thenReturn(TicketFeeConfigEntity.FeeMethod.FLAT);
+        when(ticketFeeConfigEntity.getStatus()).thenReturn(TicketFeeConfigEntity.Status.ACTIVE);
         when(ticketFeeConfigEntity.getAmount()).thenReturn(new BigDecimal("100.00"));
         when(ticketFeeConfigEntity.getId()).thenReturn(UUID.randomUUID());
         when(ticketFeeConfigEntity.getName()).thenReturn("Test Type");
         when(ticketFeeConfigEntity.getDescription()).thenReturn("Test Type Desc");
+
+        TicketFeeConfigEntity ticketFeeConfigEntityInactive = mock(TicketFeeConfigEntity.class);
+        when(ticketFeeConfigEntityInactive.getEventEntity()).thenReturn(mockEvent1);
+        when(ticketFeeConfigEntityInactive.getCurrency()).thenReturn("USD");
+        when(ticketFeeConfigEntityInactive.getType()).thenReturn(TicketFeeConfigEntity.FeeType.ISSUER);
+        when(ticketFeeConfigEntityInactive.getMethod()).thenReturn(TicketFeeConfigEntity.FeeMethod.FLAT);
+        when(ticketFeeConfigEntityInactive.getStatus()).thenReturn(TicketFeeConfigEntity.Status.INACTIVE);
+        when(ticketFeeConfigEntityInactive.getAmount()).thenReturn(new BigDecimal("100.00"));
+        when(ticketFeeConfigEntityInactive.getId()).thenReturn(UUID.randomUUID());
+        when(ticketFeeConfigEntityInactive.getName()).thenReturn("Test Type Inactive");
+        when(ticketFeeConfigEntityInactive.getDescription()).thenReturn("Test Type Desc");
+
         ticketFeeConfigEntitySet.add(ticketFeeConfigEntity);
+        ticketFeeConfigEntitySet.add(ticketFeeConfigEntityInactive);
         when(mockEvent1.getTicketFeeConfig()).thenReturn(ticketFeeConfigEntitySet);
 
         when(ticketService.countTicketsRemaining(any())).thenReturn(5);
@@ -219,6 +237,7 @@ public class EventServiceImplTest {
         assertEquals(EventEntity.Visibility.PUBLIC.name(), actual.getVisibility().name());
 
         assertEquals(1, actual.getTicketTypeConfig().size());
+        assertEquals(1, actual.getTicketFeeConfig().size());
     }
 
     @Test
@@ -391,5 +410,131 @@ public class EventServiceImplTest {
 
         List<Attendee> actual = eventService.getAttendees(eventId);
         assertEquals(2, actual.size());
+    }
+
+    @Test
+    public void createTicketFeeConfig() {
+
+        EventEntity eventEntityMock = mock(EventEntity.class);
+        when(eventEntityMock.getEventEndTime()).thenReturn(OffsetDateTime.MAX.minusYears(1L));
+        when(eventEntityMock.getName()).thenReturn("Test Event");
+        when(eventEntityMock.getVenueEntity()).thenReturn(venueEntityMock);
+
+        UUID eventId = UUID.randomUUID();
+        TicketFeeConfig ticketFeeConfig = new TicketFeeConfig();
+        ticketFeeConfig.setCurrency("USD");
+        ticketFeeConfig.setType(TicketFeeConfig.TypeEnum.VENUE);
+        ticketFeeConfig.setMethod(TicketFeeConfig.MethodEnum.FLAT);
+        ticketFeeConfig.setDescription("test");
+        ticketFeeConfig.setName("test");
+        ticketFeeConfig.setAmount("0.25");
+
+        final ArgumentCaptor<TicketFeeConfigEntity> captor = ArgumentCaptor.forClass(TicketFeeConfigEntity.class);
+        when(ticketFeeConfigRepository.save(any())).thenReturn(mock(TicketFeeConfigEntity.class));
+        when(eventRepository.findById(eventId)).thenReturn(Optional.of(eventEntityMock));
+
+        TicketFeeConfig actual = eventService.createTicketFeeConfig(eventId, ticketFeeConfig);
+
+        assertNotNull(actual);
+        verify(ticketFeeConfigRepository, times(1)).save(captor.capture());
+
+        TicketFeeConfigEntity mock = captor.getValue();
+        assertEquals(ticketFeeConfig.getCurrency(), mock.getCurrency());
+        assertEquals(ticketFeeConfig.getType().name(), mock.getType().name());
+        assertEquals(ticketFeeConfig.getMethod().name(), mock.getMethod().name());
+        assertEquals(ticketFeeConfig.getDescription(), mock.getDescription());
+        assertEquals(ticketFeeConfig.getName(), mock.getName());
+        assertEquals(ticketFeeConfig.getAmount(), mock.getAmount().toPlainString());
+    }
+
+    @Test
+    public void createTicketTypeConfig() {
+
+        EventEntity eventEntityMock = mock(EventEntity.class);
+        when(eventEntityMock.getEventEndTime()).thenReturn(OffsetDateTime.MAX.minusYears(1L));
+        when(eventEntityMock.getName()).thenReturn("Test Event");
+        when(eventEntityMock.getVenueEntity()).thenReturn(venueEntityMock);
+
+        UUID eventId = UUID.randomUUID();
+        TicketTypeConfig ticketTypeConfig = new TicketTypeConfig();
+        ticketTypeConfig.setCurrency("USD");
+        ticketTypeConfig.setDescription("test");
+        ticketTypeConfig.setName("test");
+        ticketTypeConfig.setPrice("0.25");
+        ticketTypeConfig.setAuthorizedAmount(0);
+
+        final ArgumentCaptor<TicketTypeConfigEntity> captor = ArgumentCaptor.forClass(TicketTypeConfigEntity.class);
+        when(ticketTypeConfigRepository.save(any())).thenReturn(mock(TicketTypeConfigEntity.class));
+        when(eventRepository.findById(eventId)).thenReturn(Optional.of(eventEntityMock));
+
+        TicketTypeConfig actual = eventService.createTicketTypeConfig(eventId, ticketTypeConfig);
+
+        assertNotNull(actual);
+        verify(ticketTypeConfigRepository, times(1)).save(captor.capture());
+
+        TicketTypeConfigEntity mock = captor.getValue();
+        assertEquals(ticketTypeConfig.getCurrency(), mock.getCurrency());
+        assertEquals(ticketTypeConfig.getDescription(), mock.getDescription());
+        assertEquals(ticketTypeConfig.getName(), mock.getName());
+        assertEquals(ticketTypeConfig.getPrice(), mock.getPrice().toPlainString());
+        assertEquals(ticketTypeConfig.getAuthorizedAmount().toString(), String.valueOf(mock.getAuthorizedAmount()));
+    }
+
+    @Test
+    public void removeTicketFeeConfig() {
+
+        UUID eventId = UUID.randomUUID();
+        EventEntity eventEntityMock = mock(EventEntity.class);
+        when(eventEntityMock.getId()).thenReturn(eventId);
+        when(eventEntityMock.getEventEndTime()).thenReturn(OffsetDateTime.MAX.minusYears(1L));
+        when(eventEntityMock.getName()).thenReturn("Test Event");
+        when(eventEntityMock.getVenueEntity()).thenReturn(venueEntityMock);
+
+        TicketFeeConfigEntity ticketFeeConfigEntity = spy(TicketFeeConfigEntity.class);
+        when(ticketFeeConfigEntity.getEventEntity()).thenReturn(eventEntityMock);
+
+        final UUID id = UUID.randomUUID();
+
+        final ArgumentCaptor<TicketFeeConfigEntity> captor = ArgumentCaptor.forClass(TicketFeeConfigEntity.class);
+        when(ticketFeeConfigRepository.findById(id)).thenReturn(Optional.of(ticketFeeConfigEntity));
+        when(ticketFeeConfigRepository.save(any())).thenReturn(ticketFeeConfigEntity);
+        when(eventRepository.findById(eventId)).thenReturn(Optional.of(eventEntityMock));
+
+        TicketFeeConfig actual = eventService.removeTicketFeeConfig(eventId, id);
+
+        assertNotNull(actual);
+        verify(ticketFeeConfigRepository, times(1)).save(captor.capture());
+
+        TicketFeeConfigEntity mock = captor.getValue();
+        assertEquals(TicketFeeConfigEntity.Status.INACTIVE, mock.getStatus());
+    }
+
+    @Test
+    public void removeTicketTypeConfig() {
+
+        UUID eventId = UUID.randomUUID();
+        EventEntity eventEntityMock = mock(EventEntity.class);
+        when(eventEntityMock.getId()).thenReturn(eventId);
+        when(eventEntityMock.getEventEndTime()).thenReturn(OffsetDateTime.MAX.minusYears(1L));
+        when(eventEntityMock.getName()).thenReturn("Test Event");
+        when(eventEntityMock.getVenueEntity()).thenReturn(venueEntityMock);
+
+        TicketTypeConfigEntity ticketTypeConfigEntity = spy(TicketTypeConfigEntity.class);
+        when(ticketTypeConfigEntity.getEventEntity()).thenReturn(eventEntityMock);
+
+        final UUID id = UUID.randomUUID();
+
+        final ArgumentCaptor<TicketTypeConfigEntity> captor = ArgumentCaptor.forClass(TicketTypeConfigEntity.class);
+        when(ticketTypeConfigRepository.findById(id)).thenReturn(Optional.of(ticketTypeConfigEntity));
+        when(ticketTypeConfigRepository.save(any())).thenReturn(mock(TicketTypeConfigEntity.class));
+        when(eventRepository.findById(eventId)).thenReturn(Optional.of(eventEntityMock));
+
+        TicketTypeConfig actual = eventService.removeTicketTypeConfig(eventId, id);
+
+        assertNotNull(actual);
+        verify(ticketTypeConfigRepository, times(1)).save(captor.capture());
+
+        TicketTypeConfigEntity mock = captor.getValue();
+        assertEquals(TicketTypeConfigEntity.Status.INACTIVE, mock.getStatus());
     }
 }

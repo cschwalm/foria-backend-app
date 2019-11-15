@@ -2,6 +2,8 @@ package com.foriatickets.foriabackend.service;
 
 import org.openapitools.model.Attendee;
 import org.openapitools.model.Event;
+import org.openapitools.model.TicketFeeConfig;
+import org.openapitools.model.TicketTypeConfig;
 
 import java.util.List;
 import java.util.UUID;
@@ -31,6 +33,24 @@ public interface EventService {
     Event createEvent(Event event);
 
     /**
+     * Creates a new fee entry for the event.
+     *
+     * @param eventId Event ID
+     * @param ticketFeeConfig New fee config.
+     * @return Newly created model.
+     */
+    TicketFeeConfig createTicketFeeConfig(UUID eventId, TicketFeeConfig ticketFeeConfig);
+
+    /**
+     * Creates a new price tier for an existing event.
+     *
+     * @param eventId Event ID
+     * @param ticketTypeConfig New tier to create.
+     * @return Newly created model.
+     */
+    TicketTypeConfig createTicketTypeConfig(UUID eventId, TicketTypeConfig ticketTypeConfig);
+
+    /**
      * Returns a list of events that are currently running sorted by their event start date.
      *
      * @return A sorted list of events.
@@ -51,6 +71,24 @@ public interface EventService {
      * @return Scoped venue.
      */
     Event getEvent(UUID eventId);
+
+    /**
+     * Prevents the fee from being applied to future ticket orders.
+     *
+     * @param eventId Event ID.
+     * @param ticketFeeConfigId id
+     * @return Removed fee config
+     */
+    TicketFeeConfig removeTicketFeeConfig(UUID eventId, UUID ticketFeeConfigId);
+
+    /**
+     * Prevents the fee from being applied to future ticket orders.
+     *
+     * @param eventId event id
+     * @param ticketTypeConfigId id
+     * @return Removed price tier.
+     */
+    TicketTypeConfig removeTicketTypeConfig(UUID eventId, UUID ticketTypeConfigId);
 
     /**
      * Allows the user to update an event's basic metadata.

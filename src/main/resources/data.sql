@@ -37,19 +37,19 @@ insert
 insert
 INTO
     `TICKET_TYPE_CONFIG` (
-    `AUTHORIZED_AMOUNT`, `CURRENCY`, `DESCRIPTION`, `EVENT_ID`, `NAME`, `PRICE`, `ID`
+    `AUTHORIZED_AMOUNT`, `CURRENCY`, `DESCRIPTION`, `STATUS`, `EVENT_ID`, `NAME`, `PRICE`, `ID`
 )
 values
-(100, 'USD', 'Free', '40c6a84f-9505-40b9-a9ea-817074aac2f1', 'Free', 0.00, '9c0f3a04-a4f6-4229-9e8b-2ee9c3ec5fee');
+(100, 'USD', 'Free', 'ACTIVE', '40c6a84f-9505-40b9-a9ea-817074aac2f1', 'Free', 0.00, '9c0f3a04-a4f6-4229-9e8b-2ee9c3ec5fee');
 
 /* insert com.foriatickets.foriabackend.entities.TicketTypeConfigEntity */
 insert
         INTO
             `TICKET_TYPE_CONFIG` (
-                `AUTHORIZED_AMOUNT`, `CURRENCY`, `DESCRIPTION`, `EVENT_ID`, `NAME`, `PRICE`, `ID`
+                `AUTHORIZED_AMOUNT`, `CURRENCY`, `DESCRIPTION`, `STATUS`, `EVENT_ID`, `NAME`, `PRICE`, `ID`
             )
         values
-            (100, 'USD', 'Test', '40c6a84f-9505-40b9-a9ea-817074aac2f1', 'GA Test', 100.00, '9c0f3a04-a4f6-4229-9e8b-2ee9c3ec5f18');
+            (100, 'USD', 'Test', 'ACTIVE', '40c6a84f-9505-40b9-a9ea-817074aac2f1', 'GA Test', 100.00, '9c0f3a04-a4f6-4229-9e8b-2ee9c3ec5f18');
 
 /* insert com.foriatickets.foriabackend.entities.UserEntity */
 INSERT
@@ -77,3 +77,12 @@ INTO
 )
 VALUES
 ('9f4bc13d-3bc3-4c41-84ed-c92193bac111', '3f4bc13d-3bc3-4c41-84ed-c92193bac935', '2b2c8c0f-5b17-429a-a5f6-44dd47935e9a', '2019-01-01 00:00:00');
+
+/* insert com.foriatickets.foriabackend.entities.UserEntity */
+INSERT
+INTO
+    `VENUE_ACCESS` (
+    "ID", "USER_ID", "VENUE_ID", "CREATED_D"
+)
+VALUES
+('9f4bc13d-3bc3-4c41-84ed-c92193bac1115', '9f4bc13d-3bc3-4c41-84ed-c92193bac935', '2b2c8c0f-5b17-429a-a5f6-44dd47935e9a', '2019-01-01 00:00:00');

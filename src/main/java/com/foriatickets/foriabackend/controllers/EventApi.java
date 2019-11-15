@@ -76,25 +76,37 @@ public class EventApi implements org.openapitools.api.EventApi {
 
     @RequestMapping(value = "/event/{event_id}/ticketFeeConfig", method = RequestMethod.POST)
     @Override
-    public ResponseEntity<List<TicketFeeConfig>> createTicketFeeConfig(@PathVariable("event_id") UUID eventId, @Valid TicketFeeConfig ticketFeeConfig) {
-        return null;
+    public ResponseEntity<TicketFeeConfig> createTicketFeeConfig(@PathVariable("event_id") UUID eventId, @Valid TicketFeeConfig ticketFeeConfig) {
+
+        EventService eventService = beanFactory.getBean(EventService.class);
+        ticketFeeConfig = eventService.createTicketFeeConfig(eventId, ticketFeeConfig);
+        return new ResponseEntity<>(ticketFeeConfig, HttpStatus.OK);
     }
 
     @RequestMapping(value = "/event/{event_id}/ticketTypeConfig", method = RequestMethod.POST)
     @Override
-    public ResponseEntity<List<TicketTypeConfig>> createTicketTypeConfig(@PathVariable("event_id") UUID eventId, @Valid TicketTypeConfig ticketTypeConfig) {
-        return null;
+    public ResponseEntity<TicketTypeConfig> createTicketTypeConfig(@PathVariable("event_id") UUID eventId, @Valid TicketTypeConfig ticketTypeConfig) {
+
+        EventService eventService = beanFactory.getBean(EventService.class);
+        ticketTypeConfig = eventService.createTicketTypeConfig(eventId, ticketTypeConfig);
+        return new ResponseEntity<>(ticketTypeConfig, HttpStatus.OK);
     }
 
     @RequestMapping(value = "/event/{event_id}/ticketFeeConfig/{ticket_fee_config_id}", method = RequestMethod.DELETE)
     @Override
-    public ResponseEntity<List<TicketFeeConfig>> removeTicketFeeConfig(@PathVariable("event_id") UUID eventId, @PathVariable("ticket_fee_config_id") UUID ticketFeeConfigId) {
-        return null;
+    public ResponseEntity<TicketFeeConfig> removeTicketFeeConfig(@PathVariable("event_id") UUID eventId, @PathVariable("ticket_fee_config_id") UUID ticketFeeConfigId) {
+
+        EventService eventService = beanFactory.getBean(EventService.class);
+        TicketFeeConfig ticketFeeConfig = eventService.removeTicketFeeConfig(eventId, ticketFeeConfigId);
+        return new ResponseEntity<>(ticketFeeConfig, HttpStatus.OK);
     }
 
     @RequestMapping(value = "/event/{event_id}/ticketTypeConfig/{ticket_type_config_id}", method = RequestMethod.DELETE)
     @Override
-    public ResponseEntity<List<TicketTypeConfig>> removeTicketTypeConfig(@PathVariable("event_id") UUID eventId, @PathVariable("ticket_type_config_id") UUID ticketTypeConfigId) {
-        return null;
+    public ResponseEntity<TicketTypeConfig> removeTicketTypeConfig(@PathVariable("event_id") UUID eventId, @PathVariable("ticket_type_config_id") UUID ticketTypeConfigId) {
+
+        EventService eventService = beanFactory.getBean(EventService.class);
+        TicketTypeConfig ticketTypeConfig = eventService.removeTicketTypeConfig(eventId, ticketTypeConfigId);
+        return new ResponseEntity<>(ticketTypeConfig, HttpStatus.OK);
     }
 }

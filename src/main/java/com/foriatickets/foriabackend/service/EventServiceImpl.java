@@ -302,7 +302,18 @@ public class EventServiceImpl implements EventService {
         eventEntity.getTicketTypeConfigEntity().removeIf(ticketTypeConfigEntity -> {
 
             if (ticketTypeConfigEntity.getStatus() != TicketTypeConfigEntity.Status.ACTIVE) {
-                LOG.debug("Skipping ticket typeID: {} because it is INACTIVE.", ticketTypeConfigEntity.getId());
+                LOG.debug("Skipping ticketTypeID: {} because it is INACTIVE.", ticketTypeConfigEntity.getId());
+                return true;
+            }
+
+            return false;
+        });
+
+        //Remove non-active fee tiers.
+        eventEntity.getTicketFeeConfig().removeIf(ticketFeeConfigEntity -> {
+
+            if (ticketFeeConfigEntity.getStatus() != TicketFeeConfigEntity.Status.ACTIVE) {
+                LOG.debug("Skipping ticketFeeID: {} because it is INACTIVE.", ticketFeeConfigEntity.getId());
                 return true;
             }
 
@@ -331,12 +342,7 @@ public class EventServiceImpl implements EventService {
     @Override
     public Event getEvent(UUID eventId) {
 
-        Optional<EventEntity> eventEntityOptional = eventRepository.findById(eventId);
-        if (!eventEntityOptional.isPresent()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Event ID is invalid.");
-        }
-
-        EventEntity eventEntity = eventEntityOptional.get();
+        EventEntity eventEntity = loadAndValidateEventEntity(eventId);
 
         if (eventEntity.getStatus() == EventEntity.Status.CANCELED) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Event is canceled. Please contact venue for more information.");
@@ -352,16 +358,7 @@ public class EventServiceImpl implements EventService {
     @Override
     public Event updateEvent(UUID eventId, Event updatedEvent) {
 
-        if (eventId == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Event ID is null.");
-        }
-
-        final Optional<EventEntity> eventEntityOptional = eventRepository.findById(eventId);
-        if (!eventEntityOptional.isPresent()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Event ID does not exist.");
-        }
-
-        EventEntity eventEntity = eventEntityOptional.get();
+        EventEntity eventEntity = loadAndValidateEventEntity(eventId);
 
         if (eventEntity.getStatus() == EventEntity.Status.CANCELED) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Event is canceled. Edits are not allowed.");
@@ -382,6 +379,141 @@ public class EventServiceImpl implements EventService {
 
         LOG.info("Event ID: {} updated. \n New event: {}", eventEntity.getId(), eventEntity);
         return getEvent(eventId);
+    }
+
+    @Override
+    public TicketFeeConfig createTicketFeeConfig(UUID eventId, TicketFeeConfig ticketFeeConfig) {
+
+        EventEntity eventEntity = loadAndValidateEventEntity(eventId);
+
+        if (!VenueService.checkVenueAuthorization(eventEntity.getVenueEntity().getId(), authenticatedUser.getVenueAccessEntities())) {
+            LOG.warn("User ID: {} attempted to create ticket fee for eventId: {} that they are not authorized.", authenticatedUser.getId(), eventEntity.getId());
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authenticated user does not have access to venue.");
+        }
+
+        if (StringUtils.isEmpty(ticketFeeConfig.getName()) || StringUtils.isEmpty(ticketFeeConfig.getDescription())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Strings must not be empty.");
+        }
+
+        final BigDecimal amount = new BigDecimal(ticketFeeConfig.getAmount());
+
+        if (ticketFeeConfig.getAmount() != null && amount.compareTo(BigDecimal.ZERO) < 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Price must not not be negative.");
+        }
+
+        TicketFeeConfigEntity ticketFeeConfigEntity = new TicketFeeConfigEntity();
+        ticketFeeConfigEntity.setName(ticketFeeConfig.getName());
+        ticketFeeConfigEntity.setDescription(ticketFeeConfig.getDescription());
+        ticketFeeConfigEntity.setMethod(TicketFeeConfigEntity.FeeMethod.valueOf(ticketFeeConfig.getMethod().name()));
+        ticketFeeConfigEntity.setType(TicketFeeConfigEntity.FeeType.valueOf(ticketFeeConfig.getType().name()));
+        ticketFeeConfigEntity.setStatus(TicketFeeConfigEntity.Status.ACTIVE);
+        ticketFeeConfigEntity.setAmount(amount);
+        ticketFeeConfigEntity.setCurrency(ticketFeeConfig.getCurrency().toUpperCase());
+        ticketFeeConfigEntity.setEventEntity(eventEntity);
+
+        ticketFeeConfigEntity = ticketFeeConfigRepository.save(ticketFeeConfigEntity);
+        ticketFeeConfig.setId(ticketFeeConfigEntity.getId());
+
+        LOG.info("UserID: {} created a new feeConfig: {} for eventId: {}", authenticatedUser.getId(), ticketFeeConfig.getId(), eventEntity.getId());
+        return ticketFeeConfig;
+    }
+
+    @Override
+    public TicketTypeConfig createTicketTypeConfig(UUID eventId, TicketTypeConfig ticketTypeConfig) {
+
+        EventEntity eventEntity = loadAndValidateEventEntity(eventId);
+
+        if (!VenueService.checkVenueAuthorization(eventEntity.getVenueEntity().getId(), authenticatedUser.getVenueAccessEntities())) {
+            LOG.warn("User ID: {} attempted to create ticket type for eventId: {} that they are not authorized.", authenticatedUser.getId(), eventEntity.getId());
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authenticated user does not have access to venue.");
+        }
+
+        if (ticketTypeConfig.getAuthorizedAmount() != null && ticketTypeConfig.getAuthorizedAmount() < 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Authorized amount must be zero or greater.");
+        }
+
+        final BigDecimal price = new BigDecimal(ticketTypeConfig.getPrice());
+
+        if (price.compareTo(BigDecimal.ZERO) < 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Price must not be negative.");
+        }
+
+        if (StringUtils.isEmpty(ticketTypeConfig.getName()) || StringUtils.isEmpty(ticketTypeConfig.getDescription())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Strings must not be empty.");
+        }
+
+        TicketTypeConfigEntity ticketTypeConfigEntity = new TicketTypeConfigEntity();
+        ticketTypeConfigEntity.setName(ticketTypeConfig.getName());
+        ticketTypeConfigEntity.setDescription(ticketTypeConfig.getDescription());
+        ticketTypeConfigEntity.setAuthorizedAmount(ticketTypeConfig.getAuthorizedAmount());
+        ticketTypeConfigEntity.setStatus(TicketTypeConfigEntity.Status.ACTIVE);
+        ticketTypeConfigEntity.setPrice(price);
+        ticketTypeConfigEntity.setCurrency(ticketTypeConfig.getCurrency().toUpperCase());
+        ticketTypeConfigEntity.setEventEntity(eventEntity);
+
+        ticketTypeConfigEntity = ticketTypeConfigRepository.save(ticketTypeConfigEntity);
+        ticketTypeConfig.setId(ticketTypeConfigEntity.getId());
+
+        LOG.info("UserID: {} created a new price tier: {} for eventId: {}", authenticatedUser.getId(), ticketTypeConfigEntity.getId(), eventEntity.getId());
+        return ticketTypeConfig;
+    }
+
+    @Override
+    public TicketFeeConfig removeTicketFeeConfig(UUID eventId, UUID ticketFeeConfigId) {
+
+        EventEntity eventEntity = loadAndValidateEventEntity(eventId);
+
+        if (!VenueService.checkVenueAuthorization(eventEntity.getVenueEntity().getId(), authenticatedUser.getVenueAccessEntities())) {
+            LOG.warn("User ID: {} attempted to remove ticket fee for eventId: {} that they are not authorized.", authenticatedUser.getId(), eventEntity.getId());
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authenticated user does not have access to venue.");
+        }
+
+        Optional<TicketFeeConfigEntity> ticketFeeConfigEntityOptional = ticketFeeConfigRepository.findById(ticketFeeConfigId);
+
+        if (!ticketFeeConfigEntityOptional.isPresent()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "TicketFeeConfigId does not exist.");
+        }
+
+        TicketFeeConfigEntity ticketFeeConfigEntity = ticketFeeConfigEntityOptional.get();
+
+        if (ticketFeeConfigEntity.getEventEntity().getId() != eventId) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "TicketFeeConfigId does not belong to specified event.");
+        }
+
+        ticketFeeConfigEntity.setStatus(TicketFeeConfigEntity.Status.INACTIVE);
+        ticketFeeConfigEntity = ticketFeeConfigRepository.save(ticketFeeConfigEntity);
+
+        LOG.info("UserID: {} inactivated ticketFeeConfig: {} for eventId: {}", authenticatedUser.getId(), ticketFeeConfigEntity.getId(), eventEntity.getId());
+        return modelMapper.map(ticketFeeConfigEntity, TicketFeeConfig.class);
+    }
+
+    @Override
+    public TicketTypeConfig removeTicketTypeConfig(UUID eventId, UUID ticketTypeConfigId) {
+
+        EventEntity eventEntity = loadAndValidateEventEntity(eventId);
+
+        if (!VenueService.checkVenueAuthorization(eventEntity.getVenueEntity().getId(), authenticatedUser.getVenueAccessEntities())) {
+            LOG.warn("User ID: {} attempted to remove ticket type for eventId: {} that they are not authorized.", authenticatedUser.getId(), eventEntity.getId());
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authenticated user does not have access to venue.");
+        }
+
+        Optional<TicketTypeConfigEntity> ticketTypeConfigEntityOptional = ticketTypeConfigRepository.findById(ticketTypeConfigId);
+
+        if (!ticketTypeConfigEntityOptional.isPresent()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "ticketTypeConfigEntity does not exist.");
+        }
+
+        TicketTypeConfigEntity ticketTypeConfigEntity = ticketTypeConfigEntityOptional.get();
+
+        if (ticketTypeConfigEntity.getEventEntity().getId() != eventId) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "TicketTypeConfigId does not belong to specified event.");
+        }
+
+        ticketTypeConfigEntity.setStatus(TicketTypeConfigEntity.Status.INACTIVE);
+        ticketTypeConfigEntity = ticketTypeConfigRepository.save(ticketTypeConfigEntity);
+
+        LOG.info("UserID: {} inactivated ticketTypeConfig: {} for eventId: {}", authenticatedUser.getId(), ticketTypeConfigEntity.getId(), eventEntity.getId());
+        return modelMapper.map(ticketTypeConfigEntity, TicketTypeConfig.class);
     }
 
     /**
@@ -431,5 +563,24 @@ public class EventServiceImpl implements EventService {
         if (StringUtils.isEmpty(event.getImageUrl())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Image URL is empty");
         }
+    }
+
+    /**
+     * Loads the event entity from database with the specified ID.
+     * @param eventId ID to load.
+     * @return EventEntity. Not null.
+     */
+    private EventEntity loadAndValidateEventEntity(UUID eventId) {
+
+        if (eventId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Event ID is null.");
+        }
+
+        final Optional<EventEntity> eventEntityOptional = eventRepository.findById(eventId);
+        if (!eventEntityOptional.isPresent()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Event ID does not exist.");
+        }
+
+        return eventEntityOptional.get();
     }
 }
