@@ -55,7 +55,7 @@ public class TicketEntity implements Serializable {
         return this;
     }
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id", nullable = false)
     public UserEntity getOwnerEntity() {
         return ownerEntity;
@@ -66,7 +66,7 @@ public class TicketEntity implements Serializable {
         return this;
     }
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "purchaser_id", nullable = false)
     public UserEntity getPurchaserEntity() {
         return purchaserEntity;
@@ -98,7 +98,7 @@ public class TicketEntity implements Serializable {
         return this;
     }
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ticket_type_config_id", nullable = false)
     public TicketTypeConfigEntity getTicketTypeConfigEntity() {
         return ticketTypeConfigEntity;
