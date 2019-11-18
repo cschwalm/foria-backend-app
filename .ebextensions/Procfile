@@ -1,0 +1,1 @@
+web: java -jar foria-api-server.jar -Xms512m -Xms1536m
