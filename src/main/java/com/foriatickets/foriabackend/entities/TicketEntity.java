@@ -98,7 +98,7 @@ public class TicketEntity implements Serializable {
         return this;
     }
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "ticket_type_config_id", nullable = false)
     public TicketTypeConfigEntity getTicketTypeConfigEntity() {
         return ticketTypeConfigEntity;
