@@ -24,6 +24,7 @@ import static org.springframework.beans.factory.config.BeanDefinition.SCOPE_SING
 /**
  * Configures non-singleton beans for use.
  */
+@SuppressWarnings("rawtypes")
 @Configuration
 public class BeanConfig {
 

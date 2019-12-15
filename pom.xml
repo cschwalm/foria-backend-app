@@ -27,6 +27,7 @@
         <modelmapper.version>2.3.4</modelmapper.version>
         <opencsv.version>4.6</opencsv.version>
         <sentry.version>1.7.22</sentry.version>
+        <shedlock.version>4.0.2</shedlock.version>
         <stripe.version>10.3.0</stripe.version>
         <swagger.version>4.0.2</swagger.version>
     </properties>
@@ -83,6 +84,16 @@
             <groupId>org.openapitools</groupId>
             <artifactId>jackson-databind-nullable</artifactId>
             <version>0.1.0</version>
+        </dependency>
+        <dependency>
+            <groupId>net.javacrumbs.shedlock</groupId>
+            <artifactId>shedlock-spring</artifactId>
+            <version>${shedlock.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>net.javacrumbs.shedlock</groupId>
+            <artifactId>shedlock-provider-jdbc-template</artifactId>
+            <version>${shedlock.version}</version>
         </dependency>
 
         <!-- Auth0 & Spring Endpoint Security -->

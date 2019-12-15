@@ -2,6 +2,8 @@ package com.foriatickets.foriabackend.config;
 
 import com.foriatickets.foriabackend.gateway.AWSSecretsManagerGateway;
 import com.zaxxer.hikari.HikariDataSource;
+import net.javacrumbs.shedlock.core.LockProvider;
+import net.javacrumbs.shedlock.provider.jdbctemplate.JdbcTemplateLockProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -15,9 +17,6 @@ import javax.sql.DataSource;
 @EnableJpaRepositories(basePackages = "com.foriatickets.foriabackend.repositories")
 @EnableTransactionManagement
 public class SpringDbConfig {
-
-    @Value("${show_sql:false}")
-    private String SHOW_SQL;
 
     @Value("${db.jdbc:#{null}}")
     private String DB_JDBC;
@@ -58,5 +57,10 @@ public class SpringDbConfig {
         ds.setConnectionTestQuery("SELECT 1");
         ds.setMaximumPoolSize(MAX_CONNECTION_POOL_SIZE);
         return ds;
+    }
+
+    @Bean
+    public LockProvider lockProvider(DataSource dataSource) {
+        return new JdbcTemplateLockProvider(dataSource);
     }
 }

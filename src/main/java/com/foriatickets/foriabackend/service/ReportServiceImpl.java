@@ -12,6 +12,8 @@ import com.opencsv.bean.*;
 import com.opencsv.exceptions.CsvRequiredFieldEmptyException;
 import com.stripe.model.BalanceTransaction;
 import com.stripe.model.Payout;
+import net.javacrumbs.shedlock.core.LockAssert;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.logging.log4j.LogManager;
@@ -88,7 +90,10 @@ public class ReportServiceImpl implements ReportService {
 
     @Override
     @Scheduled(cron = "${daily-ticket-purchase-report-cron:-}")
+    @SchedulerLock(name = "daily-ticket-purchase-report")
     public void generateAndSendDailyTicketPurchaseReport() {
+
+        LockAssert.assertLocked();
 
         final ZonedDateTime nowInPST = ZonedDateTime.now().withZoneSameInstant(ZoneId.of("America/Los_Angeles"));
         final ZonedDateTime yesterdayStart = nowInPST.minusDays(1L).withHour(0).withMinute(0).withSecond(0).withNano(0);
@@ -99,7 +104,10 @@ public class ReportServiceImpl implements ReportService {
 
     @Override
     @Scheduled(cron = "${rolling-ticket-purchase-report-cron:-}")
+    @SchedulerLock(name = "rolling-ticket-purchase-report")
     public void generateAndSendRollingTicketPurchaseReport() {
+
+        LockAssert.assertLocked();
 
         final ZonedDateTime start = ZonedDateTime.now().withZoneSameInstant(ZoneId.of("America/Los_Angeles"));
         generateAndSendTicketReport(start.minusYears(10), start);
@@ -108,7 +116,10 @@ public class ReportServiceImpl implements ReportService {
     @SuppressWarnings("Duplicates")
     @Override
     @Scheduled(cron = "${weekly-settlement-report-cron:-}")
+    @SchedulerLock(name = "weekly-settlement-report")
     public void generateAndSendWeeklySettlementReport() {
+
+        LockAssert.assertLocked();
 
         final ZonedDateTime nowInPST = ZonedDateTime.now().withZoneSameInstant(ZoneId.of("America/Los_Angeles"));
         LOG.info("Generating WeeklySettlementReport for: {}", nowInPST);
