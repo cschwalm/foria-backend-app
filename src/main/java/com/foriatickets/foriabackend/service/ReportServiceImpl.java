@@ -364,8 +364,8 @@ public class ReportServiceImpl implements ReportService {
 
         final ZonedDateTime nowInPST = ZonedDateTime.now().withZoneSameInstant(ZoneId.of("America/Los_Angeles"));
 
-        final OffsetDateTime startDate = nowInPST.minusDays(1L).withHour(0).withMinute(0).withSecond(0).withNano(0).toOffsetDateTime();
-        final OffsetDateTime endDate = nowInPST.minusDays(1L).withHour(23).withMinute(59).withSecond(59).withNano(0).toOffsetDateTime();
+        final OffsetDateTime startDate = nowInPST.plusDays(1L).withHour(0).withMinute(0).withSecond(0).withNano(0).toOffsetDateTime();
+        final OffsetDateTime endDate = nowInPST.plusDays(1L).withHour(23).withMinute(59).withSecond(59).withNano(0).toOffsetDateTime();
 
         LOG.info("Generating GeneralEventReminderEmail for startDate: {} and endDate: {}", startDate, endDate);
 
