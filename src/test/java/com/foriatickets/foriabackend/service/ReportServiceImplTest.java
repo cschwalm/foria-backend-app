@@ -4,6 +4,7 @@ import com.foriatickets.foriabackend.entities.*;
 import com.foriatickets.foriabackend.gateway.AWSSimpleEmailServiceGateway;
 import com.foriatickets.foriabackend.gateway.StripeGateway;
 import com.foriatickets.foriabackend.gateway.StripeGatewayImpl;
+import com.foriatickets.foriabackend.repositories.EventRepository;
 import com.foriatickets.foriabackend.repositories.OrderRepository;
 import com.stripe.model.BalanceTransaction;
 import com.stripe.model.Payout;
@@ -27,6 +28,9 @@ public class ReportServiceImplTest {
     private AWSSimpleEmailServiceGateway awsSimpleEmailServiceGateway;
 
     @Mock
+    private EventRepository eventRepository;
+
+    @Mock
     private OrderRepository orderRepository;
 
     @Mock
@@ -43,7 +47,7 @@ public class ReportServiceImplTest {
     public void setUp() {
 
         mockOrderInfo();
-        reportService = new ReportServiceImpl(awsSimpleEmailServiceGateway, orderRepository, stripeGateway, calculationService);
+        reportService = new ReportServiceImpl(awsSimpleEmailServiceGateway, eventRepository, orderRepository, stripeGateway, calculationService);
     }
 
     @Test
@@ -122,6 +126,52 @@ public class ReportServiceImplTest {
 
         verify(orderRepository).findByChargeReferenceId(any());
         verify(awsSimpleEmailServiceGateway).sendInternalReport(any(), any(), any());
+    }
+
+    @Test
+    public void generateAndSendGeneralEventReminder() {
+
+        UserEntity userMock = mock(UserEntity.class);
+        when(userMock.getEmail()).thenReturn("john@test.com");
+        when(userMock.getFirstName()).thenReturn("John");
+
+        UserEntity userMock2 = mock(UserEntity.class);
+        when(userMock2.getEmail()).thenReturn("john2@test.com");
+        when(userMock2.getFirstName()).thenReturn("John2");
+
+        VenueEntity venueEntity = mock(VenueEntity.class);
+        when(venueEntity.getName()).thenReturn("Test Venue");
+        when(venueEntity.getContactStreetAddress()).thenReturn("12345 Maple Ln");
+        when(venueEntity.getContactCity()).thenReturn("Madison");
+        when(venueEntity.getContactState()).thenReturn("Wisconsin");
+        when(venueEntity.getContactZip()).thenReturn("53715");
+
+        TicketEntity ticketMock1 = mock(TicketEntity.class);
+        when(ticketMock1.getOwnerEntity()).thenReturn(userMock);
+
+        TicketEntity ticketMock2 = mock(TicketEntity.class);
+        when(ticketMock2.getOwnerEntity()).thenReturn(userMock2);
+
+        Set<TicketEntity> ticketSet = new HashSet<>();
+        ticketSet.add(ticketMock1);
+        ticketSet.add(ticketMock2);
+
+        EventEntity eventMock = mock(EventEntity.class);
+        when(eventMock.getAuthorizedTickets()).thenReturn(10);
+        when(eventMock.getId()).thenReturn(UUID.randomUUID());
+        when(eventMock.getName()).thenReturn("Test Event for Email");
+        when(eventMock.getDescription()).thenReturn("Test");
+        when(eventMock.getEventStartTime()).thenReturn(OffsetDateTime.now().minusDays(1L));
+        when(eventMock.getEventEndTime()).thenReturn(OffsetDateTime.now().minusDays(1L));
+        when(eventMock.getVenueEntity()).thenReturn(venueEntity);
+        when(eventMock.getTickets()).thenReturn(ticketSet);
+
+        List<EventEntity> events = new ArrayList<>();
+        events.add(eventMock);
+        when(eventRepository.findAllByEventStartTimeGreaterThanEqualAndEventStartTimeLessThanEqual(any(), any())).thenReturn(events);
+
+        reportService.generateAndSendGeneralEventReminder();
+        verify(awsSimpleEmailServiceGateway, times(2)).sendEmailFromTemplate(anyString(), eq("general_event_reminder"), any());
     }
 
     private void mockOrderInfo() {

@@ -78,6 +78,9 @@ auth0.apiAudience: api.foriatickets.com
 fcmDatabaseUrl: https://foria-tickets.firebaseio.com
 fcmKey: prod_foria_google_fcm_key
 
+# Jobs
+daily-general-event-email-cron: "0 0 11 */1 * ?"
+
 ---
 spring:
   profiles: production
@@ -106,3 +109,4 @@ fcmKey: prod_foria_google_fcm_key
 daily-ticket-purchase-report-cron: "0 0 6 */1 * ?"
 weekly-settlement-report-cron: "0 0 6 */1 * THU"
 rolling-ticket-purchase-report-cron: "0 0 10-22 * * ?"
+daily-general-event-email-cron: "-"

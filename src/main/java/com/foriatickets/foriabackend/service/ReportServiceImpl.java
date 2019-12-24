@@ -4,6 +4,7 @@ import com.foriatickets.foriabackend.entities.*;
 import com.foriatickets.foriabackend.gateway.AWSSimpleEmailServiceGateway;
 import com.foriatickets.foriabackend.gateway.StripeGateway;
 import com.foriatickets.foriabackend.gateway.StripeGatewayImpl;
+import com.foriatickets.foriabackend.repositories.EventRepository;
 import com.foriatickets.foriabackend.repositories.OrderRepository;
 import com.foriatickets.foriabackend.service.report_templates.OrderReportRow;
 import com.foriatickets.foriabackend.service.report_templates.TicketRow;
@@ -26,6 +27,7 @@ import java.io.CharArrayWriter;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
+import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -70,6 +72,8 @@ public class ReportServiceImpl implements ReportService {
 
     private final AWSSimpleEmailServiceGateway awsSimpleEmailServiceGateway;
 
+    private final EventRepository eventRepository;
+
     private final OrderRepository orderRepository;
 
     private final StripeGateway stripeGateway;
@@ -80,8 +84,15 @@ public class ReportServiceImpl implements ReportService {
 
     private static DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss");
 
-    public ReportServiceImpl(AWSSimpleEmailServiceGateway awsSimpleEmailServiceGateway, OrderRepository orderRepository, StripeGateway stripeGateway, CalculationService calculationService) {
+    private static DateTimeFormatter DATE_START_FORMAT = DateTimeFormatter.ofPattern("MM/dd/yyyy");
+
+    private static DateTimeFormatter DATE_TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm");
+
+    private static final String GENERAL_EVENT_REMINDER_TEMPLATE = "general_event_reminder";
+
+    public ReportServiceImpl(AWSSimpleEmailServiceGateway awsSimpleEmailServiceGateway, EventRepository eventRepository, OrderRepository orderRepository, StripeGateway stripeGateway, CalculationService calculationService) {
         this.awsSimpleEmailServiceGateway = awsSimpleEmailServiceGateway;
+        this.eventRepository = eventRepository;
         this.orderRepository = orderRepository;
         this.stripeGateway = stripeGateway;
         this.calculationService = calculationService;
@@ -340,6 +351,68 @@ public class ReportServiceImpl implements ReportService {
 
         awsSimpleEmailServiceGateway.sendInternalReport("Weekly Settlement Report", reportStr, reportAttachmentList);
         LOG.info("Weekly Settlement Report generated and sent at: {}", DateTime.now());
+    }
+
+    /**
+     * Runs daily to check and see if T-1 before an event.
+     * Obtains the entire attendee list and sends each ticket owner an email.
+     */
+    @Override
+    @Scheduled(cron = "${daily-general-event-email-cron:-}")
+    @SchedulerLock(name = "daily-general-event-email")
+    public void generateAndSendGeneralEventReminder() {
+
+        final ZonedDateTime nowInPST = ZonedDateTime.now().withZoneSameInstant(ZoneId.of("America/Los_Angeles"));
+
+        final OffsetDateTime startDate = nowInPST.minusDays(1L).withHour(0).withMinute(0).withSecond(0).withNano(0).toOffsetDateTime();
+        final OffsetDateTime endDate = nowInPST.minusDays(1L).withHour(23).withMinute(59).withSecond(59).withNano(0).toOffsetDateTime();
+
+        LOG.info("Generating GeneralEventReminderEmail for startDate: {} and endDate: {}", startDate, endDate);
+
+        final List<EventEntity> eventEntityList = eventRepository.findAllByEventStartTimeGreaterThanEqualAndEventStartTimeLessThanEqual(startDate, endDate);
+
+        for (EventEntity eventEntity : eventEntityList) {
+
+            final VenueEntity venueEntity = eventEntity.getVenueEntity();
+
+            final Set<TicketEntity> tickets = eventEntity.getTickets();
+            final String eventStartDate = eventEntity.getEventStartTime().format(DATE_START_FORMAT);
+            final String eventStartTime = eventEntity.getEventStartTime().format(DATE_TIME_FORMAT);
+            final String locationName = venueEntity.getName();
+            final String locationAddress = venueEntity.getContactStreetAddress() + "\n" +
+                    venueEntity.getContactCity() + ", " +
+                    venueEntity.getContactState() + " " +
+                    venueEntity.getContactZip();
+            final String eventName = eventEntity.getName();
+
+            final HashSet<String> uniqueAttendees = new HashSet<>();
+            for (TicketEntity ticketEntity : tickets) {
+
+                final Map<String, String> templateData = new HashMap<>();
+
+                final UserEntity ticketHolder = ticketEntity.getOwnerEntity();
+                final String email = ticketHolder.getEmail();
+
+                if (uniqueAttendees.contains(email)) {
+                    continue;
+                }
+
+                uniqueAttendees.add(email);
+
+                templateData.put("eventName", eventName);
+                templateData.put("eventDate", eventStartDate);
+                templateData.put("eventStartTime", eventStartTime);
+                templateData.put("eventLocation", locationName);
+                templateData.put("eventAddress", locationAddress);
+                templateData.put("eventId", eventEntity.getId().toString());
+
+                awsSimpleEmailServiceGateway.sendEmailFromTemplate(email, GENERAL_EVENT_REMINDER_TEMPLATE, templateData);
+            }
+
+            LOG.info("{} emails sent for eventID: {}", uniqueAttendees.size(), eventEntity.getId());
+        }
+
+        LOG.debug("GeneralEventReminderEmail completed at: {}", OffsetDateTime.now().format(DATE_TIME_FORMAT));
     }
 
     /**

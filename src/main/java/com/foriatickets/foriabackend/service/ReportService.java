@@ -26,4 +26,10 @@ public interface ReportService {
      * week period.
      */
     void generateAndSendWeeklySettlementReport();
+
+    /**
+     * Runs daily to check and see if T-1 before an event.
+     * Obtains the entire attendee list and sends each ticket owner an email.
+     */
+    void generateAndSendGeneralEventReminder();
 }
