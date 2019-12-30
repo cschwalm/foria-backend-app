@@ -6,6 +6,7 @@ import com.foriatickets.foriabackend.gateway.StripeGateway;
 import com.foriatickets.foriabackend.gateway.StripeGatewayImpl;
 import com.foriatickets.foriabackend.repositories.EventRepository;
 import com.foriatickets.foriabackend.repositories.OrderRepository;
+import com.foriatickets.foriabackend.repositories.OrderTicketEntryRepository;
 import com.stripe.model.BalanceTransaction;
 import com.stripe.model.Payout;
 import org.junit.Before;
@@ -34,6 +35,9 @@ public class ReportServiceImplTest {
     private OrderRepository orderRepository;
 
     @Mock
+    private OrderTicketEntryRepository orderTicketEntryRepository;
+
+    @Mock
     private StripeGateway stripeGateway;
 
     @Mock
@@ -47,7 +51,7 @@ public class ReportServiceImplTest {
     public void setUp() {
 
         mockOrderInfo();
-        reportService = new ReportServiceImpl(awsSimpleEmailServiceGateway, eventRepository, orderRepository, stripeGateway, calculationService);
+        reportService = new ReportServiceImpl(awsSimpleEmailServiceGateway, eventRepository, orderRepository, orderTicketEntryRepository, stripeGateway, calculationService);
     }
 
     @Test
@@ -253,5 +257,21 @@ public class ReportServiceImplTest {
 
         orders = new ArrayList<>();
         orders.add(orderEntity1);
+    }
+
+    @Test
+    public void generateAndSendEventEndReport() {
+
+        final EventEntity eventEntity = orders.get(0).getTickets().iterator().next().getTicketEntity().getEventEntity();
+
+        final ArrayList<EventEntity> eventEntities = new ArrayList<>();
+        eventEntities.add(eventEntity);
+        when(eventRepository.findAllByEventEndTimeGreaterThanEqualAndEventEndTimeLessThanEqual(any(), any())).thenReturn(eventEntities);
+        doNothing().when(awsSimpleEmailServiceGateway).sendInternalReport(any(), any(), any());
+
+        reportService.generateAndSendEventEndReport();
+
+        verify(eventRepository).findAllByEventEndTimeGreaterThanEqualAndEventEndTimeLessThanEqual(any(), any());
+        verify(awsSimpleEmailServiceGateway).sendInternalReport(any(), any(), any());
     }
 }

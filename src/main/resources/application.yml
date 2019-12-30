@@ -79,7 +79,7 @@ fcmDatabaseUrl: https://foria-tickets.firebaseio.com
 fcmKey: prod_foria_google_fcm_key
 
 # Jobs
-daily-general-event-email-cron: "0 0 11 */1 * ?"
+daily-event-end-report-cron: "0 0 6 */1 * ?"
 
 ---
 spring:
@@ -108,5 +108,6 @@ fcmKey: prod_foria_google_fcm_key
 # Report Scheduling
 daily-ticket-purchase-report-cron: "0 0 6 */1 * ?"
 weekly-settlement-report-cron: "0 0 6 */1 * THU"
-rolling-ticket-purchase-report-cron: "0 0 10-22 * * ?"
-daily-general-event-email-cron: "-"
+rolling-ticket-purchase-report-cron: "-"
+daily-general-event-email-cron: "0 0 11 */1 * ?"
+daily-event-end-report-cron: "0 0 6 */1 * ?"

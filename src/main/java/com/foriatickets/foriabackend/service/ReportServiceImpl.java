@@ -6,6 +6,7 @@ import com.foriatickets.foriabackend.gateway.StripeGateway;
 import com.foriatickets.foriabackend.gateway.StripeGatewayImpl;
 import com.foriatickets.foriabackend.repositories.EventRepository;
 import com.foriatickets.foriabackend.repositories.OrderRepository;
+import com.foriatickets.foriabackend.repositories.OrderTicketEntryRepository;
 import com.foriatickets.foriabackend.service.report_templates.OrderReportRow;
 import com.foriatickets.foriabackend.service.report_templates.TicketRow;
 import com.opencsv.CSVWriter;
@@ -36,6 +37,8 @@ import java.util.*;
 @Service
 @Transactional
 public class ReportServiceImpl implements ReportService {
+
+    public static final String MAIL_DELIMITER = "\r\n";
 
     static class CustomMappingStrategy<T> extends ColumnPositionMappingStrategy<T> {
         @Override
@@ -76,6 +79,8 @@ public class ReportServiceImpl implements ReportService {
 
     private final OrderRepository orderRepository;
 
+    private final OrderTicketEntryRepository orderTicketEntryRepository;
+
     private final StripeGateway stripeGateway;
 
     private final CalculationService calculationService;
@@ -90,12 +95,113 @@ public class ReportServiceImpl implements ReportService {
 
     private static final String GENERAL_EVENT_REMINDER_TEMPLATE = "general_event_reminder";
 
-    public ReportServiceImpl(AWSSimpleEmailServiceGateway awsSimpleEmailServiceGateway, EventRepository eventRepository, OrderRepository orderRepository, StripeGateway stripeGateway, CalculationService calculationService) {
+    public ReportServiceImpl(AWSSimpleEmailServiceGateway awsSimpleEmailServiceGateway, EventRepository eventRepository, OrderRepository orderRepository, OrderTicketEntryRepository orderTicketEntryRepository, StripeGateway stripeGateway, CalculationService calculationService) {
         this.awsSimpleEmailServiceGateway = awsSimpleEmailServiceGateway;
         this.eventRepository = eventRepository;
         this.orderRepository = orderRepository;
+        this.orderTicketEntryRepository = orderTicketEntryRepository;
         this.stripeGateway = stripeGateway;
         this.calculationService = calculationService;
+    }
+
+    @Override
+    @Scheduled(cron = "${daily-event-end-report-cron:-}")
+    @SchedulerLock(name = "daily-event-end-report")
+    public void generateAndSendEventEndReport() {
+
+        final ZonedDateTime nowInPST = ZonedDateTime.now().withZoneSameInstant(ZoneId.of("America/Los_Angeles"));
+        final ZonedDateTime yesterdayEnd = nowInPST.withHour(0).withMinute(0).withSecond(0).withNano(0).plusHours(6L);
+        final ZonedDateTime yesterdayStart = nowInPST.minusDays(1L).withHour(0).withMinute(0).withSecond(0).withNano(0);
+
+        LOG.info("Generating DailyEventEndReport for startDate: {} and endDate: {}", yesterdayStart, yesterdayEnd);
+
+        final List<EventEntity> eventEntityList = eventRepository.findAllByEventEndTimeGreaterThanEqualAndEventEndTimeLessThanEqual(yesterdayStart.toOffsetDateTime(), yesterdayEnd.toOffsetDateTime());
+
+        for (EventEntity eventEntity : eventEntityList) {
+            sendEventEndReportForEvent(eventEntity);
+        }
+
+        LOG.info("Generated DailyEventEndReport for {} events that completed yesterday.", eventEntityList.size());
+    }
+
+    /**
+     * Sends email for each event that ended today.
+     * @param eventEntity The event to load info for.
+     */
+    private void sendEventEndReportForEvent(EventEntity eventEntity) {
+
+        final Set<TicketEntity> tickets = eventEntity.getTickets();
+
+        int numTicketsPurchased = 0;
+        int numTicketsRefunded = 0;
+
+        BigDecimal venueRevenue = BigDecimal.ZERO;
+        BigDecimal issuerRevenue = BigDecimal.ZERO;
+
+        for (TicketEntity ticket : tickets) {
+
+            //Setup Fees
+            final Set<TicketFeeConfigEntity> feeSet = new HashSet<>();
+            final OrderTicketEntryEntity orderTicketEntryEntity = orderTicketEntryRepository.findByTicketEntity(ticket);
+
+            if (orderTicketEntryEntity == null) {
+                LOG.error("Unable to find order for ticketEntity: {}", ticket.getId());
+                continue;
+            }
+            final Set<OrderFeeEntryEntity> orderFeeEntryEntities = orderTicketEntryEntity.getOrderEntity().getFees();
+            for (OrderFeeEntryEntity orderFee : orderFeeEntryEntities) {
+                feeSet.add(orderFee.getTicketFeeConfigEntity());
+            }
+
+            if (!ticket.getTicketTypeConfigEntity().getCurrency().equalsIgnoreCase("USD")) {
+                LOG.warn("Ticket ID: {} is not in USD. Skipping calculation.", ticket.getId());
+                continue;
+            }
+
+            //Skip Free tickets.
+            final BigDecimal ticketSubtotal = ticket.getTicketTypeConfigEntity().getPrice();
+            if (ticketSubtotal.compareTo(BigDecimal.ZERO) <= 0) {
+                continue;
+            }
+
+            final CalculationServiceImpl.PriceCalculationInfo pInfo = calculationService.calculateFees(1, ticketSubtotal, feeSet);
+            if (orderTicketEntryEntity.getOrderEntity().getStatus() != OrderEntity.Status.CANCELED) {
+
+                issuerRevenue = issuerRevenue.add(pInfo.issuerFeeSubtotal);
+                venueRevenue = venueRevenue.add((pInfo.venueFeeSubtotal.add(pInfo.ticketSubtotal)));
+                numTicketsPurchased++;
+
+            } else {
+
+                //Subtract the payment (Stripe) fee from their revenue.
+                venueRevenue = venueRevenue.add( (pInfo.paymentFeeSubtotal).negate() );
+                numTicketsRefunded++;
+            }
+        }
+
+        final BigDecimal netAmount = issuerRevenue.add(venueRevenue);
+
+        String reportStr = String.join(
+                MAIL_DELIMITER,
+                "### INTERNAL FORIA REPORT ### - " + eventEntity.getName() + " Final Report",
+                "Report Generated at: " + ZonedDateTime.now().withZoneSameInstant(ZoneId.of("America/Los_Angeles")).toString(),
+                MAIL_DELIMITER,
+                "Event End Report for: " + eventEntity.getName(),
+                "Number of Tickets Sold: " + numTicketsPurchased,
+                "Number of Tickets Refunded: " + numTicketsRefunded,
+                MAIL_DELIMITER,
+                "Foria Revenue Amount (Foria Fees Collected On Tickets): " + issuerRevenue.toPlainString() + " USD",
+                "Venue Revenue Amount (Venue Ticket Subtotal plus Venue Fees): " + venueRevenue.toPlainString() + " USD",
+                "Total minus Payment Gateway Fees (Stripe Net Amount): " + netAmount.toPlainString() + " USD",
+                MAIL_DELIMITER,
+                "Signed,",
+                "Foria API Server",
+                "CONFIDENTIAL - DO NOT FORWARD",
+                MAIL_DELIMITER
+        );
+
+        awsSimpleEmailServiceGateway.sendInternalReport("Event End Report", reportStr, null);
+        LOG.info("Event End Report generated and sent at: {}", DateTime.now());
     }
 
     @Override
@@ -284,29 +390,28 @@ public class ReportServiceImpl implements ReportService {
         totalExpectedAmount = totalExpectedAmount.add((foriaRevenueAmount.add(venueRevenueAmount)));
 
         final Date settlementDate = new Date(payout.getArrivalDate() * 1000);
-        final String mailDelimiter = "\r\n";
 
         String reportStr = String.join(
-                mailDelimiter,
+                MAIL_DELIMITER,
                 "### INTERNAL FORIA REPORT ### - Weekly Settlement Report",
                 "Report Generated at: " + ZonedDateTime.now().withZoneSameInstant(ZoneId.of("America/Los_Angeles")).toString(),
-                mailDelimiter,
+                MAIL_DELIMITER,
                 "Settlement Date: " + settlementDate.toString(),
                 "Stripe Payout Id: " + payout.getId(),
                 "Number of Charges: " + numCharges,
-                "Number of Refunds: " + numRefunds + mailDelimiter,
-                (isTransactionMissing) ? mailDelimiter + "### WARNING ### STRIPE CONTAINS CHARGE TRANSACTION NOT IN FORIA ORDER LIST - MANUAL ADJUSTMENT REQUIRED! ### WARNING ###" : "",
+                "Number of Refunds: " + numRefunds + MAIL_DELIMITER,
+                (isTransactionMissing) ? MAIL_DELIMITER + "### WARNING ### STRIPE CONTAINS CHARGE TRANSACTION NOT IN FORIA ORDER LIST - MANUAL ADJUSTMENT REQUIRED! ### WARNING ###" : "",
                 "Amount Being Deposited Today (Settlement Amount): " + settlementAmount.toPlainString() + " " + payout.getCurrency(),
                 "Expected Amount For Today (Expected Settlement Amount): " + totalExpectedAmount.toPlainString() + " " + payout.getCurrency(),
                 (settlementAmount.compareTo(totalExpectedAmount) != 0) ? "### WARNING ### AMOUNTS DO NOT MATCH - EITHER A CHARGE BACK OCCURRED OR MANUAL LEDGER ENTRY OCCURRED - MANUAL ADJUSTMENT REQUIRED! ### WARNING ###" : "",
-                mailDelimiter,
+                MAIL_DELIMITER,
                 "Foria Revenue Amount (Foria Fees Collected On Tickets - Transfer/Keep this to Foria Operating Account): " + foriaRevenueAmount.toPlainString() + " " + payout.getCurrency(),
                 "Venue Revenue Amount (Venue Ticket Rev plus Venue Fees) - Transfer this to Venue ITF Account): " + venueRevenueAmount.toPlainString() + " " + payout.getCurrency(),
-                mailDelimiter,
+                MAIL_DELIMITER,
                 "Signed,",
                 "Foria API Server",
                 "CONFIDENTIAL - DO NOT FORWARD",
-                mailDelimiter
+                MAIL_DELIMITER
         );
 
         final CharArrayWriter writer = new CharArrayWriter();

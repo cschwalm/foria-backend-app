@@ -10,6 +10,12 @@ package com.foriatickets.foriabackend.service;
 public interface ReportService {
 
     /**
+     * Generates a report that calculates the final event totals for an event.
+     * This is to determine the amount to send the venue after settlement.
+     */
+    void generateAndSendEventEndReport();
+
+    /**
      * Generates report containing list of ticket sales for each venue
      * for the previous business day.
      */

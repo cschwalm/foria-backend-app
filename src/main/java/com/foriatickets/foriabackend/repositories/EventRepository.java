@@ -14,4 +14,7 @@ public interface EventRepository extends CrudRepository<EventEntity, UUID> {
     List<EventEntity> findAllByOrderByEventStartTimeAsc();
 
     List<EventEntity> findAllByEventStartTimeGreaterThanEqualAndEventStartTimeLessThanEqual(OffsetDateTime startTime, OffsetDateTime endTime);
+
+    List<EventEntity> findAllByEventEndTimeGreaterThanEqualAndEventEndTimeLessThanEqual(OffsetDateTime startTime, OffsetDateTime endTime);
+
 }
