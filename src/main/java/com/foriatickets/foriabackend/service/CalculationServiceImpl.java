@@ -48,7 +48,7 @@ public class CalculationServiceImpl implements CalculationService {
     }
 
     @Override
-    public PriceCalculationInfo calculateFees(final int numPaidTickets, final BigDecimal ticketSubtotal, final Set<TicketFeeConfigEntity> feeSet) {
+    public PriceCalculationInfo calculateFees(final int numPaidTickets, final BigDecimal ticketSubtotal, final Set<TicketFeeConfigEntity> feeSet, boolean doInactiveCheck) {
 
         //Group fees by type.
         Set<TicketFeeConfigEntity> percentFeeSet = new HashSet<>();
@@ -85,7 +85,7 @@ public class CalculationServiceImpl implements CalculationService {
 
         for (TicketFeeConfigEntity feeConfigEntity : percentFeeSet) {
 
-            if (feeConfigEntity.getStatus() != TicketFeeConfigEntity.Status.ACTIVE) {
+            if (doInactiveCheck && feeConfigEntity.getStatus() != TicketFeeConfigEntity.Status.ACTIVE) {
                 continue;
             }
 
@@ -109,7 +109,7 @@ public class CalculationServiceImpl implements CalculationService {
 
         for (TicketFeeConfigEntity feeConfigEntity : flatFeeSet) {
 
-            if (feeConfigEntity.getStatus() != TicketFeeConfigEntity.Status.ACTIVE) {
+            if (doInactiveCheck && feeConfigEntity.getStatus() != TicketFeeConfigEntity.Status.ACTIVE) {
                 continue;
             }
 
@@ -232,7 +232,7 @@ public class CalculationServiceImpl implements CalculationService {
             }
         }
 
-        PriceCalculationInfo priceCalculationInfo = calculateFees(numPaidTickets, ticketSubtotal, feeSet);
+        PriceCalculationInfo priceCalculationInfo = calculateFees(numPaidTickets, ticketSubtotal, feeSet, true);
         priceCalculationInfo.currencyCode = currencyCode;
         return priceCalculationInfo;
     }

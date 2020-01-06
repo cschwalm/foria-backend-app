@@ -72,6 +72,7 @@ public class EventServiceImplTest {
 
     private VenueEntity venueEntityMock;
 
+    @SuppressWarnings("rawtypes")
     @Before
     public void setUp() {
 
@@ -190,7 +191,7 @@ public class EventServiceImplTest {
         when(mockEvent1.getTicketFeeConfig()).thenReturn(ticketFeeConfigEntitySet);
 
         when(ticketService.countTicketsRemaining(any())).thenReturn(5);
-        when(calculationService.calculateFees(eq(1), any(), eq(ticketFeeConfigEntitySet))).thenReturn(priceCalculationInfo);
+        when(calculationService.calculateFees(eq(1), any(), eq(ticketFeeConfigEntitySet), eq(true))).thenReturn(priceCalculationInfo);
 
         ModelMapper modelMapper = new ModelMapper();
         for (PropertyMap map : BeanConfig.getModelMappers()) {

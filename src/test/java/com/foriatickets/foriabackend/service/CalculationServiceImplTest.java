@@ -356,7 +356,7 @@ public class CalculationServiceImplTest {
         when(ticketFeeConfigEntityPercentMock.getType()).thenReturn(TicketFeeConfigEntity.FeeType.VENUE);
         feeSet.add(ticketFeeConfigEntityPercentMock);
 
-        CalculationServiceImpl.PriceCalculationInfo actual = calculationService.calculateFees(1, subtotal, feeSet);
+        CalculationServiceImpl.PriceCalculationInfo actual = calculationService.calculateFees(1, subtotal, feeSet, true);
 
         assertEquals(subtotal, actual.ticketSubtotal);
         assertEquals(feeActual, actual.feeSubtotal);
@@ -393,7 +393,7 @@ public class CalculationServiceImplTest {
         when(ticketFeeConfigEntityPercentMock.getType()).thenReturn(TicketFeeConfigEntity.FeeType.ISSUER);
         feeSet.add(ticketFeeConfigEntityPercentMock);
 
-        CalculationServiceImpl.PriceCalculationInfo actual = calculationService.calculateFees(1, subtotal, feeSet);
+        CalculationServiceImpl.PriceCalculationInfo actual = calculationService.calculateFees(1, subtotal, feeSet, true);
 
         assertEquals(subtotal, actual.ticketSubtotal);
         assertEquals(feeActual, actual.feeSubtotal);
@@ -430,7 +430,7 @@ public class CalculationServiceImplTest {
         when(ticketFeeConfigEntityPercentMock.getType()).thenReturn(TicketFeeConfigEntity.FeeType.ISSUER);
         feeSet.add(ticketFeeConfigEntityPercentMock);
 
-        CalculationServiceImpl.PriceCalculationInfo actual = calculationService.calculateFees(3, subtotal, feeSet);
+        CalculationServiceImpl.PriceCalculationInfo actual = calculationService.calculateFees(3, subtotal, feeSet, true);
 
         assertEquals(subtotal, actual.ticketSubtotal);
         assertEquals(feeActual, actual.feeSubtotal);
@@ -467,7 +467,7 @@ public class CalculationServiceImplTest {
         when(ticketFeeConfigEntityPercentMock.getType()).thenReturn(TicketFeeConfigEntity.FeeType.ISSUER);
         feeSet.add(ticketFeeConfigEntityPercentMock);
 
-        CalculationServiceImpl.PriceCalculationInfo actual = calculationService.calculateFees(0, subtotal, feeSet);
+        CalculationServiceImpl.PriceCalculationInfo actual = calculationService.calculateFees(0, subtotal, feeSet, true);
 
         assertEquals(subtotal, actual.ticketSubtotal);
         assertEquals(feeActual, actual.feeSubtotal);

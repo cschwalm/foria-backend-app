@@ -21,9 +21,10 @@ public interface CalculationService {
      * @param numPaidTickets Number of non-free tickets. Used for FLAT fee calculation.
      * @param ticketSubtotal Subtotal to apply fees on.
      * @param feeSet List of percent fees to calculate on.
+     * @param doInactiveCheck Indicates that if feeConfig is inactive that it will be skipped.
      * @return Object containing break down of fees.
      */
-    CalculationServiceImpl.PriceCalculationInfo calculateFees(final int numPaidTickets, final BigDecimal ticketSubtotal, final Set<TicketFeeConfigEntity> feeSet);
+    CalculationServiceImpl.PriceCalculationInfo calculateFees(final int numPaidTickets, final BigDecimal ticketSubtotal, final Set<TicketFeeConfigEntity> feeSet, boolean doInactiveCheck);
 
     /**
      * Calculates the order total to display to the user.

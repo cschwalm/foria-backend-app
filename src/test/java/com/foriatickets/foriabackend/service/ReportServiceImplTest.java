@@ -6,7 +6,6 @@ import com.foriatickets.foriabackend.gateway.StripeGateway;
 import com.foriatickets.foriabackend.gateway.StripeGatewayImpl;
 import com.foriatickets.foriabackend.repositories.EventRepository;
 import com.foriatickets.foriabackend.repositories.OrderRepository;
-import com.foriatickets.foriabackend.repositories.OrderTicketEntryRepository;
 import com.stripe.model.BalanceTransaction;
 import com.stripe.model.Payout;
 import org.junit.Before;
@@ -35,9 +34,6 @@ public class ReportServiceImplTest {
     private OrderRepository orderRepository;
 
     @Mock
-    private OrderTicketEntryRepository orderTicketEntryRepository;
-
-    @Mock
     private StripeGateway stripeGateway;
 
     @Mock
@@ -51,7 +47,7 @@ public class ReportServiceImplTest {
     public void setUp() {
 
         mockOrderInfo();
-        reportService = new ReportServiceImpl(awsSimpleEmailServiceGateway, eventRepository, orderRepository, orderTicketEntryRepository, stripeGateway, calculationService);
+        reportService = new ReportServiceImpl(awsSimpleEmailServiceGateway, eventRepository, orderRepository, stripeGateway, calculationService);
     }
 
     @Test
@@ -120,7 +116,7 @@ public class ReportServiceImplTest {
         priceCalculationInfo.ticketSubtotal = BigDecimal.valueOf(5L);
         priceCalculationInfo.currencyCode = "USD";
 
-        when(calculationService.calculateFees(anyInt(), any(), any())).thenReturn(priceCalculationInfo);
+        when(calculationService.calculateFees(anyInt(), any(), any(), anyBoolean())).thenReturn(priceCalculationInfo);
 
         when(stripeGateway.getSettlementInfo()).thenReturn(settlementInfo);
         when(orderRepository.findByChargeReferenceId(any())).thenReturn(orders.get(0));

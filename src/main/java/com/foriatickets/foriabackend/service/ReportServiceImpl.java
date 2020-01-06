@@ -6,7 +6,6 @@ import com.foriatickets.foriabackend.gateway.StripeGateway;
 import com.foriatickets.foriabackend.gateway.StripeGatewayImpl;
 import com.foriatickets.foriabackend.repositories.EventRepository;
 import com.foriatickets.foriabackend.repositories.OrderRepository;
-import com.foriatickets.foriabackend.repositories.OrderTicketEntryRepository;
 import com.foriatickets.foriabackend.service.report_templates.OrderReportRow;
 import com.foriatickets.foriabackend.service.report_templates.TicketRow;
 import com.opencsv.CSVWriter;
@@ -79,8 +78,6 @@ public class ReportServiceImpl implements ReportService {
 
     private final OrderRepository orderRepository;
 
-    private final OrderTicketEntryRepository orderTicketEntryRepository;
-
     private final StripeGateway stripeGateway;
 
     private final CalculationService calculationService;
@@ -95,11 +92,10 @@ public class ReportServiceImpl implements ReportService {
 
     private static final String GENERAL_EVENT_REMINDER_TEMPLATE = "general_event_reminder";
 
-    public ReportServiceImpl(AWSSimpleEmailServiceGateway awsSimpleEmailServiceGateway, EventRepository eventRepository, OrderRepository orderRepository, OrderTicketEntryRepository orderTicketEntryRepository, StripeGateway stripeGateway, CalculationService calculationService) {
+    public ReportServiceImpl(AWSSimpleEmailServiceGateway awsSimpleEmailServiceGateway, EventRepository eventRepository, OrderRepository orderRepository, StripeGateway stripeGateway, CalculationService calculationService) {
         this.awsSimpleEmailServiceGateway = awsSimpleEmailServiceGateway;
         this.eventRepository = eventRepository;
         this.orderRepository = orderRepository;
-        this.orderTicketEntryRepository = orderTicketEntryRepository;
         this.stripeGateway = stripeGateway;
         this.calculationService = calculationService;
     }
@@ -130,52 +126,59 @@ public class ReportServiceImpl implements ReportService {
      */
     private void sendEventEndReportForEvent(EventEntity eventEntity) {
 
-        final Set<TicketEntity> tickets = eventEntity.getTickets();
-
         int numTicketsPurchased = 0;
         int numTicketsRefunded = 0;
 
         BigDecimal venueRevenue = BigDecimal.ZERO;
         BigDecimal issuerRevenue = BigDecimal.ZERO;
 
-        for (TicketEntity ticket : tickets) {
+        List<OrderEntity> orders = orderRepository.findAllByEventId(eventEntity.getId().toString());
+
+        for (OrderEntity orderEntity : orders) {
 
             //Setup Fees
             final Set<TicketFeeConfigEntity> feeSet = new HashSet<>();
-            final OrderTicketEntryEntity orderTicketEntryEntity = orderTicketEntryRepository.findByTicketEntity(ticket);
-
-            if (orderTicketEntryEntity == null) {
-                LOG.error("Unable to find order for ticketEntity: {}", ticket.getId());
-                continue;
-            }
-            final Set<OrderFeeEntryEntity> orderFeeEntryEntities = orderTicketEntryEntity.getOrderEntity().getFees();
-            for (OrderFeeEntryEntity orderFee : orderFeeEntryEntities) {
+            for (OrderFeeEntryEntity orderFee : orderEntity.getFees()) {
                 feeSet.add(orderFee.getTicketFeeConfigEntity());
             }
 
-            if (!ticket.getTicketTypeConfigEntity().getCurrency().equalsIgnoreCase("USD")) {
-                LOG.warn("Ticket ID: {} is not in USD. Skipping calculation.", ticket.getId());
-                continue;
+            //Load tickets for order
+            int numPaidTickets = 0;
+            BigDecimal ticketsSubtotal = BigDecimal.ZERO;
+
+            Set<OrderTicketEntryEntity> orderTicketEntryEntities = orderEntity.getTickets();
+            for (OrderTicketEntryEntity orderTicketEntryEntity : orderTicketEntryEntities) {
+
+                final TicketEntity ticketEntity = orderTicketEntryEntity.getTicketEntity();
+
+                //Skip non USD tickets.
+                if (!ticketEntity.getTicketTypeConfigEntity().getCurrency().equalsIgnoreCase("USD")) {
+                    LOG.warn("Ticket ID: {} is not in USD. Skipping calculation.", ticketEntity.getId());
+                    continue;
+                }
+
+                //Skip Free tickets.
+                final BigDecimal ticketSubtotal = ticketEntity.getTicketTypeConfigEntity().getPrice();
+                if (ticketSubtotal.compareTo(BigDecimal.ZERO) <= 0) {
+                    continue;
+                }
+
+                numPaidTickets++;
+                ticketsSubtotal = ticketsSubtotal.add(ticketSubtotal);
             }
 
-            //Skip Free tickets.
-            final BigDecimal ticketSubtotal = ticket.getTicketTypeConfigEntity().getPrice();
-            if (ticketSubtotal.compareTo(BigDecimal.ZERO) <= 0) {
-                continue;
-            }
-
-            final CalculationServiceImpl.PriceCalculationInfo pInfo = calculationService.calculateFees(1, ticketSubtotal, feeSet);
-            if (orderTicketEntryEntity.getOrderEntity().getStatus() != OrderEntity.Status.CANCELED) {
+            final CalculationServiceImpl.PriceCalculationInfo pInfo = calculationService.calculateFees(numPaidTickets, ticketsSubtotal, feeSet, false);
+            if (orderEntity.getStatus() != OrderEntity.Status.CANCELED) {
 
                 issuerRevenue = issuerRevenue.add(pInfo.issuerFeeSubtotal);
                 venueRevenue = venueRevenue.add((pInfo.venueFeeSubtotal.add(pInfo.ticketSubtotal)));
-                numTicketsPurchased++;
+                numTicketsPurchased += numPaidTickets;
 
             } else {
 
                 //Subtract the payment (Stripe) fee from their revenue.
                 venueRevenue = venueRevenue.add( (pInfo.paymentFeeSubtotal).negate() );
-                numTicketsRefunded++;
+                numTicketsRefunded += numPaidTickets;
             }
         }
 
@@ -303,7 +306,7 @@ public class ReportServiceImpl implements ReportService {
                 }
             }
 
-            CalculationServiceImpl.PriceCalculationInfo pInfo = calculationService.calculateFees(numPaidTickets, ticketSubtotal, feeSet);
+            CalculationServiceImpl.PriceCalculationInfo pInfo = calculationService.calculateFees(numPaidTickets, ticketSubtotal, feeSet, false);
             foriaRevenueAmount = foriaRevenueAmount.add(pInfo.issuerFeeSubtotal.negate());
             venueRevenueAmount = venueRevenueAmount.add( (pInfo.venueFeeSubtotal.add(pInfo.ticketSubtotal).add(pInfo.paymentFeeSubtotal)).negate() );
 
@@ -366,7 +369,7 @@ public class ReportServiceImpl implements ReportService {
                 }
             }
 
-            CalculationServiceImpl.PriceCalculationInfo pInfo = calculationService.calculateFees(numPaidTickets, ticketSubtotal, feeSet);
+            CalculationServiceImpl.PriceCalculationInfo pInfo = calculationService.calculateFees(numPaidTickets, ticketSubtotal, feeSet, false);
             foriaRevenueAmount = foriaRevenueAmount.add(pInfo.issuerFeeSubtotal);
             venueRevenueAmount = venueRevenueAmount.add((pInfo.venueFeeSubtotal.add(pInfo.ticketSubtotal)));
 
