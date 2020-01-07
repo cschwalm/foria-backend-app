@@ -129,8 +129,10 @@ public class ReportServiceImpl implements ReportService {
         int numTicketsPurchased = 0;
         int numTicketsRefunded = 0;
 
-        BigDecimal venueRevenue = BigDecimal.ZERO;
-        BigDecimal issuerRevenue = BigDecimal.ZERO;
+        BigDecimal venueTicketSubtotal = BigDecimal.ZERO.setScale(2, RoundingMode.FLOOR);
+        BigDecimal venueFees = BigDecimal.ZERO.setScale(2, RoundingMode.FLOOR);
+        BigDecimal paymentGatewayCharges = BigDecimal.ZERO.setScale(2, RoundingMode.FLOOR);
+        BigDecimal issuerRevenue = BigDecimal.ZERO.setScale(2, RoundingMode.FLOOR);
 
         List<OrderEntity> orders = orderRepository.findAllByEventId(eventEntity.getId().toString());
 
@@ -171,31 +173,35 @@ public class ReportServiceImpl implements ReportService {
             if (orderEntity.getStatus() != OrderEntity.Status.CANCELED) {
 
                 issuerRevenue = issuerRevenue.add(pInfo.issuerFeeSubtotal);
-                venueRevenue = venueRevenue.add((pInfo.venueFeeSubtotal.add(pInfo.ticketSubtotal)));
+                venueTicketSubtotal = venueTicketSubtotal.add(pInfo.ticketSubtotal);
+                venueFees = venueFees.add(pInfo.venueFeeSubtotal);
                 numTicketsPurchased += numPaidTickets;
 
             } else {
 
                 //Subtract the payment (Stripe) fee from their revenue.
-                venueRevenue = venueRevenue.add( (pInfo.paymentFeeSubtotal).negate() );
+                paymentGatewayCharges = paymentGatewayCharges.add( (pInfo.paymentFeeSubtotal).negate() );
                 numTicketsRefunded += numPaidTickets;
             }
         }
 
-        final BigDecimal netAmount = issuerRevenue.add(venueRevenue);
+        final BigDecimal netAmount = issuerRevenue.add(venueTicketSubtotal).add(venueFees).add(paymentGatewayCharges);
 
         String reportStr = String.join(
                 MAIL_DELIMITER,
                 "### INTERNAL FORIA REPORT ### - " + eventEntity.getName() + " Final Report",
                 "Report Generated at: " + ZonedDateTime.now().withZoneSameInstant(ZoneId.of("America/Los_Angeles")).toString(),
                 MAIL_DELIMITER,
-                "Event End Report for: " + eventEntity.getName(),
+                "Event End Report for: " + eventEntity.getName() + " (ID: " + eventEntity.getId() + ")",
                 "Number of Tickets Sold: " + numTicketsPurchased,
                 "Number of Tickets Refunded: " + numTicketsRefunded,
                 MAIL_DELIMITER,
-                "Foria Revenue Amount (Foria Fees Collected On Tickets): " + issuerRevenue.toPlainString() + " USD",
-                "Venue Revenue Amount (Venue Ticket Subtotal plus Venue Fees): " + venueRevenue.toPlainString() + " USD",
-                "Total minus Payment Gateway Fees (Stripe Net Amount): " + netAmount.toPlainString() + " USD",
+                "Issuer Revenue Amount (Foria Fees Collected): " + issuerRevenue.toPlainString() + " USD",
+                "Venue Ticket Subtotal: " + venueTicketSubtotal.toPlainString() + " USD",
+                "Venue Fees: " + venueFees.toPlainString() + " USD",
+                "Payment Gateway Fees Collected from Venue (Refunds/Chargebacks): " + paymentGatewayCharges.toPlainString() + " USD",
+                "--------",
+                "Total Net Amount (Stripe Net Amount): " + netAmount.toPlainString() + " USD",
                 MAIL_DELIMITER,
                 "Signed,",
                 "Foria API Server",
