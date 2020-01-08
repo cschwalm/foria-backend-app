@@ -39,7 +39,10 @@ public class EventServiceImpl implements EventService {
             return 0;
         }
 
-        final int priceCompare = tt1.getPrice().compareTo(tt2.getPrice());
+        final BigDecimal tt1Price = new BigDecimal(tt1.getPrice());
+        final BigDecimal tt2Price = new BigDecimal(tt2.getPrice());
+
+        final int priceCompare = tt1Price.compareTo(tt2Price);
 
         if (priceCompare == 0) {
             return tt1.getName().compareTo(tt2.getName());

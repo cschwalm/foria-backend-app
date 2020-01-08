@@ -202,6 +202,8 @@ public class ReportServiceImpl implements ReportService {
                 "Payment Gateway Fees Collected from Venue (Refunds/Chargebacks): " + paymentGatewayCharges.toPlainString() + " USD",
                 "--------",
                 "Total Net Amount (Stripe Net Amount): " + netAmount.toPlainString() + " USD",
+                "--------",
+                "Amount to remit to venue: " + netAmount.subtract(issuerRevenue).toPlainString() + " USD",
                 MAIL_DELIMITER,
                 "Signed,",
                 "Foria API Server",
