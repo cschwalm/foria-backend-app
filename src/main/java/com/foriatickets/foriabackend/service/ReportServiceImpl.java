@@ -18,7 +18,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.joda.time.DateTime;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +26,7 @@ import java.io.CharArrayWriter;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -212,7 +212,7 @@ public class ReportServiceImpl implements ReportService {
         );
 
         awsSimpleEmailServiceGateway.sendInternalReport("Event End Report", reportStr, null);
-        LOG.info("Event End Report generated and sent at: {}", DateTime.now());
+        LOG.info("Event End Report generated and sent at: {}", LocalDateTime.now());
     }
 
     @Override
@@ -250,7 +250,7 @@ public class ReportServiceImpl implements ReportService {
             settlementInfo = stripeGateway.getSettlementInfo();
         } catch (Exception ex) {
             awsSimpleEmailServiceGateway.sendInternalReport("WeeklySettlementReport", "Failed to generate report. Check Logs.", null);
-            LOG.info("WeeklySettlementReport failed to generate and send at: {}", DateTime.now());
+            LOG.info("WeeklySettlementReport failed to generate and send at: {}", LocalDateTime.now());
             return;
         }
 
@@ -466,7 +466,7 @@ public class ReportServiceImpl implements ReportService {
         }
 
         awsSimpleEmailServiceGateway.sendInternalReport("Weekly Settlement Report", reportStr, reportAttachmentList);
-        LOG.info("Weekly Settlement Report generated and sent at: {}", DateTime.now());
+        LOG.info("Weekly Settlement Report generated and sent at: {}", LocalDateTime.now());
     }
 
     /**
@@ -628,6 +628,6 @@ public class ReportServiceImpl implements ReportService {
         reportAttachmentList.add(reportAttachment);
 
         awsSimpleEmailServiceGateway.sendInternalReport("Ticket Purchase Report", bodyText, reportAttachmentList);
-        LOG.info("Ticket purchase report generated and sent at: {}", DateTime.now());
+        LOG.info("Ticket purchase report generated and sent at: {}", LocalDateTime.now());
     }
 }

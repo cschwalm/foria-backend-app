@@ -98,7 +98,8 @@ public class EventEntity implements Serializable, Comparable<EventEntity> {
         return this;
     }
 
-    @Column(name = "description", columnDefinition = "text", nullable = false)
+    @Lob
+    @Column(name = "description", nullable = false)
     public String getDescription() {
         return description;
     }

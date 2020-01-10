@@ -3,7 +3,6 @@ package com.foriatickets.foriabackend.gateway;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.joda.time.DateTime;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
@@ -23,10 +22,9 @@ import javax.mail.internet.MimeMultipart;
 import javax.mail.util.ByteArrayDataSource;
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 @Service
@@ -118,7 +116,7 @@ public class AWSSimpleEmailServiceGatewayImpl implements AWSSimpleEmailServiceGa
             message.setSubject(subjectText, "us-ascii");
             message.setFrom(new InternetAddress(SOURCE_ADMIN_EMAIL_ADDRESS));
             message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(reportEmailAddress));
-            message.setSentDate(DateTime.now().toDate());
+            message.setSentDate(Date.from( LocalDateTime.now().atZone( ZoneId.systemDefault()).toInstant()) );
 
             // Create a multipart/alternative child container.
             MimeMultipart msg_body = new MimeMultipart("alternative");
