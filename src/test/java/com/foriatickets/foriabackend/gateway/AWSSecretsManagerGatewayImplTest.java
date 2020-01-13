@@ -11,8 +11,10 @@ import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
 import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueRequest;
 import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueResponse;
 
+import java.util.Map;
 import java.util.Optional;
 
+import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -55,5 +57,17 @@ public class AWSSecretsManagerGatewayImplTest {
 
         Optional<AWSSecretsManagerGateway.DBInfo> info = awsSecretsManagerGateway.getDbInfo(testName);
         Assert.assertNotNull(info.get());
+    }
+
+    @Test
+    public void getAllSecrets() {
+
+        Optional<Map<String, String>> info = awsSecretsManagerGateway.getAllSecrets(testName);
+        if (!info.isPresent()) {
+            fail();
+        }
+
+        Map<String, String> secrets = info.get();
+        Assert.assertNotNull(secrets);
     }
 }
