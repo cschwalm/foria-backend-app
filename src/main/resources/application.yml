@@ -55,6 +55,9 @@ auth0.apiAudience: api.foriatickets.com
 fcmDatabaseUrl: https://foria-tickets.firebaseio.com
 fcmKey: prod_foria_google_fcm_key
 
+#Auth0 Management
+auth0ManagementKey: corp_foria_auth0_management_key
+
 ---
 spring:
     profiles: staging
@@ -78,6 +81,9 @@ auth0.apiAudience: api.foriatickets.com
 #FCM
 fcmDatabaseUrl: https://foria-tickets.firebaseio.com
 fcmKey: prod_foria_google_fcm_key
+
+#Auth0 Management
+auth0ManagementKey: corp_foria_auth0_management_key
 
 # Jobs
 daily-event-end-report-cron: "0 0 6 */1 * ?"
@@ -105,6 +111,9 @@ auth0.apiAudience: api.foriatickets.com
 #FCM
 fcmDatabaseUrl: https://foria-tickets.firebaseio.com
 fcmKey: prod_foria_google_fcm_key
+
+#Auth0 Management
+auth0ManagementKey: prod_foria_auth0_management_key
 
 # Report Scheduling
 daily-ticket-purchase-report-cron: "0 0 6 */1 * ?"

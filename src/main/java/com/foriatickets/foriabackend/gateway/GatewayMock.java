@@ -5,5 +5,5 @@ package com.foriatickets.foriabackend.gateway;
  *
  * @author Corbin Schwalm
  */
-public interface GatewayMock extends StripeGateway, FCMGateway, AWSSimpleEmailServiceGateway {
+public interface GatewayMock extends StripeGateway, FCMGateway, AWSSimpleEmailServiceGateway, Auth0Gateway {
 }

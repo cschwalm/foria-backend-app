@@ -736,6 +736,19 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BaseApiModel'
+  /user/sendVerificationEmail:
+    post:
+      tags:
+        - user
+      summary: Resends user verification email from identity provider.
+      operationId: sendVerificationEmail
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseApiModel'
   /venue:
     get:
       tags:

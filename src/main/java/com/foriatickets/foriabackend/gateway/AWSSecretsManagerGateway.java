@@ -1,6 +1,7 @@
 package com.foriatickets.foriabackend.gateway;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -56,6 +57,15 @@ public interface AWSSecretsManagerGateway {
             return "jdbc:" + engine + "://" + host + ":" + port + "/" + dbName + "?requireSSL=true";
         }
     }
+
+    /**
+     * Returns a map of all of the JSON fields in the key.
+     * This allows returning of a key/value payload.
+     *
+     * @param keyName ID of provider using key.
+     * @return If keyName exists, a map of key/value String pairs.
+     */
+    Optional<Map<String, String>> getAllSecrets(String keyName);
 
     /**
      * Returns a list of API keys that have permission to bypass JWT authentication.

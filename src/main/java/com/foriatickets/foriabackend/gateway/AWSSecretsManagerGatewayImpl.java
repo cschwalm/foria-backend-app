@@ -30,7 +30,38 @@ public class AWSSecretsManagerGatewayImpl implements AWSSecretsManagerGateway {
     }
 
     @Override
-    public Optional<ApiKey> getApiKey(String keyName) {
+    public Optional<Map<String, String>> getAllSecrets(String keyName) {
+
+        final GetSecretValueResponse payload = fetchKeyData(keyName);
+        if (payload == null) {
+            return Optional.empty();
+        }
+
+        JsonObject root;
+        try {
+            root = new JsonParser().parse(payload.secretString()).getAsJsonObject();
+        } catch (RuntimeException ex) {
+            LOG.error("Malformed JSON from Secrets manager for keyName: {}!", keyName);
+            return Optional.empty();
+        }
+
+        //Build Map of all fields. Returns empty map if no fields.
+        Map<String, String> map = new HashMap<>();
+        for (Map.Entry<String, JsonElement> entry : root.entrySet()) {
+            map.put(entry.getKey(), entry.getValue().getAsString());
+        }
+
+        return Optional.of(map);
+    }
+
+    /**
+     * Checks the cache for key name.
+     * If not found it cache, it is obtained and the cache is updated.
+     *
+     * @param keyName AWS friendly name.
+     * @return Raw payload.
+     */
+    private GetSecretValueResponse fetchKeyData(String keyName) {
 
         GetSecretValueResponse payload;
         if (keyCache.containsKey(keyName)) {
@@ -39,11 +70,21 @@ public class AWSSecretsManagerGatewayImpl implements AWSSecretsManagerGateway {
             payload = getSecretPayload(keyName);
 
             if (payload == null) {
-                return Optional.empty();
+                return null;
             }
 
             LOG.debug("{} payload stored in cache.", keyName);
             keyCache.put(keyName, payload);
+        }
+        return payload;
+    }
+
+    @Override
+    public Optional<ApiKey> getApiKey(String keyName) {
+
+        GetSecretValueResponse payload = getSecretPayload(keyName);
+        if (payload == null) {
+            return Optional.empty();
         }
 
         List<JsonElement> scopeList = new ArrayList<>();

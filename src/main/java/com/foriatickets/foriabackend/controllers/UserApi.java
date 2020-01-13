@@ -1,5 +1,6 @@
 package com.foriatickets.foriabackend.controllers;
 
+import com.foriatickets.foriabackend.gateway.Auth0Gateway;
 import com.foriatickets.foriabackend.service.TicketService;
 import com.foriatickets.foriabackend.service.UserCreationService;
 import org.openapitools.model.BaseApiModel;
@@ -42,15 +43,24 @@ public class UserApi implements org.openapitools.api.UserApi {
 
         UserCreationService userCreationService = beanFactory.getBean(UserCreationService.class);
         User user = userCreationService.getUser();
-
         return new ResponseEntity<>(user, HttpStatus.OK);
     }
 
     @Override
+    @RequestMapping(value = "/user/registerToken", method = RequestMethod.POST)
     public ResponseEntity<BaseApiModel> registerToken(@Valid DeviceToken deviceToken) {
 
         UserCreationService userCreationService = beanFactory.getBean(UserCreationService.class);
         userCreationService.registerDeviceToken(deviceToken.getToken());
+        return new ResponseEntity<>(new BaseApiModel(), HttpStatus.OK);
+    }
+
+    @Override
+    @RequestMapping(value = "/user/sendVerificationEmail", method = RequestMethod.POST)
+    public ResponseEntity<BaseApiModel> sendVerificationEmail() {
+
+        Auth0Gateway auth0Gateway = beanFactory.getBean(Auth0Gateway.class);
+        auth0Gateway.resendUserVerificationEmail();
         return new ResponseEntity<>(new BaseApiModel(), HttpStatus.OK);
     }
 }
