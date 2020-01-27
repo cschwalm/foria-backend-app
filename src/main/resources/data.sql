@@ -1,3 +1,5 @@
+-- noinspection SqlResolveForFile
+
 /* insert com.foriatickets.foriabackend.entities.VenueEntity */
 insert
         into
@@ -37,19 +39,19 @@ insert
 insert
 INTO
     `ticket_type_config` (
-    `authorized_amount`, `currency`, `description`, `status`, `event_id`, `name`, `price`, `id`
+    `authorized_amount`, `currency`, `description`, `status`, `type`, `event_id`, `name`, `price`, `id`
 )
 values
-(100, 'USD', 'Free', 'ACTIVE', '40c6a84f-9505-40b9-a9ea-817074aac2f1', 'Free', 0.00, '9c0f3a04-a4f6-4229-9e8b-2ee9c3ec5fee');
+(100, 'USD', 'Free', 'ACTIVE', 'PUBLIC', '40c6a84f-9505-40b9-a9ea-817074aac2f1', 'Free', 0.00, '9c0f3a04-a4f6-4229-9e8b-2ee9c3ec5fee');
 
 /* insert com.foriatickets.foriabackend.entities.TicketTypeConfigEntity */
 insert
         INTO
             `ticket_type_config` (
-                `authorized_amount`, `currency`, `description`, `status`, `event_id`, `name`, `price`, `id`
+                `authorized_amount`, `currency`, `description`, `status`, `type`,  `event_id`, `name`, `price`, `id`
             )
         values
-            (100, 'USD', 'Test', 'ACTIVE', '40c6a84f-9505-40b9-a9ea-817074aac2f1', 'GA Test', 100.00, '9c0f3a04-a4f6-4229-9e8b-2ee9c3ec5f18');
+            (100, 'USD', 'Test', 'ACTIVE', 'PUBLIC', '40c6a84f-9505-40b9-a9ea-817074aac2f1', 'GA Test', 100.00, '9c0f3a04-a4f6-4229-9e8b-2ee9c3ec5f18');
 
 /* insert com.foriatickets.foriabackend.entities.UserEntity */
 INSERT

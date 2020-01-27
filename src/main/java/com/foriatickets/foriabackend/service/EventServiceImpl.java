@@ -205,6 +205,7 @@ public class EventServiceImpl implements EventService {
             TicketTypeConfigEntity ticketTypeConfigEntity = modelMapper.map(ticketTypeConfig, TicketTypeConfigEntity.class);
             ticketTypeConfigEntity.setEventEntity(eventEntity);
             ticketTypeConfigEntity.setStatus(TicketTypeConfigEntity.Status.ACTIVE);
+            ticketTypeConfigEntity.setType(TicketTypeConfigEntity.Type.PUBLIC);
             ticketTypeConfigEntity = ticketTypeConfigRepository.save(ticketTypeConfigEntity);
             ticketTypeConfig.setId(ticketTypeConfigEntity.getId());
         }
@@ -450,6 +451,7 @@ public class EventServiceImpl implements EventService {
         ticketTypeConfigEntity.setDescription(ticketTypeConfig.getDescription());
         ticketTypeConfigEntity.setAuthorizedAmount(ticketTypeConfig.getAuthorizedAmount());
         ticketTypeConfigEntity.setStatus(TicketTypeConfigEntity.Status.ACTIVE);
+        ticketTypeConfigEntity.setType(TicketTypeConfigEntity.Type.PUBLIC);
         ticketTypeConfigEntity.setPrice(price);
         ticketTypeConfigEntity.setCurrency(ticketTypeConfig.getCurrency().toUpperCase());
         ticketTypeConfigEntity.setEventEntity(eventEntity);

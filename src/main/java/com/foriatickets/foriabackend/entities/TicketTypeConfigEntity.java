@@ -1,7 +1,5 @@
 package com.foriatickets.foriabackend.entities;
 
-import org.hibernate.annotations.Type;
-
 import javax.persistence.*;
 import java.io.Serializable;
 import java.math.BigDecimal;
@@ -18,18 +16,27 @@ public class TicketTypeConfigEntity implements Serializable {
         INACTIVE
     }
 
+    /**
+     * Indicates if there is an associated promo code to unlock tier.
+     */
+    public enum Type {
+        PROMO,
+        PUBLIC
+    }
+
     private UUID id;
     private EventEntity eventEntity;
     private String name;
     private String description;
     private Status status;
+    private Type type;
     private int authorizedAmount;
     private BigDecimal price;
     private String currency;
 
     @Id
     @GeneratedValue
-    @Type(type = "uuid-char")
+    @org.hibernate.annotations.Type(type = "uuid-char")
     @Column(name = "id", updatable = false)
     public UUID getId() {
         return id;
@@ -81,6 +88,16 @@ public class TicketTypeConfigEntity implements Serializable {
         this.status = status;
     }
 
+    @Column(name = "type", nullable = false)
+    @Enumerated(EnumType.STRING)
+    public Type getType() {
+        return type;
+    }
+
+    public void setType(Type type) {
+        this.type = type;
+    }
+
     @Column(name = "authorized_amount", nullable = false)
     public int getAuthorizedAmount() {
         return authorizedAmount;
@@ -117,7 +134,8 @@ public class TicketTypeConfigEntity implements Serializable {
                 "id=" + id +
                 ", name='" + name + '\'' +
                 ", description='" + description + '\'' +
-                ", status='" + status + '\'' +
+                ", status=" + status +
+                ", type=" + type +
                 ", authorizedAmount=" + authorizedAmount +
                 ", price=" + price +
                 ", currency='" + currency + '\'' +
@@ -133,13 +151,14 @@ public class TicketTypeConfigEntity implements Serializable {
                 Objects.equals(id, that.id) &&
                 Objects.equals(name, that.name) &&
                 Objects.equals(description, that.description) &&
-                Objects.equals(status, that.status) &&
+                status == that.status &&
+                type == that.type &&
                 Objects.equals(price, that.price) &&
                 Objects.equals(currency, that.currency);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, name, description, status, authorizedAmount, price, currency);
+        return Objects.hash(id, name, description, status, type, authorizedAmount, price, currency);
     }
 }
