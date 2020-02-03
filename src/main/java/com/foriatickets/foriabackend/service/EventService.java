@@ -16,6 +16,14 @@ import java.util.UUID;
 public interface EventService {
 
     /**
+     * Obtains the list of public type configs with the hidden promo tier.
+     *
+     * @param eventId The event
+     * @param promoCode User supplied promo code. May be empty.
+     */
+    List<TicketTypeConfig> applyPromotionCode(UUID eventId, String promoCode);
+
+    /**
      * Irrevocably CANCELS an event. This takes down the listing, CANCELS ALL orders, CANCELS ALL tickets,
      * REFUNDS ALL customers, and notifies users the event is CANCELED by push and email. Use with extreme caution.
      *

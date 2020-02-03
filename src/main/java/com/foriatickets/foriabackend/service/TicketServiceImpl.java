@@ -64,6 +64,10 @@ public class TicketServiceImpl implements TicketService {
 
     private final OrderRepository orderRepository;
 
+    private final PromoCodeRepository promoCodeRepository;
+
+    private final PromoCodeRedemptionRepository promoCodeRedemptionRepository;
+
     private final UserRepository userRepository;
 
     private final TicketTypeConfigRepository ticketTypeConfigRepository;
@@ -81,12 +85,28 @@ public class TicketServiceImpl implements TicketService {
     private UserEntity authenticatedUser;
 
     @Autowired
-    public TicketServiceImpl(CalculationService calculationService, ModelMapper modelMapper, EventRepository eventRepository, OrderRepository orderRepository, UserRepository userRepository, TicketTypeConfigRepository ticketTypeConfigRepository, TicketRepository ticketRepository, StripeGateway stripeGateway, OrderFeeEntryRepository orderFeeEntryRepository, OrderTicketEntryRepository orderTicketEntryRepository, TransferRequestRepository transferRequestRepository, FCMGateway fcmGateway, AWSSimpleEmailServiceGateway awsSimpleEmailServiceGateway) {
+    public TicketServiceImpl(CalculationService calculationService,
+                             ModelMapper modelMapper,
+                             EventRepository eventRepository,
+                             OrderRepository orderRepository,
+                             PromoCodeRepository promoCodeRepository,
+                             PromoCodeRedemptionRepository promoCodeRedemptionRepository,
+                             UserRepository userRepository,
+                             TicketTypeConfigRepository ticketTypeConfigRepository,
+                             TicketRepository ticketRepository,
+                             StripeGateway stripeGateway,
+                             OrderFeeEntryRepository orderFeeEntryRepository,
+                             OrderTicketEntryRepository orderTicketEntryRepository,
+                             TransferRequestRepository transferRequestRepository,
+                             FCMGateway fcmGateway,
+                             AWSSimpleEmailServiceGateway awsSimpleEmailServiceGateway) {
 
         this.calculationService = calculationService;
         this.modelMapper = modelMapper;
         this.eventRepository = eventRepository;
         this.orderRepository = orderRepository;
+        this.promoCodeRepository = promoCodeRepository;
+        this.promoCodeRedemptionRepository = promoCodeRedemptionRepository;
         this.userRepository = userRepository;
         this.ticketTypeConfigRepository = ticketTypeConfigRepository;
         this.ticketRepository = ticketRepository;
@@ -128,7 +148,7 @@ public class TicketServiceImpl implements TicketService {
     }
 
     @Override
-    public UUID checkoutOrder(String paymentToken, UUID eventId, List<TicketLineItem> orderConfig) {
+    public UUID checkoutOrder(String paymentToken, UUID eventId, List<TicketLineItem> orderConfig, String promoCode) {
 
         if (orderConfig == null || eventId == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Checkout request is missing required data.");
@@ -172,8 +192,32 @@ public class TicketServiceImpl implements TicketService {
             if (!ticketTypeConfigEntityOptional.isPresent()) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ticket type config is invalid.");
             }
+            final TicketTypeConfigEntity ticketTypeConfigEntity = ticketTypeConfigEntityOptional.get();
+            PromoCodeEntity promoCodeEntity = null;
 
-            int ticketsRemaining = obtainTicketsRemainingByType(ticketTypeConfigEntityOptional.get());
+            //Validate that promo code is entered for promo tier.
+            if (ticketTypeConfigEntity.getType() == TicketTypeConfigEntity.Type.PROMO) {
+
+                if (StringUtils.isEmpty(promoCode)) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Promo code not supplied for PROMO tier.");
+                }
+
+                promoCodeEntity = promoCodeRepository.findByTicketTypeConfigEntity_IdAndCode(ticketTypeConfigEntity.getId(), promoCode.toUpperCase());
+
+                if (promoCodeEntity == null) {
+                    LOG.warn("Promo code invalid for PROMO tier: {}.", ticketTypeConfigId);
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Promo code invalid for PROMO tier.");
+                }
+
+                //Validate code and redemptions are remaining.
+                final int codeUsed = promoCodeEntity.getRedemptions().size();
+                if (codeUsed + ticketLineItem.getAmount() > promoCodeEntity.getQuantity()) {
+                    LOG.warn("Attempted to checkout with promo code that has been used max amount. Code: {}", promoCode);
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Attempted to checkout with promo code that has been used max amount.");
+                }
+            }
+
+            int ticketsRemaining = obtainTicketsRemainingByType(ticketTypeConfigEntity);
             if (ticketLineItem.getAmount() > ticketsRemaining) {
                 LOG.warn("Not enough tickets to complete the order. - eventId: {} - ticketConfigId: {}", eventId, ticketTypeConfigId);
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Not enough tickets to complete the order.");
@@ -188,6 +232,19 @@ public class TicketServiceImpl implements TicketService {
                 orderTicketEntryEntity.setOrderEntity(orderEntity);
                 orderTicketEntryEntity.setTicketEntity(issuedTicket);
                 orderTicketEntryRepository.save(orderTicketEntryEntity);
+
+                //Add mapping if promo code was used.
+                if (promoCodeEntity != null) {
+
+                    PromoCodeRedemptionEntity promoCodeRedemptionEntity = new PromoCodeRedemptionEntity();
+                    promoCodeRedemptionEntity.setPromoCodeEntity(promoCodeEntity);
+                    promoCodeRedemptionEntity.setTicketEntity(issuedTicket);
+                    promoCodeRedemptionEntity.setRedemptionDate(issuedTicket.getIssuedDate());
+                    promoCodeRedemptionEntity.setTicketTypeConfigEntity(issuedTicket.getTicketTypeConfigEntity());
+                    promoCodeRedemptionEntity.setUserEntity(issuedTicket.getPurchaserEntity());
+                    promoCodeRedemptionEntity = promoCodeRedemptionRepository.save(promoCodeRedemptionEntity);
+                    LOG.info("Added redemption entry for promo code: {} with ID: {}", promoCode, promoCodeRedemptionEntity.getId());
+                }
             }
         }
 
@@ -540,7 +597,7 @@ public class TicketServiceImpl implements TicketService {
         }
 
         int ticketsRemaining = obtainTicketsRemainingByType(ticketTypeConfigEntityOptional.get());
-        return ticketsRemaining > MAX_TICKETS_PER_ORDER ? MAX_TICKETS_PER_ORDER : ticketsRemaining;
+        return Math.min(ticketsRemaining, MAX_TICKETS_PER_ORDER);
     }
 
     /**

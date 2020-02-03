@@ -60,6 +60,7 @@ public class EventServiceImpl implements EventService {
     private final CalculationService calculationService;
     private final ModelMapper modelMapper;
     private final EventRepository eventRepository;
+    private final PromoCodeRepository promoCodeRepository;
     private final TicketFeeConfigRepository ticketFeeConfigRepository;
     private final TicketTypeConfigRepository ticketTypeConfigRepository;
     private final VenueRepository venueRepository;
@@ -73,6 +74,7 @@ public class EventServiceImpl implements EventService {
     @Autowired
     public EventServiceImpl(CalculationService calculationService,
                             EventRepository eventRepository,
+                            PromoCodeRepository promoCodeRepository,
                             TicketFeeConfigRepository ticketFeeConfigRepository,
                             TicketTypeConfigRepository ticketTypeConfigRepository,
                             VenueRepository venueRepository, ModelMapper modelMapper,
@@ -84,6 +86,7 @@ public class EventServiceImpl implements EventService {
 
         this.calculationService = calculationService;
         this.eventRepository = eventRepository;
+        this.promoCodeRepository = promoCodeRepository;
         this.ticketFeeConfigRepository = ticketFeeConfigRepository;
         this.ticketTypeConfigRepository = ticketTypeConfigRepository;
         this.venueRepository = venueRepository;
@@ -100,6 +103,46 @@ public class EventServiceImpl implements EventService {
         if (authenticatedUser == null && !auth0Id.equalsIgnoreCase("anonymousUser") && !auth0Id.equalsIgnoreCase("auth0")) {
             LOG.warn("Attempted to create venue service with non-mapped auth0Id: {}", auth0Id);
         }
+    }
+
+    @Override
+    public List<TicketTypeConfig> applyPromotionCode(UUID eventId, String promoCode) {
+
+        if (eventId == null || StringUtils.isEmpty(promoCode)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Event ID is null or code is empty.");
+        }
+
+        final EventEntity eventEntity = loadAndValidateEventEntity(eventId);
+        final Set<TicketTypeConfigEntity> ticketTypeSet = eventEntity.getTicketTypeConfigEntity();
+
+        final PromoCodeEntity promoCodeEntity = promoCodeRepository.findByTicketTypeConfigEntity_EventEntity_IdAndCode(eventId, promoCode);
+        if (promoCodeEntity == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Promotion code is not valid.");
+        }
+
+        //Validate that codes are remaining.
+        final int numCodesRedeemed = promoCodeEntity.getRedemptions().size();
+        if (numCodesRedeemed >= promoCodeEntity.getQuantity()) {
+            LOG.info("Promotion code: {} has reached is max limit of redemptions.", promoCode);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Promotion code used maximum number of times.");
+        }
+
+        ticketTypeSet.add(promoCodeEntity.getTicketTypeConfigEntity());
+        final List<TicketTypeConfig> resultList = new ArrayList<>();
+        for (TicketTypeConfigEntity ticketTypeConfigEntity : ticketTypeSet) {
+
+            if (ticketTypeConfigEntity.getStatus() != TicketTypeConfigEntity.Status.ACTIVE) {
+                continue;
+            }
+
+            TicketTypeConfig ticketTypeConfig = modelMapper.map(ticketTypeConfigEntity, TicketTypeConfig.class);
+            populateExtraTicketTypeConfigInfo(ticketTypeConfig, eventEntity.getTicketFeeConfig());
+            resultList.add(ticketTypeConfig);
+        }
+
+        resultList.sort(ticketTypeConfigComparator);
+        LOG.debug("Returned ticket type config set with promo code added.");
+        return resultList;
     }
 
     @Override
@@ -313,6 +356,17 @@ public class EventServiceImpl implements EventService {
             return false;
         });
 
+        //Remove promotional price tiers.
+        eventEntity.getTicketTypeConfigEntity().removeIf(ticketTypeConfigEntity -> {
+
+            if (ticketTypeConfigEntity.getType() != TicketTypeConfigEntity.Type.PUBLIC) {
+                LOG.debug("Skipping ticketTypeID: {} because it is PROMO.", ticketTypeConfigEntity.getId());
+                return true;
+            }
+
+            return false;
+        });
+
         //Remove non-active fee tiers.
         eventEntity.getTicketFeeConfig().removeIf(ticketFeeConfigEntity -> {
 
@@ -329,18 +383,27 @@ public class EventServiceImpl implements EventService {
 
         event.getTicketTypeConfig().sort(ticketTypeConfigComparator);
         for (TicketTypeConfig ticketTypeConfig : event.getTicketTypeConfig()) {
-
-            int ticketsRemaining = ticketService.countTicketsRemaining(ticketTypeConfig.getId());
-            ticketTypeConfig.setAmountRemaining(ticketsRemaining);
-
-            //Add calculated fee to assist front ends.
-            final int numPaidTickets = new BigDecimal(ticketTypeConfig.getPrice()).compareTo(BigDecimal.ZERO) <= 0 ? 0 : 1;
-            CalculationServiceImpl.PriceCalculationInfo calc = calculationService.calculateFees(numPaidTickets, new BigDecimal(ticketTypeConfig.getPrice()), eventEntity.getTicketFeeConfig(), true);
-            BigDecimal feeSubtotal = calc.feeSubtotal.add(calc.paymentFeeSubtotal);
-            ticketTypeConfig.setCalculatedFee(feeSubtotal.toPlainString());
+            populateExtraTicketTypeConfigInfo(ticketTypeConfig, eventEntity.getTicketFeeConfig());
         }
 
         return event;
+    }
+
+    /**
+     * Populates fields that must be calculated.
+     *
+     * @param ticketTypeConfig Object to modify.
+     */
+    private void populateExtraTicketTypeConfigInfo(TicketTypeConfig ticketTypeConfig, Set<TicketFeeConfigEntity> feeSet) {
+
+        int ticketsRemaining = ticketService.countTicketsRemaining(ticketTypeConfig.getId());
+        ticketTypeConfig.setAmountRemaining(ticketsRemaining);
+
+        //Add calculated fee to assist front ends.
+        final int numPaidTickets = new BigDecimal(ticketTypeConfig.getPrice()).compareTo(BigDecimal.ZERO) <= 0 ? 0 : 1;
+        CalculationServiceImpl.PriceCalculationInfo calc = calculationService.calculateFees(numPaidTickets, new BigDecimal(ticketTypeConfig.getPrice()), feeSet, true);
+        BigDecimal feeSubtotal = calc.feeSubtotal.add(calc.paymentFeeSubtotal);
+        ticketTypeConfig.setCalculatedFee(feeSubtotal.toPlainString());
     }
 
     @Override

@@ -3,7 +3,9 @@ package com.foriatickets.foriabackend.entities;
 import javax.persistence.*;
 import java.io.Serializable;
 import java.time.OffsetDateTime;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 
 @Entity
@@ -18,6 +20,7 @@ public class PromoCodeEntity implements Serializable {
     private String code;
     private int quantity;
     private OffsetDateTime createdDate;
+    private Set<PromoCodeRedemptionEntity> promoCodeRedemptionEntitySet = new HashSet<>();
 
     @Id
     @GeneratedValue
@@ -84,6 +87,15 @@ public class PromoCodeEntity implements Serializable {
 
     public void setCreatedDate(OffsetDateTime createdDate) {
         this.createdDate = createdDate;
+    }
+
+    @OneToMany(mappedBy = "promoCodeEntity", fetch = FetchType.EAGER)
+    public Set<PromoCodeRedemptionEntity> getRedemptions() {
+        return promoCodeRedemptionEntitySet;
+    }
+
+    public void setRedemptions(Set<PromoCodeRedemptionEntity> promoCodeRedemptionEntitySet) {
+        this.promoCodeRedemptionEntitySet = promoCodeRedemptionEntitySet;
     }
 
     @Override

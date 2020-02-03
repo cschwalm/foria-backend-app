@@ -46,7 +46,7 @@ public interface TicketService {
      * @param orderConfig List of tickets to buy.
      * @return Returns the UUID of the created order.
      */
-    UUID checkoutOrder(String paymentToken, UUID eventId, List<TicketLineItem> orderConfig);
+    UUID checkoutOrder(String paymentToken, UUID eventId, List<TicketLineItem> orderConfig, String promoCode);
 
     /**
      * Checks the recently created user to see if it has and pending tickets for it to receive.

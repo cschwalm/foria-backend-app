@@ -38,7 +38,7 @@ public class TicketApi implements org.openapitools.api.TicketApi {
     public ResponseEntity<Order> checkout(@Valid Order order) {
 
         TicketService ticketService = beanFactory.getBean(TicketService.class);
-        UUID orderId = ticketService.checkoutOrder(order.getPaymentToken(), order.getEventId(), order.getTicketLineItemList());
+        UUID orderId = ticketService.checkoutOrder(order.getPaymentToken(), order.getEventId(), order.getTicketLineItemList(), order.getPromotionCode());
         order.setId(orderId);
         return new ResponseEntity<>(order, HttpStatus.OK);
     }

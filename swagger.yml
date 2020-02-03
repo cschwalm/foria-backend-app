@@ -133,6 +133,41 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Event'
+  /event/{event_id}/ticketTypeConfig/promo:
+    post:
+      tags:
+        - event
+      summary: Obtains list of ticket type config plus promo config.
+      description: Obtains list of unlocked promo code config.
+      operationId: applyPromotionCode
+      security: []
+      parameters:
+        - name: event_id
+          in: path
+          description: The event ID stored in the Foria database.
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        description: User supplied promotion code.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PromotionCode'
+        required: true
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TicketTypeConfig'
+        404:
+          description: Event not found by ID.
+          content: {}
   /event/{event_id}/cancel:
     put:
       tags:
@@ -983,6 +1018,11 @@ components:
             $ref: '#/components/schemas/TicketLineItem'
         payment_token:
           type: string
+        promotion_code:
+          example: 'TEST1234'
+          type: string
+          minLength: 4
+          maxLength: 255
     OrderTotal:
       type: object
       properties:
@@ -1071,6 +1111,12 @@ components:
         description:
           type: string
           example: General Admission for the Plebs
+        type:
+          default: PUBLIC
+          type: string
+          enum:
+            - PUBLIC
+            - PROMO
         authorized_amount:
           type: integer
         amount_remaining:
@@ -1268,6 +1314,13 @@ components:
         receiver_email:
           type: string
           format: email
+    PromotionCode:
+      type: object
+      properties:
+        code:
+          type: string
+          minLength: 4
+          maxLength: 255
   securitySchemes:
     auth:
       type: oauth2

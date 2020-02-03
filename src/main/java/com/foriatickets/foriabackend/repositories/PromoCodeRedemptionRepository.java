@@ -1,4 +1,9 @@
 package com.foriatickets.foriabackend.repositories;
 
-public interface PromoCodeRedemptionRepository {
+import com.foriatickets.foriabackend.entities.PromoCodeRedemptionEntity;
+import org.springframework.data.repository.CrudRepository;
+
+import java.util.UUID;
+
+public interface PromoCodeRedemptionRepository extends CrudRepository<PromoCodeRedemptionEntity, UUID> {
 }

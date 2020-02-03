@@ -92,6 +92,14 @@ public class EventApi implements org.openapitools.api.EventApi {
         return new ResponseEntity<>(ticketTypeConfig, HttpStatus.OK);
     }
 
+    @RequestMapping(value = "/event/{event_id}/ticketTypeConfig/promo", method = RequestMethod.POST)
+    @Override
+    public ResponseEntity<List<TicketTypeConfig>> applyPromotionCode(@PathVariable("event_id") UUID eventId, @Valid @RequestBody PromotionCode promotionCode) {
+        EventService eventService = beanFactory.getBean(EventService.class);
+        final List<TicketTypeConfig> priceList = eventService.applyPromotionCode(eventId, promotionCode.getCode());
+        return new ResponseEntity<>(priceList, HttpStatus.OK);
+    }
+
     @RequestMapping(value = "/event/{event_id}/ticketFeeConfig/{ticket_fee_config_id}", method = RequestMethod.DELETE)
     @Override
     public ResponseEntity<TicketFeeConfig> removeTicketFeeConfig(@PathVariable("event_id") UUID eventId, @PathVariable("ticket_fee_config_id") UUID ticketFeeConfigId) {

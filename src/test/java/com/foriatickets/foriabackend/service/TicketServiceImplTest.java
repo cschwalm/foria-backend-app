@@ -67,6 +67,12 @@ public class TicketServiceImplTest {
     private OrderTicketEntryRepository orderTicketEntryRepository;
 
     @Mock
+    private PromoCodeRepository promoCodeRepository;
+
+    @Mock
+    private PromoCodeRedemptionRepository promoCodeRedemptionRepository;
+
+    @Mock
     private StripeGateway stripeGateway;
 
     @Mock
@@ -83,6 +89,7 @@ public class TicketServiceImplTest {
     public void setUp() {
 
         ModelMapper modelMapper = new ModelMapper();
+        //noinspection rawtypes
         for (PropertyMap map : BeanConfig.getModelMappers()) {
             //noinspection unchecked
             modelMapper.addMappings(map);
@@ -96,7 +103,7 @@ public class TicketServiceImplTest {
         SecurityContextHolder.getContext().setAuthentication(authentication);
         when(userRepository.findByAuth0Id(eq("test"))).thenReturn(authenticatedUser);
 
-        ticketService = new TicketServiceImpl(calculationService, modelMapper, eventRepository, orderRepository, userRepository, ticketTypeConfigRepository, ticketRepository, stripeGateway, orderFeeEntryRepository, orderTicketEntryRepository, transferRequestRepository, fcmGateway, awsSimpleEmailServiceGateway);
+        ticketService = new TicketServiceImpl(calculationService, modelMapper, eventRepository, orderRepository, promoCodeRepository, promoCodeRedemptionRepository, userRepository, ticketTypeConfigRepository, ticketRepository, stripeGateway, orderFeeEntryRepository, orderTicketEntryRepository, transferRequestRepository, fcmGateway, awsSimpleEmailServiceGateway);
     }
 
     @Test
