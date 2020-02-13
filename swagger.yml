@@ -168,6 +168,39 @@ paths:
         404:
           description: Event not found by ID.
           content: {}
+    put:
+      tags:
+        - event
+      summary: Onboards a new promo code for use.
+      operationId: createPromoCode
+      security:
+        - OAuth2:
+            - write:event
+      parameters:
+        - name: event_id
+          in: path
+          description: The event ID stored in the Foria database.
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        description: Create request payload.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PromotionCodeCreateRequest'
+        required: true
+      responses:
+        200:
+          description: OK - Promo Code Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseApiModel'
+        404:
+          description: Event not found by ID.
+          content: {}
   /event/{event_id}/cancel:
     put:
       tags:
@@ -1321,6 +1354,30 @@ components:
           type: string
           minLength: 4
           maxLength: 255
+    PromotionCodeCreateRequest:
+      type: object
+      properties:
+        ticket_type_config_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: 10 percent off
+          minLength: 1
+          maxLength: 255
+        description:
+          type: string
+          minLength: 1
+          maxLength: 255
+        code:
+          type: string
+          example: TEST1234
+          minLength: 4
+          maxLength: 255
+        quantity:
+          type: integer
+          minimum: 1
+          maximum: 100000
   securitySchemes:
     auth:
       type: oauth2

@@ -258,6 +258,47 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
+    public void createPromotionCode(PromotionCodeCreateRequest promotionCodeCreateRequest) {
+
+        if (promotionCodeCreateRequest == null || StringUtils.isEmpty(promotionCodeCreateRequest.getCode())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Request payload is empty.");
+        }
+
+        final Optional<TicketTypeConfigEntity> ticketTypeConfigEntity = ticketTypeConfigRepository.findById(promotionCodeCreateRequest.getTicketTypeConfigId());
+        if (!ticketTypeConfigEntity.isPresent()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Ticket Type Config ID does not exist.");
+        }
+        final TicketTypeConfigEntity ticketTypeConfig = ticketTypeConfigEntity.get();
+
+        final PromoCodeEntity promoCodeEntityLoad = promoCodeRepository.findByTicketTypeConfigEntity_EventEntity_IdAndCode(ticketTypeConfig.getEventEntity().getId(), promotionCodeCreateRequest.getCode());
+        if (promoCodeEntityLoad != null) {
+            LOG.info("Attempted to create promotional code: {} that already exists for ticketTypeConfigId: {}", promotionCodeCreateRequest.getCode(), ticketTypeConfig.getId());
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Promotional code already exists for ticket type config.");
+        }
+
+        if (ticketTypeConfig.getType() != TicketTypeConfigEntity.Type.PROMO) {
+            LOG.info("Attempted to create promotional code: {} for tier that is not type PROMO for ticketTypeConfigId: {}", promotionCodeCreateRequest.getCode(), ticketTypeConfig.getId());
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Attempted to create promotional code for tier that is not type PROMO.");
+        }
+
+        if (promotionCodeCreateRequest.getQuantity() > ticketTypeConfig.getAuthorizedAmount()) {
+            LOG.info("Attempted to create promotional code: {} that has higher quantity than for ticketTypeConfigId: {}", promotionCodeCreateRequest.getCode(), ticketTypeConfig.getId());
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Attempted to create promotional code that has higher quantity than tier.");
+        }
+
+        PromoCodeEntity promoCodeEntity = new PromoCodeEntity();
+        promoCodeEntity.setCode(promotionCodeCreateRequest.getCode().toUpperCase().trim());
+        promoCodeEntity.setCreatedDate(OffsetDateTime.now());
+        promoCodeEntity.setName(promotionCodeCreateRequest.getName());
+        promoCodeEntity.setDescription(promotionCodeCreateRequest.getDescription());
+        promoCodeEntity.setQuantity(promotionCodeCreateRequest.getQuantity());
+        promoCodeEntity.setTicketTypeConfigEntity(ticketTypeConfig);
+        promoCodeEntity = promoCodeRepository.save(promoCodeEntity);
+
+        LOG.info("Created promo code: {} for ticketTypeConfigId: {} with ID: {}", promotionCodeCreateRequest.getCode(), ticketTypeConfig.getId(), promoCodeEntity.getId());
+    }
+
+    @Override
     public List<Event> getAllActiveEvents() {
 
         List<Event> eventList = new ArrayList<>();
@@ -514,7 +555,7 @@ public class EventServiceImpl implements EventService {
         ticketTypeConfigEntity.setDescription(ticketTypeConfig.getDescription());
         ticketTypeConfigEntity.setAuthorizedAmount(ticketTypeConfig.getAuthorizedAmount());
         ticketTypeConfigEntity.setStatus(TicketTypeConfigEntity.Status.ACTIVE);
-        ticketTypeConfigEntity.setType(TicketTypeConfigEntity.Type.PUBLIC);
+        ticketTypeConfigEntity.setType(TicketTypeConfigEntity.Type.valueOf(ticketTypeConfig.getType().name()));
         ticketTypeConfigEntity.setPrice(price);
         ticketTypeConfigEntity.setCurrency(ticketTypeConfig.getCurrency().toUpperCase());
         ticketTypeConfigEntity.setEventEntity(eventEntity);

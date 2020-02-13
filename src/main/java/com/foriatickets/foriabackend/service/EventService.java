@@ -1,9 +1,6 @@
 package com.foriatickets.foriabackend.service;
 
-import org.openapitools.model.Attendee;
-import org.openapitools.model.Event;
-import org.openapitools.model.TicketFeeConfig;
-import org.openapitools.model.TicketTypeConfig;
+import org.openapitools.model.*;
 
 import java.util.List;
 import java.util.UUID;
@@ -39,6 +36,13 @@ public interface EventService {
      * @return Event object populated with UUID.
      */
     Event createEvent(Event event);
+
+    /**
+     * On-boards a new promo code for the specified tier.
+     *
+     * @param promotionCodeCreateRequest new code
+     */
+    void createPromotionCode(PromotionCodeCreateRequest promotionCodeCreateRequest);
 
     /**
      * Creates a new fee entry for the event.

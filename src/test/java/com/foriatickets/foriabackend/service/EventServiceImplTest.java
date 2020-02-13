@@ -13,10 +13,7 @@ import org.mockito.Mock;
 import org.modelmapper.ModelMapper;
 import org.modelmapper.PropertyMap;
 import org.modelmapper.internal.util.Assert;
-import org.openapitools.model.Attendee;
-import org.openapitools.model.Event;
-import org.openapitools.model.TicketFeeConfig;
-import org.openapitools.model.TicketTypeConfig;
+import org.openapitools.model.*;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -691,5 +688,89 @@ public class EventServiceImplTest {
 
         eventService.applyPromotionCode(eventId, promoCode);
         verify(promoCodeRepository).findByTicketTypeConfigEntity_EventEntity_IdAndCode(eventId, promoCode);
+    }
+
+    @Test
+    public void createPromotionCode() {
+
+        final UUID eventId = UUID.randomUUID();
+        EventEntity eventEntityMock = mock(EventEntity.class);
+        when(eventEntityMock.getId()).thenReturn(eventId);
+        when(eventEntityMock.getName()).thenReturn("Test Event");
+        when(eventEntityMock.getVenueEntity()).thenReturn(venueEntityMock);
+
+        TicketTypeConfigEntity ticketTypeConfigEntity = spy(TicketTypeConfigEntity.class);
+        when(ticketTypeConfigEntity.getPrice()).thenReturn(BigDecimal.TEN);
+        when(ticketTypeConfigEntity.getName()).thenReturn("Promo Tier");
+        when(ticketTypeConfigEntity.getStatus()).thenReturn(TicketTypeConfigEntity.Status.ACTIVE);
+        when(ticketTypeConfigEntity.getType()).thenReturn(TicketTypeConfigEntity.Type.PROMO);
+        when(ticketTypeConfigEntity.getEventEntity()).thenReturn(eventEntityMock);
+        when(ticketTypeConfigEntity.getAuthorizedAmount()).thenReturn(10);
+        when(ticketTypeConfigEntity.getId()).thenReturn(UUID.randomUUID());
+
+        final String promoCode = "TEST1234";
+        final PromotionCodeCreateRequest promotionCodeCreateRequest = new PromotionCodeCreateRequest();
+        promotionCodeCreateRequest.setCode(promoCode);
+        promotionCodeCreateRequest.setQuantity(9);
+        promotionCodeCreateRequest.setDescription("Test 1");
+        promotionCodeCreateRequest.setName("Test");
+        promotionCodeCreateRequest.setTicketTypeConfigId(ticketTypeConfigEntity.getId());
+
+        PromoCodeEntity promoCodeEntityMock = mock(PromoCodeEntity.class);
+        when(promoCodeEntityMock.getRedemptions()).thenReturn(new HashSet<>());
+        when(promoCodeEntityMock.getCode()).thenReturn(promoCode);
+        when(promoCodeEntityMock.getId()).thenReturn(UUID.randomUUID());
+        when(promoCodeEntityMock.getQuantity()).thenReturn(9);
+        when(promoCodeEntityMock.getTicketTypeConfigEntity()).thenReturn(ticketTypeConfigEntity);
+
+        when(ticketTypeConfigRepository.findById(ticketTypeConfigEntity.getId())).thenReturn(Optional.of(ticketTypeConfigEntity));
+        when(promoCodeRepository.findByTicketTypeConfigEntity_EventEntity_IdAndCode(eventId, promoCode)).thenReturn(null);
+        when(promoCodeRepository.save(any())).thenReturn(promoCodeEntityMock);
+
+        eventService.createPromotionCode(promotionCodeCreateRequest);
+        verify(promoCodeRepository).findByTicketTypeConfigEntity_EventEntity_IdAndCode(eventId, promoCode);
+        verify(promoCodeRepository).save(any());
+    }
+
+    @Test(expected = ResponseStatusException.class)
+    public void createPromotionCode_DupCode() {
+
+        final UUID eventId = UUID.randomUUID();
+        EventEntity eventEntityMock = mock(EventEntity.class);
+        when(eventEntityMock.getId()).thenReturn(eventId);
+        when(eventEntityMock.getName()).thenReturn("Test Event");
+        when(eventEntityMock.getVenueEntity()).thenReturn(venueEntityMock);
+
+        TicketTypeConfigEntity ticketTypeConfigEntity = spy(TicketTypeConfigEntity.class);
+        when(ticketTypeConfigEntity.getPrice()).thenReturn(BigDecimal.TEN);
+        when(ticketTypeConfigEntity.getName()).thenReturn("Promo Tier");
+        when(ticketTypeConfigEntity.getStatus()).thenReturn(TicketTypeConfigEntity.Status.ACTIVE);
+        when(ticketTypeConfigEntity.getType()).thenReturn(TicketTypeConfigEntity.Type.PROMO);
+        when(ticketTypeConfigEntity.getEventEntity()).thenReturn(eventEntityMock);
+        when(ticketTypeConfigEntity.getAuthorizedAmount()).thenReturn(10);
+        when(ticketTypeConfigEntity.getId()).thenReturn(UUID.randomUUID());
+
+        final String promoCode = "TEST1234";
+        final PromotionCodeCreateRequest promotionCodeCreateRequest = new PromotionCodeCreateRequest();
+        promotionCodeCreateRequest.setCode(promoCode);
+        promotionCodeCreateRequest.setQuantity(9);
+        promotionCodeCreateRequest.setDescription("Test 1");
+        promotionCodeCreateRequest.setName("Test");
+        promotionCodeCreateRequest.setTicketTypeConfigId(ticketTypeConfigEntity.getId());
+
+        PromoCodeEntity promoCodeEntityMock = mock(PromoCodeEntity.class);
+        when(promoCodeEntityMock.getRedemptions()).thenReturn(new HashSet<>());
+        when(promoCodeEntityMock.getCode()).thenReturn(promoCode);
+        when(promoCodeEntityMock.getId()).thenReturn(UUID.randomUUID());
+        when(promoCodeEntityMock.getQuantity()).thenReturn(9);
+        when(promoCodeEntityMock.getTicketTypeConfigEntity()).thenReturn(ticketTypeConfigEntity);
+
+        when(ticketTypeConfigRepository.findById(ticketTypeConfigEntity.getId())).thenReturn(Optional.of(ticketTypeConfigEntity));
+        when(promoCodeRepository.findByTicketTypeConfigEntity_EventEntity_IdAndCode(eventId, promoCode)).thenReturn(promoCodeEntityMock);
+        when(promoCodeRepository.save(any())).thenReturn(promoCodeEntityMock);
+
+        eventService.createPromotionCode(promotionCodeCreateRequest);
+        verify(promoCodeRepository, times(0)).findByTicketTypeConfigEntity_EventEntity_IdAndCode(eventId, promoCode);
+        verify(promoCodeRepository, times(0)).save(any());
     }
 }

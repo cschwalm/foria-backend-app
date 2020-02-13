@@ -63,6 +63,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                     .antMatchers(HttpMethod.GET, "/v1/event/*/attendees").hasAuthority("read:venue")
                     .antMatchers(HttpMethod.POST, "/v1/event/*/ticketFeeConfig").hasAuthority("write:event")
                     .antMatchers(HttpMethod.POST, "/v1/event/*/ticketTypeConfig").hasAuthority("write:event")
+                    .antMatchers(HttpMethod.PUT, "/v1/event/*/ticketTypeConfig/promo").hasAuthority("write:event")
                     .antMatchers(HttpMethod.DELETE, "/v1/event/*/ticketFeeConfig/*").hasAuthority("write:event")
                     .antMatchers(HttpMethod.DELETE, "/v1/event/*/ticketTypeConfig/*").hasAuthority("write:event")
                     .antMatchers(HttpMethod.GET, "/v1/venue").hasAuthority("read:venue")
