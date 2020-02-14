@@ -286,12 +286,13 @@ public class TicketServiceImpl implements TicketService {
         final VenueEntity venueEntity = eventEntity.getVenueEntity();
         Map<String, String> map = new HashMap<>();
         map.put("eventDate", eventEntity.getEventStartTime().format(DATE_FORMATTER));
-        map.put("eventTime", eventEntity.getEventStartTime().format(TIME_FORMATTER));
+        map.put("eventStartTime", eventEntity.getEventStartTime().format(TIME_FORMATTER));
         map.put("eventName", eventEntity.getName());
         map.put("eventId", eventEntity.getId().toString());
         map.put("accountFirstName", authenticatedUser.getFirstName());
         map.put("orderId", orderId.toString());
-        map.put("eventLocation", venueEntity.getContactStreetAddress() + ", " + venueEntity.getContactCity() + ", " + venueEntity.getContactState());
+        map.put("eventLocation", venueEntity.getName());
+        map.put("eventAddress", venueEntity.getContactStreetAddress() + ", " + venueEntity.getContactCity() + ", " + venueEntity.getContactState());
 
         awsSimpleEmailServiceGateway.sendEmailFromTemplate(authenticatedUser.getEmail(), AWSSimpleEmailServiceGateway.TICKET_PURCHASE_EMAIL, map);
 
@@ -679,6 +680,11 @@ public class TicketServiceImpl implements TicketService {
         if (!ticketEntity.getOwnerEntity().equals(authenticatedUser)) {
             LOG.warn("User ID: {} attempted to transfer ticket ID: {} they dont own.", authenticatedUser.getId(), ticketId);
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unauthorized");
+        }
+
+        if (OffsetDateTime.now().isAfter(ticketEntity.getEventEntity().getEventEndTime())) {
+            LOG.warn("User ID: {} attempted to transfer ticket ID: {} for ended event.", authenticatedUser.getId(), ticketId);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User attempted to transfer ticket for ended event.");
         }
 
         final String receiverEmail = transferRequest.getReceiverEmail();

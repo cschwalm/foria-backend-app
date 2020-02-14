@@ -122,7 +122,8 @@ public class EventServiceImpl implements EventService {
 
         //Validate that codes are remaining.
         final int numCodesRedeemed = promoCodeEntity.getRedemptions().size();
-        if (numCodesRedeemed >= promoCodeEntity.getQuantity()) {
+        final int codesRemaining = promoCodeEntity.getQuantity() - numCodesRedeemed;
+        if (codesRemaining <= 0) {
             LOG.info("Promotion code: {} has reached is max limit of redemptions.", promoCode);
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Promotion code used maximum number of times.");
         }
@@ -137,6 +138,7 @@ public class EventServiceImpl implements EventService {
 
             TicketTypeConfig ticketTypeConfig = modelMapper.map(ticketTypeConfigEntity, TicketTypeConfig.class);
             populateExtraTicketTypeConfigInfo(ticketTypeConfig, eventEntity.getTicketFeeConfig());
+            ticketTypeConfig.setAmountRemaining(Math.min(ticketTypeConfig.getAmountRemaining(), codesRemaining));
             resultList.add(ticketTypeConfig);
         }
 
@@ -238,6 +240,7 @@ public class EventServiceImpl implements EventService {
 
         for (TicketFeeConfig ticketFeeConfig : event.getTicketFeeConfig()) {
             TicketFeeConfigEntity ticketFeeConfigEntity = modelMapper.map(ticketFeeConfig, TicketFeeConfigEntity.class);
+            ticketFeeConfigEntity.setId(UUID.randomUUID());
             ticketFeeConfigEntity.setEventEntity(eventEntity);
             ticketFeeConfigEntity.setStatus(TicketFeeConfigEntity.Status.ACTIVE);
             ticketFeeConfigEntity = ticketFeeConfigRepository.save(ticketFeeConfigEntity);
@@ -246,6 +249,7 @@ public class EventServiceImpl implements EventService {
 
         for (TicketTypeConfig ticketTypeConfig : event.getTicketTypeConfig()) {
             TicketTypeConfigEntity ticketTypeConfigEntity = modelMapper.map(ticketTypeConfig, TicketTypeConfigEntity.class);
+            ticketTypeConfigEntity.setId(UUID.randomUUID());
             ticketTypeConfigEntity.setEventEntity(eventEntity);
             ticketTypeConfigEntity.setStatus(TicketTypeConfigEntity.Status.ACTIVE);
             ticketTypeConfigEntity.setType(TicketTypeConfigEntity.Type.PUBLIC);
