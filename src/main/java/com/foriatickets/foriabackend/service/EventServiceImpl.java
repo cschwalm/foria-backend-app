@@ -234,6 +234,7 @@ public class EventServiceImpl implements EventService {
         validateEventInfo(event);
 
         eventEntity.setStatus(EventEntity.Status.LIVE);
+        eventEntity.setType(EventEntity.Type.valueOf(event.getType().name()));
         eventEntity = eventRepository.save(eventEntity);
         event.setId(eventEntity.getId());
         populateEventModelWithAddress(event, eventEntity.getVenueEntity());
@@ -487,6 +488,7 @@ public class EventServiceImpl implements EventService {
         eventEntity.setVisibility(EventEntity.Visibility.valueOf(updatedEvent.getVisibility().name()));
         eventEntity.setEventStartTime(updatedEvent.getStartTime());
         eventEntity.setEventEndTime(updatedEvent.getEndTime());
+        eventEntity.setType(EventEntity.Type.valueOf(updatedEvent.getType().name()));
         eventEntity = eventRepository.save(eventEntity);
 
         LOG.info("Event ID: {} updated. \n New event: {}", eventEntity.getId(), eventEntity);
@@ -675,6 +677,10 @@ public class EventServiceImpl implements EventService {
 
         if (StringUtils.isEmpty(event.getImageUrl())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Image URL is empty");
+        }
+
+        if (!event.getType().name().equals(EventEntity.Type.PRIMARY.name()) && !event.getType().name().equals(EventEntity.Type.RESELL.name())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Event type is invalid.");
         }
     }
 

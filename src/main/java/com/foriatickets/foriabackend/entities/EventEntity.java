@@ -1,7 +1,5 @@
 package com.foriatickets.foriabackend.entities;
 
-import org.hibernate.annotations.Type;
-
 import javax.annotation.Nullable;
 import javax.persistence.*;
 import java.io.Serializable;
@@ -21,6 +19,11 @@ public class EventEntity implements Serializable, Comparable<EventEntity> {
         CANCELED
     }
 
+    public enum Type {
+        PRIMARY,
+        RESELL
+    }
+
     /**
      * PUBLIC events get returned in search results.
      */
@@ -36,6 +39,7 @@ public class EventEntity implements Serializable, Comparable<EventEntity> {
     private String imageUrl;
     private String description;
     private Status status;
+    private Type type;
     private Visibility visibility;
     private OffsetDateTime eventStartTime;
     private OffsetDateTime eventEndTime;
@@ -46,7 +50,7 @@ public class EventEntity implements Serializable, Comparable<EventEntity> {
 
     @Id
     @GeneratedValue
-    @Type(type = "uuid-char")
+    @org.hibernate.annotations.Type(type = "uuid-char")
     @Column(name = "id", updatable = false)
     public UUID getId() {
         return id;
@@ -117,6 +121,16 @@ public class EventEntity implements Serializable, Comparable<EventEntity> {
 
     public void setStatus(Status status) {
         this.status = status;
+    }
+
+    @Column(name = "type", nullable = false)
+    @Enumerated(EnumType.STRING)
+    public Type getType() {
+        return type;
+    }
+
+    public void setType(Type type) {
+        this.type = type;
     }
 
     @Column(name = "visibility", nullable = false)
@@ -198,6 +212,7 @@ public class EventEntity implements Serializable, Comparable<EventEntity> {
                 ", imageUrl='" + imageUrl + '\'' +
                 ", description='" + description + '\'' +
                 ", status=" + status +
+                ", type=" + type +
                 ", visibility=" + visibility +
                 ", eventStartTime=" + eventStartTime +
                 ", eventEndTime=" + eventEndTime +
@@ -217,6 +232,7 @@ public class EventEntity implements Serializable, Comparable<EventEntity> {
                 Objects.equals(imageUrl, that.imageUrl) &&
                 Objects.equals(description, that.description) &&
                 status == that.status &&
+                type == that.type &&
                 visibility == that.visibility &&
                 Objects.equals(eventStartTime, that.eventStartTime) &&
                 Objects.equals(eventEndTime, that.eventEndTime);
@@ -224,7 +240,7 @@ public class EventEntity implements Serializable, Comparable<EventEntity> {
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, name, tagLine, imageUrl, description, status, visibility, eventStartTime, eventEndTime, authorizedTickets);
+        return Objects.hash(id, name, tagLine, imageUrl, description, status, type, visibility, eventStartTime, eventEndTime, authorizedTickets);
     }
 
     @Override

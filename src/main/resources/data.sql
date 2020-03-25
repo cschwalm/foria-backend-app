@@ -12,10 +12,10 @@ insert
 insert
         into
             `event` (
-                `authorized_tickets`, `event_start_time`, `event_end_time`, `name`, `venue_id`, `id`, `image_url`, `tag_line`, `description`, `status`, `visibility`
+                `authorized_tickets`, `event_start_time`, `event_end_time`, `name`, `venue_id`, `id`, `image_url`, `tag_line`, `description`, `status`, `type`, `visibility`
             )
         values
-            (100, '2019-12-22T16:23:25.847Z', '2020-12-22T18:23:25.847Z', 'Test Event', '2b2c8c0f-5b17-429a-a5f6-44dd47935e9a', '40c6a84f-9505-40b9-a9ea-817074aac2f1', 'https://localhost', 'For the Fans', 'This is a test event.', 'LIVE', 'PUBLIC');
+            (100, '2019-12-22T16:23:25.847Z', '2020-12-22T18:23:25.847Z', 'Test Event', '2b2c8c0f-5b17-429a-a5f6-44dd47935e9a', '40c6a84f-9505-40b9-a9ea-817074aac2f1', 'https://localhost', 'For the Fans', 'This is a test event.', 'LIVE', 'PRIMARY','PUBLIC');
 
 /* insert com.foriatickets.foriabackend.entities.TicketFeeConfigEntity */
 insert

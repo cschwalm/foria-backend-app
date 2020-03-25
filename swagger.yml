@@ -1272,6 +1272,7 @@ components:
         - tag_line
         - description
         - image_url
+        - type
         - visibility
         - start_time
         - end_time
@@ -1295,6 +1296,13 @@ components:
         image_url:
           type: string
           example: https://foriatickets.com/favicon.ico
+        type:
+          type: string
+          default: PRIMARY
+          example: PRIMARY
+          enum:
+            - PRIMARY
+            - RESELL
         visibility:
           type: string
           default: PUBLIC

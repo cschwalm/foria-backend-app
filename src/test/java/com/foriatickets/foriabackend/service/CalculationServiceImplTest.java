@@ -49,6 +49,7 @@ public class CalculationServiceImplTest {
 
         EventEntity eventEntityMock = mock(EventEntity.class);
         when(eventEntityMock.getId()).thenReturn(eventId);
+        when(eventEntityMock.getType()).thenReturn(EventEntity.Type.PRIMARY);
 
         Mockito.when(eventRepository.findById(eventId)).thenReturn(Optional.of(eventEntityMock));
 

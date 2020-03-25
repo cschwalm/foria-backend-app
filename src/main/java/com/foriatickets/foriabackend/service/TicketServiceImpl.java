@@ -223,10 +223,9 @@ public class TicketServiceImpl implements TicketService {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Not enough tickets to complete the order.");
             }
 
-            TicketEntity issuedTicket;
             for (int i = 0; i < ticketLineItem.getAmount(); i++) {
 
-                issuedTicket = issueTicket(authenticatedUser.getId(), eventId, ticketTypeConfigId);
+                final TicketEntity issuedTicket = issueTicket(authenticatedUser.getId(), eventId, ticketTypeConfigId);
 
                 OrderTicketEntryEntity orderTicketEntryEntity = new OrderTicketEntryEntity();
                 orderTicketEntryEntity.setOrderEntity(orderEntity);
@@ -248,6 +247,7 @@ public class TicketServiceImpl implements TicketService {
             }
         }
 
+        //Save fee settings that were applied at checkout.
         for (TicketFeeConfigEntity ticketFeeConfigEntity : ticketFeeConfigEntitySet) {
 
             if (ticketFeeConfigEntity.getStatus() != TicketFeeConfigEntity.Status.ACTIVE) {
@@ -282,19 +282,22 @@ public class TicketServiceImpl implements TicketService {
         }
         orderRepository.save(orderEntity);
 
-        //Send order confirmation email.
-        final VenueEntity venueEntity = eventEntity.getVenueEntity();
-        Map<String, String> map = new HashMap<>();
-        map.put("eventDate", eventEntity.getEventStartTime().format(DATE_FORMATTER));
-        map.put("eventStartTime", eventEntity.getEventStartTime().format(TIME_FORMATTER));
-        map.put("eventName", eventEntity.getName());
-        map.put("eventId", eventEntity.getId().toString());
-        map.put("accountFirstName", authenticatedUser.getFirstName());
-        map.put("orderId", orderId.toString());
-        map.put("eventLocation", venueEntity.getName());
-        map.put("eventAddress", venueEntity.getContactStreetAddress() + ", " + venueEntity.getContactCity() + ", " + venueEntity.getContactState());
+        //Send order confirmation email for PRIMARY event.
+        if (eventEntity.getType() == EventEntity.Type.PRIMARY) {
 
-        awsSimpleEmailServiceGateway.sendEmailFromTemplate(authenticatedUser.getEmail(), AWSSimpleEmailServiceGateway.TICKET_PURCHASE_EMAIL, map);
+            final VenueEntity venueEntity = eventEntity.getVenueEntity();
+            Map<String, String> map = new HashMap<>();
+            map.put("eventDate", eventEntity.getEventStartTime().format(DATE_FORMATTER));
+            map.put("eventStartTime", eventEntity.getEventStartTime().format(TIME_FORMATTER));
+            map.put("eventName", eventEntity.getName());
+            map.put("eventId", eventEntity.getId().toString());
+            map.put("accountFirstName", authenticatedUser.getFirstName());
+            map.put("orderId", orderId.toString());
+            map.put("eventLocation", venueEntity.getName());
+            map.put("eventAddress", venueEntity.getContactStreetAddress() + ", " + venueEntity.getContactCity() + ", " + venueEntity.getContactState());
+
+            awsSimpleEmailServiceGateway.sendEmailFromTemplate(authenticatedUser.getEmail(), AWSSimpleEmailServiceGateway.TICKET_PURCHASE_EMAIL, map);
+        }
 
         LOG.info("User: (ID: {}) charged: {}{}", authenticatedUser.getId(), priceCalculationInfo.grandTotal, priceCalculationInfo.currencyCode);
         return orderId;
