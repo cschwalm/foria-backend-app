@@ -57,6 +57,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                     .antMatchers(HttpMethod.GET, "/v1/health-check").permitAll()
                     .antMatchers(HttpMethod.GET, "/v1/event/**").permitAll()
                     .antMatchers(HttpMethod.OPTIONS, "/v1/event/**").permitAll()
+                    .antMatchers(HttpMethod.POST, "/v1/event/*/ticketTypeConfig/promo").permitAll()
                     .antMatchers(HttpMethod.POST, "/v1/event").hasAuthority("write:event")
                     .antMatchers(HttpMethod.PUT, "/v1/event/*").hasAuthority("write:event")
                     .antMatchers(HttpMethod.PUT, "/v1/event/*/cancel").hasAuthority("write:event_cancel")

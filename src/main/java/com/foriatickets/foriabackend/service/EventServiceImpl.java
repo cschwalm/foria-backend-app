@@ -101,7 +101,7 @@ public class EventServiceImpl implements EventService {
 
         authenticatedUser = userRepository.findByAuth0Id(auth0Id);
         if (authenticatedUser == null && !auth0Id.equalsIgnoreCase("anonymousUser") && !auth0Id.equalsIgnoreCase("auth0")) {
-            LOG.warn("Attempted to create venue service with non-mapped auth0Id: {}", auth0Id);
+            LOG.warn("Attempted to create event service with non-mapped auth0Id: {}", auth0Id);
         }
     }
 
