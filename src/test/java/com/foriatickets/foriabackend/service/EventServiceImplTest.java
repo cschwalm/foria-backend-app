@@ -691,6 +691,70 @@ public class EventServiceImplTest {
     }
 
     @Test
+    public void applyPromotionCode_MultipleCodes() {
+
+        final UUID eventId = UUID.randomUUID();
+        final String promoCode = "TEST1234";
+
+        EventEntity eventEntityMock = mock(EventEntity.class);
+        when(eventEntityMock.getId()).thenReturn(eventId);
+        when(eventEntityMock.getName()).thenReturn("Test Event");
+        when(eventEntityMock.getVenueEntity()).thenReturn(venueEntityMock);
+
+        TicketFeeConfigEntity ticketFeeConfigMock = mock(TicketFeeConfigEntity.class);
+        when(ticketFeeConfigMock.getCurrency()).thenReturn("USD");
+        when(ticketFeeConfigMock.getType()).thenReturn(TicketFeeConfigEntity.FeeType.VENUE);
+        when(ticketFeeConfigMock.getMethod()).thenReturn(TicketFeeConfigEntity.FeeMethod.FLAT);
+        when(ticketFeeConfigMock.getAmount()).thenReturn(new BigDecimal("0.25"));
+
+        Set<TicketFeeConfigEntity> ticketFeeConfigEntitySet = new HashSet<>();
+        ticketFeeConfigEntitySet.add(ticketFeeConfigMock);
+        when(eventEntityMock.getTicketFeeConfig()).thenReturn(ticketFeeConfigEntitySet);
+
+        TicketTypeConfigEntity ticketTypeConfigEntity = spy(TicketTypeConfigEntity.class);
+        when(ticketTypeConfigEntity.getEventEntity()).thenReturn(eventEntityMock);
+        when(ticketTypeConfigEntity.getPrice()).thenReturn(BigDecimal.TEN);
+        when(ticketTypeConfigEntity.getName()).thenReturn("Promo Tier");
+        when(ticketTypeConfigEntity.getStatus()).thenReturn(TicketTypeConfigEntity.Status.ACTIVE);
+        when(ticketTypeConfigEntity.getType()).thenReturn(TicketTypeConfigEntity.Type.PROMO);
+
+        TicketTypeConfigEntity ticketTypeConfigEntity2 = spy(TicketTypeConfigEntity.class);
+        when(ticketTypeConfigEntity2.getEventEntity()).thenReturn(eventEntityMock);
+        when(ticketTypeConfigEntity2.getPrice()).thenReturn(BigDecimal.TEN);
+        when(ticketTypeConfigEntity2.getName()).thenReturn("Promo Tier 2");
+        when(ticketTypeConfigEntity2.getStatus()).thenReturn(TicketTypeConfigEntity.Status.ACTIVE);
+        when(ticketTypeConfigEntity2.getType()).thenReturn(TicketTypeConfigEntity.Type.PROMO);
+
+        Set<TicketTypeConfigEntity> ticketTypeConfigEntitySet = new HashSet<>();
+        ticketTypeConfigEntitySet.add(ticketTypeConfigEntity);
+        ticketTypeConfigEntitySet.add(ticketTypeConfigEntity2);
+
+        PromoCodeEntity promoCodeEntityMock = mock(PromoCodeEntity.class);
+        when(promoCodeEntityMock.getRedemptions()).thenReturn(new HashSet<>());
+        when(promoCodeEntityMock.getCode()).thenReturn(promoCode);
+        when(promoCodeEntityMock.getId()).thenReturn(UUID.randomUUID());
+        when(promoCodeEntityMock.getQuantity()).thenReturn(10);
+        when(promoCodeEntityMock.getTicketTypeConfigEntity()).thenReturn(ticketTypeConfigEntity);
+
+        CalculationServiceImpl.PriceCalculationInfo priceCalculationInfo = new CalculationServiceImpl.PriceCalculationInfo();
+        priceCalculationInfo.ticketSubtotal = new BigDecimal("100.00");
+        priceCalculationInfo.feeSubtotal = new BigDecimal("50.00");
+        priceCalculationInfo.currencyCode = "USD";
+        priceCalculationInfo.paymentFeeSubtotal = new BigDecimal("123.12");
+        priceCalculationInfo.grandTotal = new BigDecimal("500.00");
+
+        when(calculationService.calculateFees(eq(1), any(), eq(ticketFeeConfigEntitySet), eq(true))).thenReturn(priceCalculationInfo);
+        when(eventEntityMock.getTicketTypeConfigEntity()).thenReturn(ticketTypeConfigEntitySet);
+        when(eventRepository.findById(eventId)).thenReturn(Optional.of(eventEntityMock));
+        when(promoCodeRepository.findByTicketTypeConfigEntity_EventEntity_IdAndCode(eventId, promoCode)).thenReturn(promoCodeEntityMock);
+
+        final List<TicketTypeConfig> ticketTypeConfigs = eventService.applyPromotionCode(eventId, promoCode);
+        Assert.isTrue(ticketTypeConfigs.size() == 1);
+
+        verify(promoCodeRepository).findByTicketTypeConfigEntity_EventEntity_IdAndCode(eventId, promoCode);
+    }
+
+    @Test
     public void createPromotionCode() {
 
         final UUID eventId = UUID.randomUUID();

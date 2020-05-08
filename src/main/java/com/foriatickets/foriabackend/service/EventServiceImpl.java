@@ -136,6 +136,10 @@ public class EventServiceImpl implements EventService {
                 continue;
             }
 
+            if (!ticketTypeConfigEntity.equals(promoCodeEntity.getTicketTypeConfigEntity()) && ticketTypeConfigEntity.getType() != TicketTypeConfigEntity.Type.PUBLIC) {
+                continue;
+            }
+
             TicketTypeConfig ticketTypeConfig = modelMapper.map(ticketTypeConfigEntity, TicketTypeConfig.class);
             populateExtraTicketTypeConfigInfo(ticketTypeConfig, eventEntity.getTicketFeeConfig());
             ticketTypeConfig.setAmountRemaining(Math.min(ticketTypeConfig.getAmountRemaining(), codesRemaining));
@@ -275,15 +279,15 @@ public class EventServiceImpl implements EventService {
         }
         final TicketTypeConfigEntity ticketTypeConfig = ticketTypeConfigEntity.get();
 
-        final PromoCodeEntity promoCodeEntityLoad = promoCodeRepository.findByTicketTypeConfigEntity_EventEntity_IdAndCode(ticketTypeConfig.getEventEntity().getId(), promotionCodeCreateRequest.getCode());
-        if (promoCodeEntityLoad != null) {
-            LOG.info("Attempted to create promotional code: {} that already exists for ticketTypeConfigId: {}", promotionCodeCreateRequest.getCode(), ticketTypeConfig.getId());
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Promotional code already exists for ticket type config.");
-        }
-
         if (ticketTypeConfig.getType() != TicketTypeConfigEntity.Type.PROMO) {
             LOG.info("Attempted to create promotional code: {} for tier that is not type PROMO for ticketTypeConfigId: {}", promotionCodeCreateRequest.getCode(), ticketTypeConfig.getId());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Attempted to create promotional code for tier that is not type PROMO.");
+        }
+
+        final PromoCodeEntity promoCodeEntityLoad = promoCodeRepository.findByTicketTypeConfigEntity_EventEntity_IdAndCode(ticketTypeConfig.getEventEntity().getId(), promotionCodeCreateRequest.getCode());
+        if (promoCodeEntityLoad != null) {
+            LOG.info("Attempted to create promotional code: {} that already exists for eventId: {}", promotionCodeCreateRequest.getCode(), ticketTypeConfig.getEventEntity().getId());
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Promotional code already exists for eventId.");
         }
 
         if (promotionCodeCreateRequest.getQuantity() > ticketTypeConfig.getAuthorizedAmount()) {
