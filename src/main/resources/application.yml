@@ -44,6 +44,9 @@ db.jdbc: jdbc:h2:mem:foria;DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=false
 db.username: sa
 db.password: sa
 
+# Spotify
+spotifyApiKey: spotify
+
 # Stripe
 stripeApiKey: corp_foria_stripe_secret_key
 
@@ -70,6 +73,9 @@ datasource:
     maximum-pool-size: 20
 
 apiKeyList: corp_foria_auth0_api_key
+
+# Spotify
+spotifyApiKey: spotify
 
 # Stripe
 stripeApiKey: corp_foria_stripe_secret_key
@@ -100,6 +106,9 @@ datasource:
     maximum-pool-size: 20
 
 apiKeyList: prod_foria_auth0_api_key
+
+# Spotify
+spotifyApiKey: spotify
 
 # Stripe LIVE Key
 stripeApiKey: prod_foria_stripe_secret_key

@@ -2,9 +2,12 @@ package com.foriatickets.foriabackend.gateway;
 
 import com.auth0.client.auth.AuthAPI;
 import com.auth0.client.mgmt.ManagementAPI;
+import com.auth0.client.mgmt.filter.UserFilter;
 import com.auth0.exception.Auth0Exception;
 import com.auth0.json.auth.TokenHolder;
 import com.auth0.json.mgmt.jobs.Job;
+import com.auth0.json.mgmt.users.User;
+import com.auth0.json.mgmt.users.UsersPage;
 import com.auth0.net.AuthRequest;
 import com.auth0.net.Request;
 import org.apache.logging.log4j.LogManager;
@@ -15,6 +18,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -27,6 +31,7 @@ public class Auth0GatewayImpl implements Auth0Gateway {
     private static final String AUTH0_DOMAIN_FIELD = "domain";
     private static final String AUTH0_CLIENT_ID_FIELD = "client_id";
     private static final String AUTH0_CLIENT_SECRET_FIELD = "client_secret";
+    private static final String AUTH0_SPOTIFY_CONNECTION_NAME = "spotify";
 
     private ManagementAPI auth0;
     private Map<String, String> auth0SecretMap;
@@ -44,6 +49,31 @@ public class Auth0GatewayImpl implements Auth0Gateway {
         auth0SecretMap = auth0Secrets.get();
         refreshToken();
         LOG.info("Successfully connected to Auth0 Management API.");
+    }
+
+    @Override
+    public List<User> obtainSpotifyUsers() {
+
+        if (System.currentTimeMillis() >= tokenExpiry + 1000L) {
+            refreshToken();
+        }
+
+        final UserFilter userFilter = new UserFilter()
+                .withQuery("identities.connection:\"" + AUTH0_SPOTIFY_CONNECTION_NAME + "\"")
+                .withPage(0, 1000)
+                .withTotals(true);
+
+        final Request<UsersPage> usersPageRequest = auth0.users().list(userFilter);
+        final List<User> users;
+        try {
+            users = usersPageRequest.execute().getItems();
+        } catch (Auth0Exception e) {
+            LOG.error("Failed to query Auth0 users for Spotify connection. - Msg: {}", e.getMessage());
+            throw new RuntimeException(e);
+        }
+
+        LOG.info("Obtained {} Auth0 users that have linked their Spotify accounts.", users.size());
+        return users;
     }
 
     @Override

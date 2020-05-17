@@ -27,6 +27,7 @@
         <opencsv.version>4.6</opencsv.version>
         <sentry.version>1.7.22</sentry.version>
         <shedlock.version>4.0.2</shedlock.version>
+        <spotify.version>6.0.0</spotify.version>
         <stripe.version>16.5.0</stripe.version>
         <swagger.version>4.0.2</swagger.version>
     </properties>
@@ -97,6 +98,12 @@
             <groupId>net.javacrumbs.shedlock</groupId>
             <artifactId>shedlock-provider-jdbc-template</artifactId>
             <version>${shedlock.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>se.michaelthelin.spotify</groupId>
+            <artifactId>spotify-web-api-java</artifactId>
+            <version>${spotify.version}</version>
         </dependency>
 
         <!-- Auth0 & Spring Endpoint Security -->

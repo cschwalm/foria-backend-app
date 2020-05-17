@@ -2,6 +2,7 @@ package com.foriatickets.foriabackend.gateway;
 
 import com.google.firebase.messaging.Notification;
 import com.stripe.model.*;
+import com.wrapper.spotify.model_objects.specification.Artist;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.openapitools.model.User;
@@ -100,7 +101,18 @@ public class GatewayMockImpl implements GatewayMock {
     }
 
     @Override
+    public List<com.auth0.json.mgmt.users.User> obtainSpotifyUsers() {
+        return null;
+    }
+
+    @Override
     public void resendUserVerificationEmail() {
         LOG.info("SES mock in use. No email sent.");
+    }
+
+    @Override
+    public List<Artist> getUsersTopArtists(String refreshToken) {
+        LOG.info("Spotify mock in use. No artists.");
+        return new ArrayList<>();
     }
 }
