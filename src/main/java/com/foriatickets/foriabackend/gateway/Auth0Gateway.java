@@ -6,6 +6,8 @@ import java.util.List;
 
 public interface Auth0Gateway {
 
+    String AUTH0_SPOTIFY_CONNECTION_NAME = "spotify";
+
     /**
      * Obtains all Auth0 users that have connected their accounts via Spotify.
      * Allows for data mining Spotify data.

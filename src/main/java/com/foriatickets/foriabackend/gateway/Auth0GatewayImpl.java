@@ -31,7 +31,6 @@ public class Auth0GatewayImpl implements Auth0Gateway {
     private static final String AUTH0_DOMAIN_FIELD = "domain";
     private static final String AUTH0_CLIENT_ID_FIELD = "client_id";
     private static final String AUTH0_CLIENT_SECRET_FIELD = "client_secret";
-    private static final String AUTH0_SPOTIFY_CONNECTION_NAME = "spotify";
 
     private ManagementAPI auth0;
     private Map<String, String> auth0SecretMap;
@@ -60,7 +59,7 @@ public class Auth0GatewayImpl implements Auth0Gateway {
 
         final UserFilter userFilter = new UserFilter()
                 .withQuery("identities.connection:\"" + AUTH0_SPOTIFY_CONNECTION_NAME + "\"")
-                .withPage(0, 1000)
+                .withPage(0, 100)
                 .withTotals(true);
 
         final Request<UsersPage> usersPageRequest = auth0.users().list(userFilter);

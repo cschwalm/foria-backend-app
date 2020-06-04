@@ -91,8 +91,8 @@ fcmKey: prod_foria_google_fcm_key
 #Auth0 Management
 auth0ManagementKey: corp_foria_auth0_management_key
 
-# Jobs
-daily-event-end-report-cron: "0 0 6 */1 * ?"
+#Jobs
+daily-spotify-cron: "0 0 8 */1 * ?"
 
 ---
 spring:
@@ -130,3 +130,5 @@ weekly-settlement-report-cron: "0 0 6 */1 * WED"
 rolling-ticket-purchase-report-cron: "-"
 daily-general-event-email-cron: "0 0 11 */1 * ?"
 daily-event-end-report-cron: "0 0 6 */1 * ?"
+
+daily-spotify-cron: "0 0 8 */1 * ?"
