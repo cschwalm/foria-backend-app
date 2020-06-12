@@ -1,4 +1,4 @@
-openapi: 3.0.1
+openapi: 3.0.3
 info:
   title: Foria API Server
   description: Backend API service for the Foria ticketing app.
@@ -9,7 +9,7 @@ externalDocs:
   description: JIRA Board
   url: https://foria.atlassian.net
 security:
-  - OAuth2: []
+  - auth: []
 servers:
   - url: https://test-api.foriatickets.com/v1
     description: Staging hostname and base path.
@@ -61,7 +61,7 @@ paths:
       summary: Create event in application database.
       operationId: createEvent
       security:
-        - OAuth2:
+        - auth:
             - write:event
       requestBody:
         description: Created event object.
@@ -109,7 +109,7 @@ paths:
       summary: Updates basic event metadata.
       operationId: updateEvent
       security:
-        - OAuth2:
+        - auth:
             - write:event
       parameters:
         - name: event_id
@@ -174,7 +174,7 @@ paths:
       summary: Onboards a new promo code for use.
       operationId: createPromoCode
       security:
-        - OAuth2:
+        - auth:
             - write:event
       parameters:
         - name: event_id
@@ -209,7 +209,7 @@ paths:
       description: Irrevocably CANCELS an event. This takes down the listing, CANCELS ALL orders, CANCELS ALL tickets, REFUNDS ALL customers, and notifies users the event is CANCELED by push and email. Use with extreme caution.
       operationId: cancelEvent
       security:
-        - OAuth2:
+        - auth:
             - write:event_cancel
       parameters:
         - name: event_id
@@ -244,7 +244,7 @@ paths:
       description: Obtains all ticket metadata that has been issued for the event.
       operationId: getAttendeesForEvent
       security:
-        - OAuth2:
+        - auth:
             - write:venue_redeem
       parameters:
         - name: event_id
@@ -274,7 +274,7 @@ paths:
       description: Creates a new price tier for an existing event.
       operationId: createTicketTypeConfig
       security:
-        - OAuth2:
+        - auth:
             - write:event
       parameters:
         - name: event_id
@@ -309,7 +309,7 @@ paths:
       description: Removes price tier for future purchases. Existing events are not impacted
       operationId: removeTicketTypeConfig
       security:
-        - OAuth2:
+        - auth:
             - write:event
       parameters:
         - name: event_id
@@ -344,7 +344,7 @@ paths:
       description: All fees are additive ontop of other active fees.
       operationId: createTicketFeeConfig
       security:
-        - OAuth2:
+        - auth:
             - write:event
       parameters:
         - name: event_id
@@ -379,7 +379,7 @@ paths:
       description: Prevents the fee from being applied to future ticket orders.
       operationId: removeTicketFeeConfig
       security:
-        - OAuth2:
+        - auth:
             - write:event
       parameters:
         - name: event_id
@@ -614,7 +614,7 @@ paths:
       summary: Redeems the ticket if in valid state. This cannot be undone.
       operationId: redeemTicket
       security:
-        - OAuth2:
+        - auth:
             - write:redeem
       requestBody:
         description: Checkout request object.
@@ -649,7 +649,7 @@ paths:
       summary: Refunds the entire order. This cannot be undone.
       operationId: refundOrder
       security:
-        - OAuth2:
+        - auth:
             - write:venue
       parameters:
         - name: order_id
@@ -726,7 +726,7 @@ paths:
       description: This should only be called from Auth0.
       operationId: registerUser
       security:
-        - OAuth2:
+        - auth:
             - write:register
 
       requestBody:
@@ -838,7 +838,7 @@ paths:
       summary: Create venue in application database.
       operationId: createVenue
       security:
-        - OAuth2:
+        - auth:
             - write:venue
       requestBody:
         description: Created user object
@@ -887,7 +887,7 @@ paths:
       description: Allows user account to preform actions on venue assets.
       operationId: authorizeUser
       security:
-        - OAuth2:
+        - auth:
             - write:venue
       parameters:
         - name: venue_id
@@ -921,7 +921,7 @@ paths:
       description: Disallows user account to preform actions on venue assets.
       operationId: deauthorizeUser
       security:
-        - OAuth2:
+        - auth:
             - write:venue
       parameters:
         - name: venue_id

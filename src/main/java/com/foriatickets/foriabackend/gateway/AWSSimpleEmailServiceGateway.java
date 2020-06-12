@@ -26,6 +26,7 @@ public interface AWSSimpleEmailServiceGateway {
     String TRANSFEREE_COMPLETE_EMAIL = "transferee_complete_email";
     String TRANSFEROR_COMPLETE_EMAIL = "transferor_complete_email";
     String TICKET_PURCHASE_EMAIL = "ticket_purchase_email";
+    String RESELL_TICKET_PURCHASE_EMAIL = "resell_ticket_purchase_confirmation";
 
     /**
      * Email template must be loaded into SES account.

@@ -282,21 +282,23 @@ public class TicketServiceImpl implements TicketService {
         }
         orderRepository.save(orderEntity);
 
-        //Send order confirmation email for PRIMARY event.
+        //Send order confirmation email.
+        final VenueEntity venueEntity = eventEntity.getVenueEntity();
+        Map<String, String> map = new HashMap<>();
+        map.put("eventDate", eventEntity.getEventStartTime().format(DATE_FORMATTER));
+        map.put("eventStartTime", eventEntity.getEventStartTime().format(TIME_FORMATTER));
+        map.put("eventName", eventEntity.getName());
+        map.put("eventId", eventEntity.getId().toString());
+        map.put("accountFirstName", authenticatedUser.getFirstName());
+        map.put("orderId", orderId.toString());
+        map.put("ticketQuantity", String.valueOf(totalTicketCount));
+        map.put("eventLocation", venueEntity.getName());
+        map.put("eventAddress", venueEntity.getContactStreetAddress() + ", " + venueEntity.getContactCity() + ", " + venueEntity.getContactState());
+
         if (eventEntity.getType() == EventEntity.Type.PRIMARY) {
-
-            final VenueEntity venueEntity = eventEntity.getVenueEntity();
-            Map<String, String> map = new HashMap<>();
-            map.put("eventDate", eventEntity.getEventStartTime().format(DATE_FORMATTER));
-            map.put("eventStartTime", eventEntity.getEventStartTime().format(TIME_FORMATTER));
-            map.put("eventName", eventEntity.getName());
-            map.put("eventId", eventEntity.getId().toString());
-            map.put("accountFirstName", authenticatedUser.getFirstName());
-            map.put("orderId", orderId.toString());
-            map.put("eventLocation", venueEntity.getName());
-            map.put("eventAddress", venueEntity.getContactStreetAddress() + ", " + venueEntity.getContactCity() + ", " + venueEntity.getContactState());
-
             awsSimpleEmailServiceGateway.sendEmailFromTemplate(authenticatedUser.getEmail(), AWSSimpleEmailServiceGateway.TICKET_PURCHASE_EMAIL, map);
+        } else if (eventEntity.getType() == EventEntity.Type.RESELL) {
+            awsSimpleEmailServiceGateway.sendEmailFromTemplate(authenticatedUser.getEmail(), AWSSimpleEmailServiceGateway.RESELL_TICKET_PURCHASE_EMAIL, map);
         }
 
         LOG.info("User: (ID: {}) charged: {}{}", authenticatedUser.getId(), priceCalculationInfo.grandTotal, priceCalculationInfo.currencyCode);
