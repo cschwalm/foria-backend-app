@@ -1,5 +1,6 @@
 package com.foriatickets.foriabackend.gateway;
 
+import com.google.gson.JsonSyntaxException;
 import com.wrapper.spotify.SpotifyApi;
 import com.wrapper.spotify.exceptions.SpotifyWebApiException;
 import com.wrapper.spotify.model_objects.credentials.AuthorizationCodeCredentials;
@@ -103,7 +104,7 @@ public class SpotifyGatewayImpl implements SpotifyGateway {
             spotifyApi.setAccessToken(authorizationCodeCredentials.getAccessToken());
             spotifyApi.setRefreshToken(authorizationCodeCredentials.getRefreshToken());
 
-        } catch (IOException | SpotifyWebApiException | ParseException e) {
+        } catch (IOException | SpotifyWebApiException | ParseException | JsonSyntaxException e) {
             LOG.error("Spotify API Error During Token Refresh: " + e.getMessage());
             throw new RuntimeException("Spotify API Error During Token Refresh: " + e.getMessage());
         }

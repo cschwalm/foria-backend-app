@@ -53,6 +53,7 @@ stripeApiKey: corp_foria_stripe_secret_key
 # Auth0
 auth0.issuer: https://auth-test.foriatickets.com/
 auth0.apiAudience: api.foriatickets.com
+auth0.foriaWebAppAudience: Xf7RZ4K7PEyxlaNE54FTEkV3OvTdKNZm
 
 #FCM
 fcmDatabaseUrl: https://foria-tickets.firebaseio.com
@@ -83,6 +84,7 @@ stripeApiKey: corp_foria_stripe_secret_key
 # Auth0
 auth0.issuer: https://auth-test.foriatickets.com/
 auth0.apiAudience: api.foriatickets.com
+auth0.foriaWebAppAudience: Xf7RZ4K7PEyxlaNE54FTEkV3OvTdKNZm
 
 #FCM
 fcmDatabaseUrl: https://foria-tickets.firebaseio.com
@@ -116,6 +118,7 @@ stripeApiKey: prod_foria_stripe_secret_key
 # Auth0
 auth0.issuer: https://auth.foriatickets.com/
 auth0.apiAudience: api.foriatickets.com
+auth0.foriaWebAppAudience: 6btWupF5RfQPPMyRL08DWOF7wZ8ZDjzr
 
 #FCM
 fcmDatabaseUrl: https://foria-tickets.firebaseio.com

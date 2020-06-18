@@ -101,6 +101,16 @@ public class GatewayMockImpl implements GatewayMock {
     }
 
     @Override
+    public void linkAdditionalAccount(String idToken, String connection, String provider) {
+        LOG.info("Auth0 mock in use. No merge.");
+    }
+
+    @Override
+    public void unlinkAccountByConnection(String connection, String provider) {
+        LOG.info("Auth0 mock in use. No unlink.");
+    }
+
+    @Override
     public List<com.auth0.json.mgmt.users.User> obtainSpotifyUsers() {
         return null;
     }

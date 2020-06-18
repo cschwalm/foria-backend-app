@@ -763,6 +763,56 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BaseApiModel'
+  /user/linkAccounts:
+    post:
+      tags:
+        - user
+      summary: Links authenticated user to secondary in payload.
+      operationId: linkAccounts
+      requestBody:
+        description: Payload containing options and ID Token.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountLinkRequest'
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseApiModel'
+        404:
+          description: User not found by ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseApiModel'
+  /user/unlinkAccounts:
+    post:
+      tags:
+        - user
+      summary: Unlinks all secondary social accounts for specified connection.
+      operationId: unlinkAccounts
+      requestBody:
+        description: Payload must contain connetion. No ID token.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountLinkRequest'
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseApiModel'
+        404:
+          description: User not found by ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseApiModel'
   /user/tickets:
     get:
       tags:
@@ -1219,6 +1269,17 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Event'
+    AccountLinkRequest:
+      type: object
+      properties:
+        connection:
+          type: string
+          example: "spotify"
+        provider:
+          type: string
+          example: "oauth2"
+        id_token:
+          type: string
     BaseApiModel:
       type: object
       properties:

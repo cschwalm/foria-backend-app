@@ -4,23 +4,37 @@ import com.auth0.client.auth.AuthAPI;
 import com.auth0.client.mgmt.ManagementAPI;
 import com.auth0.client.mgmt.filter.UserFilter;
 import com.auth0.exception.Auth0Exception;
+import com.auth0.exception.IdTokenValidationException;
 import com.auth0.json.auth.TokenHolder;
-import com.auth0.json.mgmt.jobs.Job;
+import com.auth0.json.mgmt.tickets.EmailVerificationTicket;
+import com.auth0.json.mgmt.users.Identity;
 import com.auth0.json.mgmt.users.User;
 import com.auth0.json.mgmt.users.UsersPage;
+import com.auth0.jwk.JwkException;
+import com.auth0.jwk.JwkProvider;
+import com.auth0.jwk.JwkProviderBuilder;
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.interfaces.DecodedJWT;
 import com.auth0.net.AuthRequest;
 import com.auth0.net.Request;
+import com.auth0.utils.tokens.IdTokenVerifier;
+import com.auth0.utils.tokens.SignatureVerifier;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.util.Assert;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.security.interfaces.RSAPublicKey;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @Profile("!mock")
@@ -36,8 +50,12 @@ public class Auth0GatewayImpl implements Auth0Gateway {
     private Map<String, String> auth0SecretMap;
     private long tokenExpiry = -1;
 
+    private final IdTokenVerifier idTokenVerifier;
+
     public Auth0GatewayImpl(@Autowired AWSSecretsManagerGateway awsSecretsManagerGateway,
-                            @Value("${auth0ManagementKey}") String auth0ManagementKey) {
+                            @Value("${auth0ManagementKey}") String auth0ManagementKey,
+                            @Value(value = "${auth0.issuer}") String issuer,
+                            @Value(value = "${auth0.foriaWebAppAudience}") String foriaWebAppAudience) {
 
         final Optional<Map<String, String>> auth0Secrets = awsSecretsManagerGateway.getAllSecrets(auth0ManagementKey);
         if (!auth0Secrets.isPresent() || auth0Secrets.get().isEmpty()) {
@@ -47,7 +65,98 @@ public class Auth0GatewayImpl implements Auth0Gateway {
 
         auth0SecretMap = auth0Secrets.get();
         refreshToken();
+
+        //Configure ID Token verifier.
+        final JwkProvider provider = new JwkProviderBuilder(issuer).build();
+        final SignatureVerifier signatureVerifier = SignatureVerifier.forRS256(keyId -> {
+            try {
+                return (RSAPublicKey) provider.get(keyId).getPublicKey();
+            } catch (JwkException jwke) {
+                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to validate JWT. Key load fail.");
+            }
+        });
+
+        idTokenVerifier = IdTokenVerifier.init(issuer, foriaWebAppAudience, signatureVerifier).build();
+
         LOG.info("Successfully connected to Auth0 Management API.");
+    }
+
+    @Override
+    public void linkAdditionalAccount(String idToken, String connection, String provider) {
+
+        //Load user from Auth0 token.
+        final String primaryAuth0Id = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (primaryAuth0Id == null) {
+            LOG.error("Attempted to link accounts without an authenticated user.");
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Attempted to link accounts without an authenticated user.");
+        }
+
+        //Decode token to obtain sub for secondary.
+        verifyIdToken(idToken);
+        final DecodedJWT secondaryJwt = JWT.decode(idToken);
+        final String secondaryId = secondaryJwt.getSubject();
+
+        final Request<List<Identity>> request = auth0.users().linkIdentity(primaryAuth0Id, secondaryId, provider, null);
+        final List<Identity> identities;
+        try {
+            identities = request.execute();
+        } catch (Auth0Exception e) {
+            LOG.error("Failed to link user identities with Auth0! Msg: {}", e.getMessage());
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to link user identities with Auth0.");
+        }
+
+        if (!identities.isEmpty()) {
+            final String primaryUserId = identities.get(0).getUserId();
+            LOG.info("Linked accounts with primaryUserId: {}", primaryUserId);
+        }
+    }
+
+    @Override
+    public void unlinkAccountByConnection(String connection, String provider) {
+
+        if (provider == null || connection == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Required parameters must not be null.");
+        }
+
+        //Load user from Auth0 token.
+        final String primaryAuth0Id = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (primaryAuth0Id == null) {
+            LOG.error("Attempted to link accounts without an authenticated user.");
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Attempted to link accounts without an authenticated user.");
+        }
+
+        final Request<User> auth0UserRequest = auth0.users().get(primaryAuth0Id, null);
+        final User auth0User;
+        try {
+            auth0User = auth0UserRequest.execute();
+        } catch (Auth0Exception ex) {
+            LOG.error("Failed to query Auth0 user with ID: {}! Msg: {}", primaryAuth0Id, ex.getMessage());
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to query Auth0 user.");
+        }
+
+        //Find all identities with the provider. In edge cases, may be more than one.
+        final List<Identity> auth0SecondaryIdentities = auth0User.getIdentities()
+                .stream()
+                .filter(identity -> provider.equalsIgnoreCase(identity.getProvider()) && connection.equalsIgnoreCase(identity.getConnection()))
+                .collect(Collectors.toList());
+
+        if (auth0SecondaryIdentities.isEmpty()) {
+            LOG.info("Failed to unlink identity. Not found.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Failed to unlink identity. Not found.");
+        }
+
+        for (Identity secondaryIdentity : auth0SecondaryIdentities) {
+
+            final Request<List<Identity>> request = auth0.users().unlinkIdentity(primaryAuth0Id, secondaryIdentity.getUserId(), provider);
+            try {
+                request.execute();
+            } catch (Auth0Exception e) {
+                LOG.error("Failed to unlink user identities with Auth0! Msg: {}", e.getMessage());
+                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to unlink user identities with Auth0.");
+            }
+        }
+
+        LOG.debug("Finished unlinking all user identities.");
     }
 
     @Override
@@ -83,17 +192,17 @@ public class Auth0GatewayImpl implements Auth0Gateway {
         }
 
         //Load user from Auth0 token.
-        String auth0Id = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        final String auth0Id = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
-        final Request<Job> jobRequest = auth0.jobs().sendVerificationEmail(auth0Id, auth0SecretMap.get(AUTH0_CLIENT_ID_FIELD));
-        Job jobResult;
+        final EmailVerificationTicket emailVerificationTicket = new EmailVerificationTicket(auth0Id);
+        final Request<EmailVerificationTicket> jobRequest = auth0.tickets().requestEmailVerification(emailVerificationTicket);
         try {
-            jobResult = jobRequest.execute();
+            jobRequest.execute();
         } catch (Auth0Exception e) {
             LOG.error("Failed to send Auth0 verification email for userID: {} - Msg: {}", auth0Id, e.getMessage());
             throw new RuntimeException(e);
         }
-        LOG.info("Auth0 verification email resent for userID: {} with requestId: {}", auth0Id, jobResult.getId());
+        LOG.info("Auth0 verification email resent for userID: {}.", auth0Id);
     }
 
     /**
@@ -127,5 +236,23 @@ public class Auth0GatewayImpl implements Auth0Gateway {
         tokenExpiry = System.currentTimeMillis() + tokenHolder.getExpiresIn();
         auth0 = new ManagementAPI(auth0Domain, tokenHolder.getAccessToken());
         LOG.info("Auth0 token refresh completed. New token expires: {}", tokenExpiry);
+    }
+
+    /**
+     * Preforms standard JWT checks to ensure token is not forged.
+     *
+     * @param idToken Auth0 issued id token.
+     */
+    private void verifyIdToken(String idToken) {
+
+        Assert.notNull(idToken, "idToken must not be null.");
+
+        try {
+            idTokenVerifier.verify(idToken);
+        } catch(IdTokenValidationException idtve) {
+            LOG.warn("Failed to validate user supplied ID token. Msg: {}", idtve.getMessage());
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Failed to validate JWT. Key load fail.");
+        }
+
     }
 }

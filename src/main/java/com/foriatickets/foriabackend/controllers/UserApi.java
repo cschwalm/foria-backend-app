@@ -3,15 +3,13 @@ package com.foriatickets.foriabackend.controllers;
 import com.foriatickets.foriabackend.gateway.Auth0Gateway;
 import com.foriatickets.foriabackend.service.TicketService;
 import com.foriatickets.foriabackend.service.UserCreationService;
-import org.openapitools.model.BaseApiModel;
-import org.openapitools.model.DeviceToken;
-import org.openapitools.model.Ticket;
-import org.openapitools.model.User;
+import org.openapitools.model.*;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
@@ -44,6 +42,28 @@ public class UserApi implements org.openapitools.api.UserApi {
         UserCreationService userCreationService = beanFactory.getBean(UserCreationService.class);
         User user = userCreationService.getUser();
         return new ResponseEntity<>(user, HttpStatus.OK);
+    }
+
+    @Override
+    @RequestMapping(value = "/user/linkAccounts", method = RequestMethod.POST)
+    public ResponseEntity<BaseApiModel> linkAccounts(@Valid AccountLinkRequest accountLinkRequest) {
+
+        if (StringUtils.isEmpty(accountLinkRequest.getConnection()) || StringUtils.isEmpty(accountLinkRequest.getProvider())) {
+            return new ResponseEntity<>(new BaseApiModel(), HttpStatus.BAD_REQUEST);
+        }
+
+        Auth0Gateway auth0Gateway = beanFactory.getBean(Auth0Gateway.class);
+        auth0Gateway.linkAdditionalAccount(accountLinkRequest.getIdToken(), accountLinkRequest.getConnection(), accountLinkRequest.getProvider());
+        return new ResponseEntity<>(new BaseApiModel(), HttpStatus.OK);
+    }
+
+    @Override
+    @RequestMapping(value = "/user/unlinkAccounts", method = RequestMethod.POST)
+    public ResponseEntity<BaseApiModel> unlinkAccounts(@Valid AccountLinkRequest accountLinkRequest) {
+
+        Auth0Gateway auth0Gateway = beanFactory.getBean(Auth0Gateway.class);
+        auth0Gateway.unlinkAccountByConnection(accountLinkRequest.getConnection(), accountLinkRequest.getProvider());
+        return new ResponseEntity<>(new BaseApiModel(), HttpStatus.OK);
     }
 
     @Override
