@@ -14,12 +14,14 @@ import com.wrapper.spotify.model_objects.specification.Artist;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.openapitools.model.UserTopArtists;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class SpotifyIngestionServiceImpl implements SpotifyIngestionService {
@@ -114,5 +116,11 @@ public class SpotifyIngestionServiceImpl implements SpotifyIngestionService {
         }
 
         LOG.info("Finished Spotify data load job at: {}", OffsetDateTime.now());
+    }
+
+    @Override
+    public UserTopArtists processTopArtists(UUID permalinkUUID) {
+
+        return null;
     }
 }

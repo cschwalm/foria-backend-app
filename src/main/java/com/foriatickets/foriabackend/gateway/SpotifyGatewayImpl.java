@@ -33,7 +33,7 @@ public class SpotifyGatewayImpl implements SpotifyGateway {
 
     private static final String TIME_RANGE = "short_term";
 
-    private Map<String, String> spotifySecretMap;
+    private final Map<String, String> spotifySecretMap;
 
     public SpotifyGatewayImpl(@Autowired AWSSecretsManagerGateway awsSecretsManagerGateway,
                               @Value("${spotifyApiKey}") String spotifyApiKey) {

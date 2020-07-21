@@ -1,6 +1,7 @@
 package com.foriatickets.foriabackend.controllers;
 
 import com.foriatickets.foriabackend.gateway.Auth0Gateway;
+import com.foriatickets.foriabackend.service.SpotifyIngestionService;
 import com.foriatickets.foriabackend.service.TicketService;
 import com.foriatickets.foriabackend.service.UserCreationService;
 import org.openapitools.model.*;
@@ -42,6 +43,21 @@ public class UserApi implements org.openapitools.api.UserApi {
         UserCreationService userCreationService = beanFactory.getBean(UserCreationService.class);
         User user = userCreationService.getUser();
         return new ResponseEntity<>(user, HttpStatus.OK);
+    }
+
+    @Override
+    @RequestMapping(value = "/user/music/topArtists", method = RequestMethod.POST)
+    public ResponseEntity<UserTopArtists> getTopArtists(@Valid UserTopArtistsRequest userTopArtistsRequest) {
+
+        final UserTopArtists userTopArtists;
+        final SpotifyIngestionService spotifyIngestionService = beanFactory.getBean(SpotifyIngestionService.class);
+        if (userTopArtistsRequest != null && userTopArtistsRequest.getPermalinkUuid() != null) {
+            userTopArtists = spotifyIngestionService.processTopArtists(userTopArtistsRequest.getPermalinkUuid());
+        } else {
+            userTopArtists = spotifyIngestionService.processTopArtists(null);
+        }
+
+        return new ResponseEntity<>(userTopArtists, HttpStatus.OK);
     }
 
     @Override

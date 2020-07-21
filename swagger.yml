@@ -763,6 +763,33 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BaseApiModel'
+  /user/music/topArtists:
+    post:
+      tags:
+        - user
+      summary: Obtains most frequent consumed artists for User.
+      description: Currently loads top Spotify artists from the personalization API.
+      operationId: getTopArtists
+      requestBody:
+        description: Optional payload to allow prior results to be loaded.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserTopArtistsRequest'
+        required: false
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserTopArtists'
+        404:
+          description: Permalink ID not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseApiModel'
   /user/linkAccounts:
     post:
       tags:
@@ -1447,6 +1474,41 @@ components:
           type: integer
           minimum: 1
           maximum: 100000
+    Artist:
+      type: object
+      properties:
+        name:
+          type: string
+        image_url:
+          type: string
+        bio_url:
+          type: string
+    UserTopArtistsRequest:
+      type: object
+      properties:
+        permalink_uuid:
+          type: string
+          format: uuid
+    UserTopArtists:
+      type: object
+      required:
+        - user_id
+        - timestamp
+        - artist_list
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        timestamp:
+          type: string
+          format: date_time
+        permalink_uuid:
+          type: string
+          format: uuid
+        spotify_artist_list:
+          type: array
+          items:
+            $ref: '#/components/schemas/Artist'
   securitySchemes:
     auth:
       type: oauth2
