@@ -3,6 +3,7 @@ package com.foriatickets.foriabackend.service;
 import com.auth0.json.mgmt.users.Identity;
 import com.auth0.json.mgmt.users.User;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.foriatickets.foriabackend.entities.UserEntity;
 import com.foriatickets.foriabackend.entities.UserMusicInterestsEntity;
@@ -15,11 +16,15 @@ import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.openapitools.model.UserTopArtists;
+import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -121,6 +126,58 @@ public class SpotifyIngestionServiceImpl implements SpotifyIngestionService {
     @Override
     public UserTopArtists processTopArtists(UUID permalinkUUID) {
 
-        return null;
+        //Load user from Auth0 token.
+        final String primaryAuth0Id = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        final UserEntity userEntity = userRepository.findByAuth0Id(primaryAuth0Id);
+        if (primaryAuth0Id == null || userEntity == null) {
+            LOG.error("Failed to load user ID for processing user interest data.");
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to load user ID for processing user interest data.");
+        }
+
+        //Load music interest data
+        final UserMusicInterestsEntity result;
+        if (permalinkUUID != null) {
+            result = userMusicInterestsRepository.findById(permalinkUUID).orElse(null);
+        } else {
+            result = userMusicInterestsRepository.findFirstByUserEntityOrderByProcessedDateDesc(userEntity);
+        }
+
+        if (result == null) {
+            LOG.warn("Failed to obtain music interest history for user.");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Failed to obtain music interest history for user.");
+        }
+
+        final String json = result.getData();
+        final List<Artist> artistList;
+        try {
+            artistList = objectMapper.readValue(json, new TypeReference<List<Artist>>(){});
+        } catch (JsonProcessingException e) {
+            LOG.error("Failed to parse music interest data payload for user!");
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to parse music interest data payload for user!");
+        }
+
+        final UserTopArtists userTopArtists = new UserTopArtists();
+        userTopArtists.setSpotifyArtistList(new ArrayList<>());
+        userTopArtists.setPermalinkUuid(result.getId());
+        userTopArtists.setTimestamp(result.getProcessedDate().toString());
+        userTopArtists.setUserId(userEntity.getId());
+        for (Artist artist: artistList) {
+
+            final String imageUrl;
+            if (artist.getImages().length > 0) {
+                imageUrl = artist.getImages()[0].getUrl();
+            } else {
+                imageUrl = null;
+            }
+
+            final org.openapitools.model.Artist newArtist = new org.openapitools.model.Artist();
+            newArtist.setBioUrl(artist.getHref());
+            newArtist.setName(artist.getName());
+            newArtist.setImageUrl(imageUrl);
+            userTopArtists.getSpotifyArtistList().add(newArtist);
+        }
+
+        LOG.info("Returned {} artist(s) for userId: {}", userTopArtists.getSpotifyArtistList().size(), userEntity.getId());
+        return userTopArtists;
     }
 }
