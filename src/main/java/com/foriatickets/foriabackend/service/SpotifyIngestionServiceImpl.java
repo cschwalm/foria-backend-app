@@ -22,10 +22,12 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -126,19 +128,22 @@ public class SpotifyIngestionServiceImpl implements SpotifyIngestionService {
     @Override
     public UserTopArtists processTopArtists(UUID permalinkUUID) {
 
-        //Load user from Auth0 token.
-        final String primaryAuth0Id = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        final UserEntity userEntity = userRepository.findByAuth0Id(primaryAuth0Id);
-        if (primaryAuth0Id == null || userEntity == null) {
-            LOG.error("Failed to load user ID for processing user interest data.");
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to load user ID for processing user interest data.");
-        }
-
         //Load music interest data
         final UserMusicInterestsEntity result;
         if (permalinkUUID != null) {
+
             result = userMusicInterestsRepository.findById(permalinkUUID).orElse(null);
+
         } else {
+
+            //Load user from Auth0 token.
+            final String primaryAuth0Id = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+            final UserEntity userEntity = userRepository.findByAuth0Id(primaryAuth0Id);
+            if (primaryAuth0Id == null || userEntity == null) {
+                LOG.error("Failed to load user ID for processing user interest data.");
+                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to load user ID for processing user interest data.");
+            }
+
             result = userMusicInterestsRepository.findFirstByUserEntityOrderByProcessedDateDesc(userEntity);
         }
 
@@ -160,24 +165,39 @@ public class SpotifyIngestionServiceImpl implements SpotifyIngestionService {
         userTopArtists.setSpotifyArtistList(new ArrayList<>());
         userTopArtists.setPermalinkUuid(result.getId());
         userTopArtists.setTimestamp(result.getProcessedDate().toString());
-        userTopArtists.setUserId(userEntity.getId());
+        userTopArtists.setUserId(result.getUserEntity().getId());
         for (Artist artist: artistList) {
 
             final String imageUrl;
+            final BigDecimal imageWidth, imageHeight;
             if (artist.getImages().length > 0) {
                 imageUrl = artist.getImages()[0].getUrl();
+                imageHeight = BigDecimal.valueOf(artist.getImages()[0].getHeight());
+                imageWidth = BigDecimal.valueOf(artist.getImages()[0].getWidth());
+
             } else {
                 imageUrl = null;
+                imageHeight = null;
+                imageWidth = null;
             }
 
             final org.openapitools.model.Artist newArtist = new org.openapitools.model.Artist();
-            newArtist.setBioUrl(artist.getHref());
+            newArtist.setId(artist.getId());
             newArtist.setName(artist.getName());
             newArtist.setImageUrl(imageUrl);
+            newArtist.setImageHeight(imageHeight);
+            newArtist.setImageWidth(imageWidth);
+
+            //Add external URL if present.
+            final Map<String, String> externalUrlMap = artist.getExternalUrls().getExternalUrls();
+            if (externalUrlMap.size() > 0 && externalUrlMap.containsKey("spotify")) {
+                newArtist.setBioUrl(externalUrlMap.get("spotify"));
+            }
+
             userTopArtists.getSpotifyArtistList().add(newArtist);
         }
 
-        LOG.info("Returned {} artist(s) for userId: {}", userTopArtists.getSpotifyArtistList().size(), userEntity.getId());
+        LOG.info("Returned {} artist(s) for userId: {}", userTopArtists.getSpotifyArtistList().size(), result.getUserEntity().getId());
         return userTopArtists;
     }
 }

@@ -764,19 +764,40 @@ paths:
               schema:
                 $ref: '#/components/schemas/BaseApiModel'
   /user/music/topArtists:
-    post:
+    get:
       tags:
         - user
       summary: Obtains most frequent consumed artists for User.
-      description: Currently loads top Spotify artists from the personalization API.
+      description: Currently loads top Spotify artists from the personalization API. Requires active user auth.
       operationId: getTopArtists
-      requestBody:
-        description: Optional payload to allow prior results to be loaded.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UserTopArtistsRequest'
-        required: false
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserTopArtists'
+        404:
+          description: Permalink ID not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaseApiModel'
+  /user/music/topArtists/{permalink_uuid}/:
+    get:
+      tags:
+        - user
+      summary: Obtains most frequent consumed artists from previous permalink UUID.
+      description: Currently loads top Spotify artists from the personalization API. Uses prior ID to load cached results.
+      operationId: getTopArtistsByPermalink
+      parameters:
+        - name: permalink_uuid
+          in: path
+          description: Previous returned/shared Permalink.
+          required: true
+          schema:
+            type: string
+            format: uuid
       responses:
         200:
           description: OK
@@ -1477,18 +1498,20 @@ components:
     Artist:
       type: object
       properties:
+        id:
+          type: string
         name:
           type: string
         image_url:
           type: string
+        image_height:
+          type: number
+          format: int32
+        image_width:
+          type: number
+          format: int32
         bio_url:
           type: string
-    UserTopArtistsRequest:
-      type: object
-      properties:
-        permalink_uuid:
-          type: string
-          format: uuid
     UserTopArtists:
       type: object
       required:

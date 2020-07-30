@@ -11,11 +11,13 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.StringUtils;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
 import javax.validation.Valid;
 import java.util.List;
+import java.util.UUID;
 
 @Controller
 @RequestMapping(path = "/v1/", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
@@ -46,16 +48,23 @@ public class UserApi implements org.openapitools.api.UserApi {
     }
 
     @Override
-    @RequestMapping(value = "/user/music/topArtists", method = RequestMethod.POST)
-    public ResponseEntity<UserTopArtists> getTopArtists(@Valid UserTopArtistsRequest userTopArtistsRequest) {
+    @RequestMapping(value = "/user/music/topArtists", method = RequestMethod.GET)
+    public ResponseEntity<UserTopArtists> getTopArtists() {
 
         final UserTopArtists userTopArtists;
         final SpotifyIngestionService spotifyIngestionService = beanFactory.getBean(SpotifyIngestionService.class);
-        if (userTopArtistsRequest != null && userTopArtistsRequest.getPermalinkUuid() != null) {
-            userTopArtists = spotifyIngestionService.processTopArtists(userTopArtistsRequest.getPermalinkUuid());
-        } else {
-            userTopArtists = spotifyIngestionService.processTopArtists(null);
-        }
+        userTopArtists = spotifyIngestionService.processTopArtists(null);
+
+        return new ResponseEntity<>(userTopArtists, HttpStatus.OK);
+    }
+
+    @Override
+    @RequestMapping(value = "/user/music/topArtists/{permalink_uuid}", method = RequestMethod.GET)
+    public ResponseEntity<UserTopArtists> getTopArtistsByPermalink(@PathVariable("permalink_uuid") UUID permalinkUUID) {
+
+        final UserTopArtists userTopArtists;
+        final SpotifyIngestionService spotifyIngestionService = beanFactory.getBean(SpotifyIngestionService.class);
+        userTopArtists = spotifyIngestionService.processTopArtists(permalinkUUID);
 
         return new ResponseEntity<>(userTopArtists, HttpStatus.OK);
     }
