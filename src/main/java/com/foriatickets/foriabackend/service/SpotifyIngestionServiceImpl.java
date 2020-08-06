@@ -66,22 +66,6 @@ public class SpotifyIngestionServiceImpl implements SpotifyIngestionService {
 
         for (User spotifyUser : spotifyUsers) {
 
-            //Find Spotify Idp
-            Identity spotifyId = null;
-            final List<Identity> idpList = spotifyUser.getIdentities();
-            for (Identity identity : idpList) {
-                if (identity.getConnection().equals(Auth0Gateway.AUTH0_SPOTIFY_CONNECTION_NAME)) {
-                    spotifyId = identity;
-                    break;
-                }
-            }
-
-            //Ensure IdP is for Spotify.
-            if (spotifyId == null) {
-                LOG.error("Failed to find connected Spotify identity for connected user: {}", spotifyUser.getId());
-                continue;
-            }
-
             //Validate Foria account exists
             final UserEntity userEntity = userRepository.findByAuth0Id(spotifyUser.getId());
             if (userEntity == null) {
@@ -89,47 +73,99 @@ public class SpotifyIngestionServiceImpl implements SpotifyIngestionService {
                 continue;
             }
 
-            //Load Spotify Data
-            final Object spotifyRefreshToken = spotifyId.getValues().get("refresh_token");
-            if (spotifyRefreshToken == null) {
-                LOG.error("Spotify refresh token missing for connected user: {}", spotifyUser.getId());
-                continue;
-            }
-            final List<Artist> spotifyArtistList = spotifyGateway.getUsersTopArtists(spotifyRefreshToken.toString());
-            LOG.debug("Loaded {} Spotify artists for userId: {}", spotifyArtistList.size(), spotifyUser.getId());
-
-            if (spotifyArtistList.isEmpty()) {
-                LOG.debug("Skipping Spotify user for no interest data. UserId: {}", spotifyUser.getId());
-                continue;
-            }
-
-            String json;
-            try {
-                json = objectMapper.writeValueAsString(spotifyArtistList);
-            } catch (JsonProcessingException e) {
-                LOG.error("Failed to write Spotify list to JSON!");
-                LOG.error(e.getMessage());
-                continue;
-            }
-
-            //Write entry to db
-            UserMusicInterestsEntity userMusicInterestsEntity = new UserMusicInterestsEntity();
-            userMusicInterestsEntity.setData(json);
-            userMusicInterestsEntity.setProcessedDate(LocalDate.now());
-            userMusicInterestsEntity.setUserEntity(userEntity);
-
-            userMusicInterestsEntity = userMusicInterestsRepository.save(userMusicInterestsEntity);
-            LOG.debug("Created record with id: {}", userMusicInterestsEntity.getId());
+            pollTopArtistForUser(spotifyUser, userEntity);
         }
 
         LOG.info("Finished Spotify data load job at: {}", OffsetDateTime.now());
+    }
+
+    /**
+     * Accepts an Auth0 user and extracts their Spotify account.
+     * Account IdP for Spotify is then extracted and API called to persist user interest data.
+     */
+    private UserMusicInterestsEntity pollTopArtistForUser(User spotifyUser, UserEntity userEntity) {
+
+        //Ensure IdP is for Spotify.
+        final Identity spotifyId = extractSpotifyIdentity(spotifyUser);
+
+        if (spotifyId == null) {
+            LOG.error("Failed to find connected Spotify identity for connected user: {}", spotifyUser.getId());
+            return null;
+        }
+
+        //Load Spotify Data
+        final Object spotifyRefreshToken = spotifyId.getValues().get("refresh_token");
+        if (spotifyRefreshToken == null) {
+            LOG.error("Spotify refresh token missing for connected user: {}", spotifyUser.getId());
+            return null;
+        }
+
+        final List<Artist> spotifyArtistList = spotifyGateway.getUsersTopArtists(spotifyRefreshToken.toString());
+        LOG.debug("Loaded {} Spotify artists for userId: {}", spotifyArtistList.size(), spotifyUser.getId());
+
+        if (spotifyArtistList.isEmpty()) {
+            LOG.debug("Skipping Spotify user for no interest data. UserId: {}", spotifyUser.getId());
+            return null;
+        }
+
+        return writeSpotifyJSONToDb(userEntity, spotifyArtistList);
+    }
+
+    /**
+     * Converts list to JSON and persists to the database.
+     *
+     * @param userEntity User to write for.
+     * @param spotifyArtistList Data to serialize.
+     */
+    private UserMusicInterestsEntity writeSpotifyJSONToDb(UserEntity userEntity, List<Artist> spotifyArtistList) {
+
+        String json;
+        try {
+            json = objectMapper.writeValueAsString(spotifyArtistList);
+        } catch (JsonProcessingException e) {
+            LOG.error("Failed to write Spotify list to JSON!");
+            LOG.error(e.getMessage());
+            return null;
+        }
+
+        //Write entry to db
+        UserMusicInterestsEntity userMusicInterestsEntity = new UserMusicInterestsEntity();
+        userMusicInterestsEntity.setData(json);
+        userMusicInterestsEntity.setProcessedDate(LocalDate.now());
+        userMusicInterestsEntity.setUserEntity(userEntity);
+
+        userMusicInterestsEntity = userMusicInterestsRepository.save(userMusicInterestsEntity);
+        LOG.debug("Created record with id: {}", userMusicInterestsEntity.getId());
+
+        return userMusicInterestsEntity;
+    }
+
+    /**
+     * Extracts the Spotify identify from the list of linked IdP providers.
+     *
+     * @param spotifyUser ID to check.
+     * @return Returns null if not found.
+     */
+    private Identity extractSpotifyIdentity(User spotifyUser) {
+
+        //Find Spotify Idp
+        Identity spotifyId = null;
+        final List<Identity> idpList = spotifyUser.getIdentities();
+        for (Identity identity : idpList) {
+            if (identity.getConnection().equals(Auth0Gateway.AUTH0_SPOTIFY_CONNECTION_NAME)) {
+                spotifyId = identity;
+                break;
+            }
+        }
+
+        return spotifyId;
     }
 
     @Override
     public UserTopArtists processTopArtists(UUID permalinkUUID) {
 
         //Load music interest data
-        final UserMusicInterestsEntity result;
+        UserMusicInterestsEntity result;
         if (permalinkUUID != null) {
 
             result = userMusicInterestsRepository.findById(permalinkUUID).orElse(null);
@@ -138,6 +174,7 @@ public class SpotifyIngestionServiceImpl implements SpotifyIngestionService {
 
             //Load user from Auth0 token.
             final String primaryAuth0Id = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+            final User auth0User = auth0Gateway.obtainAuth0User(primaryAuth0Id);
             final UserEntity userEntity = userRepository.findByAuth0Id(primaryAuth0Id);
             if (primaryAuth0Id == null || userEntity == null) {
                 LOG.error("Failed to load user ID for processing user interest data.");
@@ -145,6 +182,13 @@ public class SpotifyIngestionServiceImpl implements SpotifyIngestionService {
             }
 
             result = userMusicInterestsRepository.findFirstByUserEntityOrderByProcessedDateDesc(userEntity);
+
+            //Load fresh copy if poll job hasn't run yet.
+            if (result == null) {
+
+                LOG.info("No music interest history for user. Requesting from Spotify now.");
+                result = pollTopArtistForUser(auth0User, userEntity);
+            }
         }
 
         if (result == null) {

@@ -160,6 +160,19 @@ public class Auth0GatewayImpl implements Auth0Gateway {
     }
 
     @Override
+    public User obtainAuth0User(String auth0UserId) {
+
+        final Request<User> request = auth0.users().get(auth0UserId, null);
+
+        try {
+            return request.execute();
+        } catch (Auth0Exception e) {
+            LOG.error("Failed to load Auth0 user by ID. - Msg: {}", e.getMessage());
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
     public List<User> obtainSpotifyUsers() {
 
         if (System.currentTimeMillis() >= tokenExpiry + 1000L) {

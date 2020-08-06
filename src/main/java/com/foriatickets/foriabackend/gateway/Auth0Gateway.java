@@ -19,6 +19,14 @@ public interface Auth0Gateway {
     void linkAdditionalAccount(String idToken, String connection, String provider);
 
     /**
+     * Load the Auth0 user by ID.
+     *
+     * @param auth0UserId ID to load.
+     * @return Auth0 user. Throws exception on failure.
+     */
+    User obtainAuth0User(String auth0UserId);
+
+    /**
      * Obtains all Auth0 users that have connected their accounts via Spotify.
      * Allows for data mining Spotify data.
      *

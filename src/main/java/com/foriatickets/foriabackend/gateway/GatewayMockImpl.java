@@ -125,4 +125,10 @@ public class GatewayMockImpl implements GatewayMock {
         LOG.info("Spotify mock in use. No artists.");
         return new ArrayList<>();
     }
+
+    @Override
+    public com.auth0.json.mgmt.users.User obtainAuth0User(String auth0UserId) {
+        LOG.info("Auth0 mock in use. No unlink.");
+        return new com.auth0.json.mgmt.users.User();
+    }
 }
