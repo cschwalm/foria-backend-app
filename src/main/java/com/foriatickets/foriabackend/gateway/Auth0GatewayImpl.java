@@ -47,8 +47,8 @@ public class Auth0GatewayImpl implements Auth0Gateway {
     private static final String AUTH0_CLIENT_SECRET_FIELD = "client_secret";
 
     private ManagementAPI auth0;
-    private Map<String, String> auth0SecretMap;
-    private long tokenExpiry = -1;
+    private final Map<String, String> auth0SecretMap;
+    private long tokenExpirySecs = -1L;
 
     private final IdTokenVerifier idTokenVerifier;
 
@@ -96,13 +96,17 @@ public class Auth0GatewayImpl implements Auth0Gateway {
         final DecodedJWT secondaryJwt = JWT.decode(idToken);
         final String secondaryId = secondaryJwt.getSubject();
 
+        if ( (System.currentTimeMillis() / 1000L) + 5L >= tokenExpirySecs) {
+            refreshToken();
+        }
+
         final Request<List<Identity>> request = auth0.users().linkIdentity(primaryAuth0Id, secondaryId, provider, null);
         final List<Identity> identities;
         try {
             identities = request.execute();
         } catch (Auth0Exception e) {
-            LOG.error("Failed to link user identities with Auth0! Msg: {}", e.getMessage());
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to link user identities with Auth0.");
+            LOG.error("Failed to link user identities with Auth0! Primary Auth0 ID: {} Msg: {}", primaryAuth0Id, e.getMessage());
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to link user identities with Auth0. Error message: " + e.getMessage());
         }
 
         if (!identities.isEmpty()) {
@@ -123,6 +127,10 @@ public class Auth0GatewayImpl implements Auth0Gateway {
         if (primaryAuth0Id == null) {
             LOG.error("Attempted to link accounts without an authenticated user.");
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Attempted to link accounts without an authenticated user.");
+        }
+
+        if ( (System.currentTimeMillis() / 1000L) + 5L >= tokenExpirySecs) {
+            refreshToken();
         }
 
         final Request<User> auth0UserRequest = auth0.users().get(primaryAuth0Id, null);
@@ -162,6 +170,10 @@ public class Auth0GatewayImpl implements Auth0Gateway {
     @Override
     public User obtainAuth0User(String auth0UserId) {
 
+        if ( (System.currentTimeMillis() / 1000L) + 5L >= tokenExpirySecs) {
+            refreshToken();
+        }
+
         final Request<User> request = auth0.users().get(auth0UserId, null);
 
         try {
@@ -175,7 +187,7 @@ public class Auth0GatewayImpl implements Auth0Gateway {
     @Override
     public List<User> obtainSpotifyUsers() {
 
-        if (System.currentTimeMillis() >= tokenExpiry + 1000L) {
+        if ( (System.currentTimeMillis() / 1000L) + 5L >= tokenExpirySecs) {
             refreshToken();
         }
 
@@ -200,7 +212,7 @@ public class Auth0GatewayImpl implements Auth0Gateway {
     @Override
     public void resendUserVerificationEmail() {
 
-        if (System.currentTimeMillis() >= tokenExpiry + 1000L) {
+        if ( (System.currentTimeMillis() / 1000L) + 5L >= tokenExpirySecs) {
             refreshToken();
         }
 
@@ -246,9 +258,9 @@ public class Auth0GatewayImpl implements Auth0Gateway {
             throw new RuntimeException(e.getMessage());
         }
 
-        tokenExpiry = System.currentTimeMillis() + tokenHolder.getExpiresIn();
+        tokenExpirySecs = System.currentTimeMillis() / 1000L + tokenHolder.getExpiresIn();
         auth0 = new ManagementAPI(auth0Domain, tokenHolder.getAccessToken());
-        LOG.info("Auth0 token refresh completed. New token expires: {}", tokenExpiry);
+        LOG.info("Auth0 token refresh completed. New token expires: {} seconds.", tokenExpirySecs);
     }
 
     /**
